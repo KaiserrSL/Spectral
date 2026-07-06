@@ -585,7 +585,8 @@
                 <div class="auth-divider"><span>or</span></div>
                 <form id="registerForm">
                     <div class="input-group-animated"><input type="text" id="regUsername" required placeholder=" " maxlength="20" autocomplete="off"><label for="regUsername">Username (3–20 chars)</label></div>
-                    <div class="input-group-animated"><input type="email" id="regEmail" required placeholder=" " autocomplete="email"><label for="regEmail">Email</label></div>
+                    <div class="input-group-animated"><input type="email" id="regEmail" placeholder=" " autocomplete="email"><label for="regEmail">Email (optional)</label></div>
+                    <div id="regEmailHint" style="font-size:0.8rem;line-height:1.4;margin:-4px 2px 12px;opacity:0.72;"><i class="fas fa-circle-info" style="margin-right:6px;opacity:0.8;"></i>Leave email empty to sign up with just a username and password.</div>
                     <div class="input-group-animated"><input type="password" id="regPassword" required placeholder=" " autocomplete="new-password"><label for="regPassword">Password</label></div>
                     <div class="input-group-animated"><input type="password" id="regPasswordConfirm" required placeholder=" " autocomplete="new-password"><label for="regPasswordConfirm">Confirm Password</label></div>
                     <div class="auth-error" id="registerError" style="display:none;"></div>

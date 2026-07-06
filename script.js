@@ -1183,6 +1183,21 @@ if (loginForm) {
 // ── Register ──────────────────────────────────────────────────
 const registerForm = document.getElementById('registerForm');
 if (registerForm) {
+    // Создать запись аккаунта прямо в site_users (ник + SHA-256(pepper+пароль)
+    // [+ необязательная почта]) и войти. saveSiteUsers → cloudPushUsers пушит её в
+    // Supabase, поэтому вход по нику потом работает и на сайте, и в лаунчере
+    // (одинаковый pepper + SHA-256). Используется и для «без почты», и для оффлайн-фолбэка.
+    async function createLocalAccount(username, email, pass) {
+        const newUser = { id:'su_'+Date.now(), username, email:email||'', password:await hashPassword(pass),
+            role:'USER', displayName:username, bio:'Minecraft player', avatar:'', registeredAt:todayStr(),
+            totalTimeSec:0, visitCount:0, lastSeen:new Date().toISOString(), banned:false };
+        siteUsers.push(newUser); saveSiteUsers(siteUsers);
+        saveMcAccounts(newUser.id, []); saveActiveMc(newUser.id, '');
+        currentUserId = newUser.id; saveSession(newUser.id);
+        beginUserSession(); registerForm.reset();
+        renderAll(); showProfileView();
+    }
+
     registerForm.addEventListener('submit', async e => {
         e.preventDefault();
         const username = sanitizeField(document.getElementById('regUsername').value, 20);
@@ -1193,12 +1208,36 @@ if (registerForm) {
         const showErr  = msg => authMsg('registerError', msg);
         if (!username||username.length<3) return showErr('Username must be 3–20 characters');
         if (!/^[A-Za-z0-9 _.\-]+$/.test(username)) return showErr('Username may use letters, numbers, spaces and _ . - only');
-        if (!EMAIL_RE.test(email)) return showErr('Enter a valid email address');
+
+        // Почта теперь НЕОБЯЗАТЕЛЬНА: пустое поле → регистрация по одному нику.
+        const noEmail = email.length === 0;
+        if (!noEmail && !EMAIL_RE.test(email)) return showErr('Enter a valid email address');
+
         if (siteUsers.find(u=>u.username.toLowerCase()===username.toLowerCase())) return showErr('Username already taken');
-        const minLen = authAvailable() ? 6 : 4;
+        const minLen = (!noEmail && authAvailable()) ? 6 : 4;
         if (!pass||pass.length<minLen) return showErr(`Password must be at least ${minLen} characters`);
         if (pass.length>128) return showErr('Password is too long');
         if (pass!==passC) return showErr('Passwords do not match');
+
+        // ── Регистрация БЕЗ почты — только ник + пароль ─────────────────────
+        // Пишем напрямую в site_users, без GoTrue и подтверждения почты. Это тот
+        // же способ входа по нику, что уже поддерживают login-форма и лаунчер.
+        if (noEmail) {
+            const submitBtn = registerForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+            try {
+                // Проверяем занятость ника ещё и в облаке — дубли ломают вход по нику.
+                if (cloud) {
+                    const { data, error } = await cloud.from('site_users')
+                        .select('id').eq('username', username).limit(1);
+                    if (!error && data && data.length) return showErr('Username already taken');
+                }
+                await createLocalAccount(username, '', pass);
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
+            }
+            return;
+        }
 
         // Real account via Supabase Auth (enables Google + password recovery)
         if (authAvailable()) {
@@ -1223,12 +1262,7 @@ if (registerForm) {
         }
 
         // Local fallback (offline / file://) — keeps the demo working
-        const newUser={id:'su_'+Date.now(),username,email,password:await hashPassword(pass),role:'USER',displayName:username,bio:'Minecraft player',avatar:'',registeredAt:todayStr(),totalTimeSec:0,visitCount:0,lastSeen:new Date().toISOString(),banned:false};
-        siteUsers.push(newUser); saveSiteUsers(siteUsers);
-        saveMcAccounts(newUser.id,[]); saveActiveMc(newUser.id,'');
-        currentUserId=newUser.id; saveSession(newUser.id);
-        beginUserSession(); registerForm.reset();
-        renderAll(); showProfileView();
+        await createLocalAccount(username, email, pass);
     });
 }
 
