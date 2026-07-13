@@ -60,6 +60,7 @@ if (!canvas) return;
 const ctx = canvas.getContext('2d');
 let particles = [], canvasWidth, canvasHeight, animationId;
 let mouse = { x: -9999, y: -9999, active: false };
+let canvasRunning = false;
 // Touch devices: lighter background, no pointer-driven effects (saves battery/jank)
 const IS_TOUCH = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 // Lightweight mode: weak devices skip the heavy canvas/tilt/parallax work.
@@ -124,7 +125,8 @@ function checkFps(ts) {
     }
 }
 function animate(ts) {
-    if (liteOn()) { cancelAnimationFrame(animationId); return; }   // stop in lite mode
+    if (liteOn() || document.hidden) { canvasRunning = false; cancelAnimationFrame(animationId); return; }   // stop in lite mode/background tabs
+    canvasRunning = true;
     checkFps(ts || performance.now());
     ctx.clearRect(0,0,canvasWidth,canvasHeight);
     particles.forEach(p => { p.update(canvasWidth,canvasHeight,mouse); p.draw(ctx); });
@@ -134,6 +136,29 @@ function animate(ts) {
 window.addEventListener('resize', () => { clearTimeout(window._resizeTimer); window._resizeTimer = setTimeout(resizeCanvas, 200); });
 resizeCanvas();
 if (!liteOn()) animate();                 // don't even start the loop on weak devices
+
+// Pause continuous canvas work in background tabs and resume with a clean frame.
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        canvasRunning = false;
+        cancelAnimationFrame(animationId);
+        return;
+    }
+    if (!liteOn() && !canvasRunning) animate(performance.now());
+});
+
+// One shared pointer update drives the background glow without layout work.
+let atmosphereRaf = null;
+document.addEventListener('pointermove', e => {
+    if (liteOn() || IS_TOUCH) return;
+    mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
+    if (atmosphereRaf) return;
+    atmosphereRaf = requestAnimationFrame(() => {
+        document.documentElement.style.setProperty('--pointer-x', `${mouse.x}px`);
+        document.documentElement.style.setProperty('--pointer-y', `${mouse.y}px`);
+        atmosphereRaf = null;
+    });
+}, { passive: true });
 
 // ── Tab navigation ───────────────────────────────────────────
 const navButtons = document.querySelectorAll('.nav-btn');
@@ -190,6 +215,36 @@ function reinitScrollAnimations() {
     if (active) active.querySelectorAll('.animate-on-scroll:not(.visible)').forEach(el => scrollObserver.observe(el));
 }
 document.querySelectorAll('.animate-on-scroll').forEach(el => scrollObserver.observe(el));
+
+// Home feature deck: hover, click and keyboard selection share one state.
+const homeFeatureCards = [...document.querySelectorAll('[data-home-feature]')];
+function activateHomeFeature(card) {
+    if (!card || card.classList.contains('is-active')) return;
+    homeFeatureCards.forEach(item => {
+        const active = item === card;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-pressed', String(active));
+    });
+}
+homeFeatureCards.forEach((card, index) => {
+    card.addEventListener('pointerenter', () => {
+        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) activateHomeFeature(card);
+    });
+    card.addEventListener('click', () => activateHomeFeature(card));
+    card.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            activateHomeFeature(card);
+            return;
+        }
+        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        event.preventDefault();
+        const step = event.key === 'ArrowRight' ? 1 : -1;
+        const next = homeFeatureCards[(index + step + homeFeatureCards.length) % homeFeatureCards.length];
+        activateHomeFeature(next);
+        next.focus();
+    });
+});
 
 // ── Magnetic buttons ─────────────────────────────────────────
 document.querySelectorAll('.magnetic-btn').forEach(btn => {
@@ -408,8 +463,202 @@ function animCounter(el,target,dur=1800){let suffix='';if(target>=1000){suffix='
 const cntObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.querySelectorAll('.af-stat-num[data-count]').forEach(el=>{animCounter(el,parseInt(el.getAttribute('data-count')));});cntObs.unobserve(e.target);}}),{threshold:0.4});
 document.querySelectorAll('.af-stats-strip').forEach(el=>cntObs.observe(el));
 
-// ── Code editor tabs ─────────────────────────────────────────
-document.querySelectorAll('.code-tab').forEach(tab=>{tab.addEventListener('click',()=>{const p=tab.getAttribute('data-tab');document.querySelectorAll('.code-tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');document.querySelectorAll('.code-pane').forEach(pn=>{const show=pn.getAttribute('data-pane')===p;pn.style.display=show?'block':'none';if(show){pn.classList.remove('code-pane--in');void pn.offsetWidth;pn.classList.add('code-pane--in');}});});});
+// ── Development explorer ─────────────────────────────────────
+const DEV_CODE_NOTES = {
+    launch: {
+        title: 'Launch orchestration',
+        description: 'Turns validated settings and an account into a prepared Minecraft process while keeping failure signals available to the UI.',
+        responsibility: 'metadata → arguments → QProcess',
+        tasks: ['Build the classpath and game arguments', 'Prepare native libraries', 'Forward output and failures to Console']
+    },
+    java: {
+        title: 'Runtime selection',
+        description: 'Matches the Minecraft version to a compatible Java major and chooses the best installed runtime, with download as an explicit fallback.',
+        responsibility: 'MC version → Java major → runtime',
+        tasks: ['Derive the required Java major', 'Scan installed runtimes', 'Return a compatible, deterministic match']
+    },
+    auth: {
+        title: 'Stable player identity',
+        description: 'Keeps local profiles predictable by generating the same vanilla-compatible offline UUID for the same Minecraft username.',
+        responsibility: 'username → offline UUID → profile',
+        tasks: ['Normalize the OfflinePlayer input', 'Apply the UUID v3 bit layout', 'Keep identity stable between launches']
+    }
+};
+
+function activateCodeExample(key) {
+    if (!DEV_CODE_NOTES[key]) return;
+    document.querySelectorAll('.code-tab').forEach(tab => {
+        const selected = tab.getAttribute('data-tab') === key;
+        tab.classList.toggle('active', selected);
+        tab.setAttribute('aria-selected', String(selected));
+    });
+    document.querySelectorAll('.code-pane').forEach(pane => {
+        const show = pane.getAttribute('data-pane') === key;
+        pane.style.display = show ? 'block' : 'none';
+        if (show) {
+            pane.classList.remove('code-pane--in');
+            void pane.offsetWidth;
+            pane.classList.add('code-pane--in');
+        }
+    });
+    const note = DEV_CODE_NOTES[key];
+    const panel = document.querySelector('.dev-code-notes');
+    const title = document.getElementById('devCodeTitle');
+    const description = document.getElementById('devCodeDescription');
+    const responsibility = document.getElementById('devCodeResponsibility');
+    const tasks = document.getElementById('devCodeTasks');
+    if (title) title.textContent = note.title;
+    if (description) description.textContent = note.description;
+    if (responsibility) responsibility.textContent = note.responsibility;
+    if (tasks) {
+        tasks.replaceChildren(...note.tasks.map(text => {
+            const item = document.createElement('li');
+            item.textContent = text;
+            return item;
+        }));
+    }
+    if (panel) {
+        panel.classList.remove('is-changing');
+        void panel.offsetWidth;
+        panel.classList.add('is-changing');
+    }
+}
+
+document.querySelectorAll('.code-tab').forEach(tab => {
+    tab.addEventListener('click', () => activateCodeExample(tab.getAttribute('data-tab')));
+});
+
+const DEV_SYSTEMS = {
+    ui: {
+        code: '01', accent: '126, 139, 255', icon: 'window-maximize', title: 'Qt 6 Widgets', kind: 'Presentation',
+        description: 'The desktop surface for Play, Library, Accounts, Console, settings and dialog flows, with shared styling and RU / EN translation.',
+        owns: 'Tabs · dialogs · interaction', connects: 'LauncherCore · managers',
+        tags: ['QWidget', 'Signals', 'Qt Linguist'], flow: ['Player action', 'Qt event', 'LauncherCore'],
+        tasks: ['Keeps product surfaces visually consistent', 'Translates state into clear player actions', 'Delivers accessible feedback and dialogs']
+    },
+    core: {
+        code: '02', accent: '91, 174, 255', icon: 'code', title: 'Launcher Core', kind: 'Orchestration',
+        description: 'Coordinates launch preparation, builds the final Minecraft command and owns the QProcess lifecycle exposed to the interface.',
+        owns: 'Arguments · process state', connects: 'UI · Java · version data',
+        tags: ['C++17', 'QProcess', 'Signals'], flow: ['GameSettings', 'LauncherCore', 'Minecraft JVM'],
+        tasks: ['Builds the classpath and game arguments', 'Prepares native libraries before launch', 'Emits output, state and real failure signals']
+    },
+    java: {
+        code: '03', accent: '240, 180, 77', icon: 'mug-hot', title: 'Java Manager', kind: 'Runtime',
+        description: 'Discovers installed Java runtimes and matches them to the major version required by the selected Minecraft metadata.',
+        owns: 'Discovery · compatibility', connects: 'Version metadata · LauncherCore',
+        tags: ['Java major', 'Runtime scan', 'Fallback'], flow: ['Version JSON', 'JavaManager', 'Java path'],
+        tasks: ['Scans available Java installations', 'Selects by required major version', 'Supports an explicit runtime download path']
+    },
+    content: {
+        code: '04', accent: '91, 207, 166', icon: 'box-open', title: 'Versions & Mods', kind: 'Content',
+        description: 'Installs Minecraft versions and manages instance content, including Modrinth discovery, version files and one-click mod updates.',
+        owns: 'Versions · mods · assets', connects: 'Modrinth · instance library',
+        tags: ['Modrinth', 'Version JSON', 'Updates'], flow: ['Catalog', 'Content manager', 'Instance files'],
+        tasks: ['Resolves inherited version metadata', 'Keeps every instance isolated', 'Tracks installed content and available updates']
+    },
+    accounts: {
+        code: '05', accent: '222, 113, 174', icon: 'user-shield', title: 'Accounts', kind: 'Identity',
+        description: 'Manages local Minecraft profiles, stable offline UUIDs, skin previews and quick account switching for each launch.',
+        owns: 'Profiles · UUIDs · skins', connects: 'UI · launch settings',
+        tags: ['Offline UUID', 'Skins', 'Profiles'], flow: ['Username', 'Account model', 'Launch identity'],
+        tasks: ['Keeps identity stable between sessions', 'Provides the active launch account', 'Separates profile data from instance data']
+    },
+    diagnostics: {
+        code: '06', accent: '73, 205, 213', icon: 'terminal', title: 'Console & Logs', kind: 'Observability',
+        description: 'Makes the launch process inspectable with timestamps, severity colors, filters, search, copy, export and crash-focused errors.',
+        owns: 'Output · filters · export', connects: 'QProcess · launcher signals',
+        tags: ['stdout', 'stderr', 'Export'], flow: ['QProcess', 'Log stream', 'Visible error'],
+        tasks: ['Shows stdout and stderr in context', 'Keeps the exact failure reason visible', 'Supports fast search and log sharing']
+    }
+};
+
+function activateDevSystem(key, focusPanel = false) {
+    const system = DEV_SYSTEMS[key];
+    if (!system) return;
+    document.querySelectorAll('[data-dev-system]').forEach(button => {
+        const selected = button.getAttribute('data-dev-system') === key;
+        button.classList.toggle('active', selected);
+        button.setAttribute('aria-selected', String(selected));
+    });
+    const icon = document.querySelector('#devSystemIcon i');
+    const title = document.getElementById('devSystemTitle');
+    const kind = document.getElementById('devSystemKind');
+    const description = document.getElementById('devSystemDescription');
+    const owns = document.getElementById('devSystemOwns');
+    const connects = document.getElementById('devSystemConnects');
+    const tasks = document.getElementById('devSystemTasks');
+    const tags = document.getElementById('devSystemTags');
+    const flowInput = document.getElementById('devSystemFlowInput');
+    const flowCore = document.getElementById('devSystemFlowCore');
+    const flowOutput = document.getElementById('devSystemFlowOutput');
+    if (icon) icon.className = `fas fa-${system.icon}`;
+    if (title) title.textContent = system.title;
+    if (kind) kind.textContent = system.kind;
+    if (description) description.textContent = system.description;
+    if (owns) owns.textContent = system.owns;
+    if (connects) connects.textContent = system.connects;
+    if (tags) {
+        tags.replaceChildren(...system.tags.map(text => {
+            const tag = document.createElement('span');
+            tag.textContent = text;
+            return tag;
+        }));
+    }
+    if (flowInput) flowInput.textContent = system.flow[0];
+    if (flowCore) flowCore.textContent = system.flow[1];
+    if (flowOutput) flowOutput.textContent = system.flow[2];
+    if (tasks) {
+        tasks.replaceChildren(...system.tasks.map(text => {
+            const item = document.createElement('li');
+            const tick = document.createElement('i');
+            tick.className = 'fas fa-check';
+            item.append(tick, document.createTextNode(text));
+            return item;
+        }));
+    }
+    const panel = document.querySelector('.dev-system-panel');
+    if (panel) {
+        panel.dataset.systemCode = system.code;
+        panel.style.setProperty('--system-rgb', system.accent);
+        panel.classList.remove('is-changing');
+        void panel.offsetWidth;
+        panel.classList.add('is-changing');
+        if (focusPanel && window.innerWidth <= 560) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+document.querySelectorAll('[data-dev-system]').forEach(button => {
+    button.addEventListener('click', () => activateDevSystem(button.getAttribute('data-dev-system'), true));
+});
+
+document.querySelectorAll('[data-dev-target]').forEach(button => {
+    button.addEventListener('click', () => {
+        const target = document.querySelector(`.nav-links-container [data-target="${button.getAttribute('data-dev-target')}"]`);
+        if (target) target.click();
+    });
+});
+
+document.querySelectorAll('[data-dev-scroll]').forEach(button => {
+    button.addEventListener('click', () => {
+        const target = document.getElementById(button.getAttribute('data-dev-scroll'));
+        if (target) target.scrollIntoView({ behavior: liteOn() ? 'auto' : 'smooth', block: 'start' });
+    });
+});
+
+function enableHorizontalTabKeys(selector) {
+    const tabs = [...document.querySelectorAll(selector)];
+    tabs.forEach((tab, index) => {
+        tab.addEventListener('keydown', event => {
+            if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+            event.preventDefault();
+            const step = event.key === 'ArrowRight' ? 1 : -1;
+            tabs[(index + step + tabs.length) % tabs.length].focus();
+        });
+    });
+}
+enableHorizontalTabKeys('[data-dev-system]');
+enableHorizontalTabKeys('.code-tab');
 
 // Code editor appearance: play the reveal on the active pane the first time it scrolls into view.
 const codeEditorEl=document.querySelector('.code-editor');
@@ -424,10 +673,6 @@ if(codeEditorEl){
     }),{threshold:0.35});
     ceObs.observe(codeEditorEl);
 }
-
-// ── Tech bar animation ───────────────────────────────────────
-const tbObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.querySelectorAll('.tech-bar div').forEach(b=>{const w=b.style.width;b.style.width='0%';setTimeout(()=>{b.style.transition='width 1.2s var(--ease-smooth)';b.style.width=w;},100);});tbObs.unobserve(e.target);}}),{threshold:0.2});
-document.querySelectorAll('.tech-stack-grid').forEach(el=>tbObs.observe(el));
 
 // ── Lightweight toast ────────────────────────────────────────
 function showToast(msg, icon='circle-info'){
@@ -488,6 +733,7 @@ const K_MC_PFX  = 'spectral_launcher_';
 const K_MC_ACT  = 'spectral_mc_active_';
 const K_FORUM   = 'spectral_forum';
 const K_NEWS    = 'spectral_news';
+const K_FRIENDS = 'spectral_friends';
 
 // ── Supabase cloud database ───────────────────────────────────
 // Accounts + Minecraft profiles are mirrored to a Supabase project so they
@@ -597,13 +843,23 @@ const DEFAULT_FORUM = [
       text:'Please add an option to switch between dark and light themes. Some players prefer a lighter interface when playing during the day.',
       date:'24.06.2026', upvotes:['su_pro','su_dev'], approved:true, rejected:false }
 ];
+// Friendships between SITE users. Each row is one relationship:
+//   requester  -> the user who sent the request
+//   addressee  -> the user who received it
+//   status     -> 'pending' (awaiting acceptance) | 'accepted' (friends)
+// A pair of users has at most one row. Seed a few so the feature isn't empty.
+const DEFAULT_FRIENDS = [
+    { id:'fr_seed1', requester:'su_pro', addressee:'su_usr', status:'accepted', createdAt:'2026-06-20T10:00:00Z' },
+    { id:'fr_seed2', requester:'su_mod', addressee:'su_pro', status:'accepted', createdAt:'2026-06-22T14:30:00Z' },
+    { id:'fr_seed3', requester:'su_vet', addressee:'su_usr', status:'pending',  createdAt:'2026-06-27T09:15:00Z' }
+];
 const DEFAULT_NEWS = [
-    { id:'news_modmanager_redesign', date:'Jun 28, 2026', title:'Mod Manager Redesign', isCurrent:true, dimmed:false, items:[
+    { id:'news_modmanager_redesign', date:'Jun 28, 2026', title:'Mod Manager Redesign', version:'v0.9.4', channel:'beta', summary:'A cleaner two-panel mod workflow with faster discovery, clearer actions and a more consistent launcher interface.', isCurrent:true, dimmed:false, items:[
         {type:'imp',text:'Mod Manager rebuilt to match the Library layout — the mod list sits on the left, with every action grouped in a panel on the right'},
         {type:'imp',text:'Bigger window and a cleaner header bar with a segmented Installed / Discover switch'},
         {type:'imp',text:'Unified icons and styling across the dialog — removed the icon chip backings and the dark box behind the tabs'}
     ]},
-    { id:'news_site_overhaul', date:'Jun 26, 2026', title:'Website 2.0 — Accounts, Forum & Themes', isCurrent:false, dimmed:false, items:[
+    { id:'news_site_overhaul', date:'Jun 26, 2026', title:'Website 2.0 — Accounts, Forum & Themes', version:'Website 2.0', channel:'website', summary:'The community site now feels like a real product surface with profiles, ideas, themes and developer controls.', isCurrent:false, dimmed:false, items:[
         {type:'add',text:'Two-tier accounts: a site account now holds your own set of Minecraft launcher profiles'},
         {type:'add',text:'Community Ideas & Suggestions forum with upvotes and automatic content moderation'},
         {type:'add',text:'Admin panel to manage users, roles and forum posts — developers can publish updates right from the site'},
@@ -646,17 +902,36 @@ function saveActiveMc(uid,id)  { try{if(id)localStorage.setItem(K_MC_ACT+uid,id)
 // ── Cloud sync: push helpers ──────────────────────────────────
 // Mirror the just-written local state up to Supabase. Fire-and-forget: any
 // failure is logged but never blocks the UI, so the site keeps working offline.
+// True until Supabase rejects the status/mc_time_sec columns (migration not run
+// yet) — then we push without them so the rest of user sync keeps working.
+let usersHaveExtraCols = true;
 function cloudPushUsers(users) {
     if (!cloud || cloudSyncing || !Array.isArray(users)) return;
-    const rows = users.map(u => ({
-        id: u.id, username: u.username, email: u.email || '', password_hash: u.password || '',
-        role: u.role || 'USER', display_name: u.displayName || u.username,
-        bio: u.bio || '', avatar: u.avatar || '', registered_at: u.registeredAt || '',
-        total_time_sec: Math.round(u.totalTimeSec || 0), visit_count: u.visitCount || 0,
-        last_seen: u.lastSeen || null, banned: !!u.banned
-    }));
-    cloud.from('site_users').upsert(rows)
-        .then(({ error }) => { if (error) console.warn('[cloud] users push:', error.message); });
+    const rows = users.map(u => {
+        const row = {
+            id: u.id, username: u.username, email: u.email || '', password_hash: u.password || '',
+            role: u.role || 'USER', display_name: u.displayName || u.username,
+            bio: u.bio || '', avatar: u.avatar || '', registered_at: u.registeredAt || '',
+            total_time_sec: Math.round(u.totalTimeSec || 0), visit_count: u.visitCount || 0,
+            last_seen: u.lastSeen || null, banned: !!u.banned
+        };
+        if (usersHaveExtraCols) {
+            row.status = (u.status || '').slice(0, 100);
+            row.mc_time_sec = Math.round(u.mcTimeSec || 0);
+        }
+        return row;
+    });
+    cloud.from('site_users').upsert(rows).then(({ error }) => {
+        if (!error) return;
+        // Columns not migrated yet → drop them and retry once, then stop trying.
+        if (usersHaveExtraCols && /status|mc_time_sec|column|schema cache/i.test(error.message)) {
+            usersHaveExtraCols = false;
+            console.warn('[cloud] status/mc_time_sec columns missing — run add_status_and_playtime.sql. Retrying without them.');
+            cloudPushUsers(users);
+        } else {
+            console.warn('[cloud] users push:', error.message);
+        }
+    });
 }
 function cloudPushMc(uid) {
     if (!cloud || cloudSyncing || !uid) return;
@@ -679,6 +954,22 @@ function cloudPushMc(uid) {
     if (keepIds.length) del = del.not('id', 'in', '(' + keepIds.join(',') + ')');
     del.then(({ error }) => { if (error) console.warn('[cloud] mc delete:', error.message); });
 }
+function cloudPushFriends(list) {
+    if (!cloud || cloudSyncing || !Array.isArray(list)) return;
+    const rows = list.map(f => ({
+        id: f.id, requester_id: f.requester, addressee_id: f.addressee,
+        status: f.status || 'pending', created_at: f.createdAt || new Date().toISOString()
+    }));
+    if (rows.length) {
+        cloud.from('friendships').upsert(rows)
+            .then(({ error }) => { if (error) console.warn('[cloud] friends push:', error.message); });
+    }
+    // Remove any cloud rows that were deleted locally (declined / unfriended).
+    const keepIds = list.map(f => f.id);
+    let del = cloud.from('friendships').delete().neq('id', '');
+    if (keepIds.length) del = del.not('id', 'in', '(' + keepIds.join(',') + ')');
+    del.then(({ error }) => { if (error) console.warn('[cloud] friends delete:', error.message); });
+}
 
 // ── Cloud sync: initial load ──────────────────────────────────
 // Pull everything from Supabase into local state, then re-render. If the cloud
@@ -688,12 +979,23 @@ async function cloudBootstrap() {
     let hadUsers = false;
     cloudSyncing = true;
     try {
-        const [usersRes, mcRes] = await Promise.all([
+        const [usersRes, mcRes, frRes] = await Promise.all([
             cloud.from('site_users').select('*'),
-            cloud.from('mc_accounts').select('*')
+            cloud.from('mc_accounts').select('*'),
+            cloud.from('friendships').select('*')
         ]);
         if (usersRes.error) throw usersRes.error;
         if (mcRes.error)    throw mcRes.error;
+        // friendships is optional — if the table doesn't exist yet, keep local data
+        if (!frRes.error && Array.isArray(frRes.data)) {
+            friendships = frRes.data.map(r => ({
+                id: r.id, requester: r.requester_id, addressee: r.addressee_id,
+                status: r.status || 'pending', createdAt: r.created_at || ''
+            }));
+            try { localStorage.setItem(K_FRIENDS, JSON.stringify(friendships)); } catch {}
+        } else if (frRes.error) {
+            console.warn('[cloud] friendships load skipped:', frRes.error.message);
+        }
 
         const users = usersRes.data || [];
         hadUsers = users.length > 0;
@@ -703,7 +1005,8 @@ async function cloudBootstrap() {
                 role: r.role || 'USER', displayName: r.display_name || r.username,
                 bio: r.bio || '', avatar: r.avatar || '', registeredAt: r.registered_at || '',
                 totalTimeSec: r.total_time_sec || 0, visitCount: r.visit_count || 0,
-                lastSeen: r.last_seen || null, banned: !!r.banned
+                lastSeen: r.last_seen || null, banned: !!r.banned,
+                status: r.status || '', mcTimeSec: r.mc_time_sec || 0
             }));
             try { localStorage.setItem(K_USERS, JSON.stringify(siteUsers)); } catch {}
         }
@@ -737,6 +1040,7 @@ async function cloudBootstrap() {
         // First run against an empty database — seed it with current local data.
         cloudPushUsers(siteUsers);
         siteUsers.forEach(u => cloudPushMc(u.id));
+        cloudPushFriends(friendships);
     }
     reloadMcAccounts();
     renderAll();
@@ -746,6 +1050,8 @@ function loadForum()   { try{const r=localStorage.getItem(K_FORUM);return r?JSON
 function saveForum(p)  { try{localStorage.setItem(K_FORUM,JSON.stringify(p));}catch{} }
 function loadNews()    { try{const r=localStorage.getItem(K_NEWS);return r?JSON.parse(r):null;}catch{return null;} }
 function saveNews(n)   { try{localStorage.setItem(K_NEWS,JSON.stringify(n));}catch{} }
+function loadFriends() { try{const r=localStorage.getItem(K_FRIENDS);return r?JSON.parse(r):null;}catch{return null;} }
+function saveFriends(f){ try{localStorage.setItem(K_FRIENDS,JSON.stringify(f));}catch{} cloudPushFriends(f); }
 
 // ── UUID generator ────────────────────────────────────────────
 function offlineUuid(username) {
@@ -764,6 +1070,7 @@ let mcAccounts   = [];
 let activeMcId   = null;
 let forumPosts   = loadForum() || DEFAULT_FORUM.map(p=>({...p}));
 let newsItems    = loadNews()  || DEFAULT_NEWS.map(n=>({...n}));
+let friendships  = loadFriends() || DEFAULT_FRIENDS.map(f=>({...f}));
 
 // Seed: inject any new default update entries into existing stored news (without
 // wiping user/DEV-created ones). Bump NEWS_SEED_VERSION when adding new defaults.
@@ -782,6 +1089,34 @@ const NEWS_SEED_VERSION = 3;
             localStorage.setItem('spectral_news_seed', String(NEWS_SEED_VERSION));
         }
     } catch {}
+})();
+
+// Upgrade older localStorage entries to the richer release-card format without
+// replacing developer-authored titles or changelog text.
+const NEWS_PRESENTATION_PRESETS = {
+    news_modmanager_redesign: { version:'v0.9.4', channel:'beta', icon:'puzzle-piece', summary:'A cleaner two-panel mod workflow with faster discovery, clearer actions and a more consistent launcher interface.' },
+    news_site_overhaul: { version:'Website 2.0', channel:'website', icon:'globe', summary:'Profiles, community ideas, themes and developer tools now live in one polished website experience.' },
+    news_1: { version:'v0.9.3', channel:'beta', icon:'robot', summary:'Refined typography, a richer Accounts layout and the first integrated SpectrAI assistant experience.' },
+    news_2: { version:'v0.9.2', channel:'stable', icon:'gauge-high', summary:'Faster launches, clearer diagnostics and more reliable setup for modded Minecraft instances.' },
+    news_3: { version:'v0.9.1', channel:'stable', icon:'language', summary:'A consistent launcher interface with a redesigned console and complete RU / EN localization.' },
+    news_4: { version:'Core', channel:'stable', icon:'cubes', summary:'The Qt 6 and C++17 foundation behind instances, Java management, versions, mods and diagnostics.' }
+};
+(function migrateNewsPresentation(){
+    let changed=false;
+    newsItems=newsItems.map((news,index)=>{
+        const preset=NEWS_PRESENTATION_PRESETS[news.id]||{};
+        const firstText=Array.isArray(news.items)&&news.items[0]?.text?news.items[0].text.replace(/[*`\[\]()]/g,''):'';
+        const upgraded={
+            ...news,
+            version:news.version||preset.version||`Update ${Math.max(1,newsItems.length-index)}`,
+            channel:news.channel||preset.channel||'stable',
+            icon:news.icon||preset.icon||'bolt',
+            summary:news.summary||preset.summary||firstText.slice(0,190)||'Launcher improvements and release notes.'
+        };
+        if(upgraded.version!==news.version||upgraded.channel!==news.channel||upgraded.icon!==news.icon||upgraded.summary!==news.summary)changed=true;
+        return upgraded;
+    });
+    if(changed)saveNews(newsItems);
 })();
 
 // Validate session
@@ -885,6 +1220,8 @@ function renderAll() {
     renderLauncherNotice();
     renderActiveMcBanner();
     renderMcGrid();
+    renderFriends();
+    updateRequestBadge();
     renderDevWriteBtn();
     renderNewsTimeline();
     renderForum();
@@ -895,14 +1232,22 @@ function renderNavbar() {
     const user = siteUsers.find(u=>u.id===currentUserId);
     const accText = document.getElementById('accountText');
     const circle  = document.getElementById('navAvatarCircle');
+    const launcherHead = document.getElementById('launcherSkinHead');
     if (user) {
         if (accText) accText.textContent = user.displayName||user.username;
         if (circle) { circle.innerHTML=`<img src="${esc(siteAvatarUrl(user))}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'">`; }
-        document.getElementById('launcherUsername').textContent = (mcAccounts.find(a=>a.id===activeMcId)||{displayName:user.displayName}).displayName || user.username;
+        const launcherAccount = mcAccounts.find(a=>a.id===activeMcId);
+        const launcherName = (launcherAccount||{displayName:user.displayName}).displayName || user.username;
+        document.getElementById('launcherUsername').textContent = launcherName;
+        if (launcherHead) {
+            launcherHead.src = avatarUrl((launcherAccount && launcherAccount.username) || launcherName);
+            launcherHead.onerror = function(){ this.onerror=null; this.src=avatarUrl('steve'); };
+        }
     } else {
         if (accText) accText.textContent = 'Sign In';
         if (circle) circle.innerHTML = '<i class="fas fa-user"></i>';
         document.getElementById('launcherUsername').textContent = 'Guest';
+        if (launcherHead) launcherHead.src = avatarUrl('steve');
     }
 }
 
@@ -910,12 +1255,11 @@ function renderNavbar() {
 function renderLauncherNotice() {
     const notice = document.getElementById('launcherNotice');
     if (notice) notice.style.display = currentUserId ? 'none' : 'flex';
-    // When logged out, hide the banner + toolbar so the notice stands alone
+    // When logged out, hide the banner + two-column area so the notice stands alone
     const banner  = document.getElementById('activeAccountBanner');
-    const toolbar = document.querySelector('#accounts .accounts-toolbar');
-    const show = currentUserId ? '' : 'none';
+    const columns = document.getElementById('accountsColumns');
     if (banner)  banner.style.display = currentUserId ? 'flex' : 'none';
-    if (toolbar) toolbar.style.display = show;
+    if (columns) columns.style.display = currentUserId ? 'grid' : 'none';
 }
 
 // ── Active MC banner ──────────────────────────────────────────
@@ -1001,20 +1345,22 @@ function renderMcGrid() {
         card.innerHTML=`
             <button class="acc-fav${acc.favorite?' on':''}" data-id="${acc.id}" title="Favorite" type="button"><i class="fas fa-star"></i></button>
             ${isActive?'<span class="acc-active-tag"><span class="acc-active-dot"></span> Active</span>':''}
-            <div class="acc-avatar">
-                <img src="${avatarUrl(acc.username)}" alt="${esc(acc.username)}" loading="lazy" onerror="this.onerror=null;this.src='${avatarUrl('steve')}';">
+            <div class="acc-card-top">
+                <div class="acc-avatar">
+                    <img src="${avatarUrl(acc.username)}" alt="${esc(acc.username)}" loading="lazy" onerror="this.onerror=null;this.src='${avatarUrl('steve')}';">
+                </div>
+                <div class="acc-card-head">
+                    <div class="acc-card-name">${esc(acc.displayName||acc.username)}</div>
+                    <span class="active-account-type type-${acc.type}" style="font-size:0.72rem;padding:3px 10px;"><i class="${typeIcon(acc.type)}"></i> ${typeLabel(acc.type)}</span>
+                </div>
             </div>
-            <div class="acc-card-info">
-                <div class="acc-card-name">${esc(acc.displayName||acc.username)}</div>
-                <span class="active-account-type type-${acc.type}" style="font-size:0.72rem;padding:3px 10px;"><i class="${typeIcon(acc.type)}"></i> ${typeLabel(acc.type)}</span>
-                <div class="acc-card-meta">
-                    <span title="Time in game"><i class="fas fa-clock"></i> ${acc.playtime||'0h'}</span>
-                    <span title="Date added"><i class="fas fa-calendar-alt"></i> ${acc.addedAt||'—'}</span>
-                </div>
-                <div class="acc-card-actions">
-                    <button class="acc-btn-select${isActive?' selected':''}" data-id="${acc.id}" type="button">${isActive?'<i class="fas fa-check"></i> Active':'<i class="fas fa-play"></i> Select'}</button>
-                    <button class="acc-btn-delete" data-id="${acc.id}" type="button" title="Delete"><i class="fas fa-trash-alt"></i></button>
-                </div>
+            <div class="acc-card-meta">
+                <span title="Time in game"><i class="fas fa-clock"></i> ${acc.playtime||'0h'}</span>
+                <span title="Date added"><i class="fas fa-calendar-alt"></i> ${acc.addedAt||'—'}</span>
+            </div>
+            <div class="acc-card-actions">
+                <button class="acc-btn-select${isActive?' selected':''}" data-id="${acc.id}" type="button">${isActive?'<i class="fas fa-check"></i> Active':'<i class="fas fa-play"></i> Select'}</button>
+                <button class="acc-btn-delete" data-id="${acc.id}" type="button" title="Delete"><i class="fas fa-trash-alt"></i></button>
             </div>`;
         grid.appendChild(card);
     });
@@ -1037,12 +1383,238 @@ function addMcAccount(username, type, password='') {
     activeMcId=acc.id;saveActiveMc(currentUserId,activeMcId);renderAll();
 }
 
-// Search / filter / sort listeners
-const accSearchEl=document.getElementById('accountSearch');
-if(accSearchEl)accSearchEl.addEventListener('input',e=>{accSearch=e.target.value.trim();renderMcGrid();});
-const accSortEl=document.getElementById('accountSort');
-if(accSortEl)accSortEl.addEventListener('change',e=>{accSort=e.target.value;renderMcGrid();});
-document.querySelectorAll('#accFilterChips .acc-chip').forEach(chip=>{chip.addEventListener('click',()=>{document.querySelectorAll('#accFilterChips .acc-chip').forEach(c=>c.classList.remove('active'));chip.classList.add('active');accFilter=chip.dataset.filter;renderMcGrid();});});
+// (Accounts toolbar removed — profiles now render as a simple list; default sort applies)
+
+// ══════════════════════════════════════════════════════════════
+// FRIENDS SYSTEM (between site users)
+// ══════════════════════════════════════════════════════════════
+// Queries over the shared `friendships` list, always from the point of view of
+// a given user id. A relationship's "other" party is whichever end isn't `uid`.
+function friendOtherId(f, uid) { return f.requester === uid ? f.addressee : f.requester; }
+function findFriendship(a, b) {
+    return friendships.find(f =>
+        (f.requester === a && f.addressee === b) ||
+        (f.requester === b && f.addressee === a));
+}
+// Accepted friends of uid
+function getFriends(uid)          { return friendships.filter(f => f.status === 'accepted' && (f.requester === uid || f.addressee === uid)); }
+// Requests waiting for uid to accept/decline
+function getIncomingRequests(uid) { return friendships.filter(f => f.status === 'pending' && f.addressee === uid); }
+// Requests uid sent that are still pending
+function getOutgoingRequests(uid) { return friendships.filter(f => f.status === 'pending' && f.requester === uid); }
+
+// Presence derived from last_seen — same rule as the launcher.
+function presenceOf(user) {
+    const t = user && user.lastSeen ? new Date(user.lastSeen).getTime() : 0;
+    const sec = t ? (Date.now() - t) / 1000 : Infinity;
+    if (sec < 180)  return { text:'Online',  cls:'online',  online:true  };
+    if (sec < 1800) return { text:`Away · ${Math.floor(sec/60)}m`, cls:'away', online:false };
+    return { text:'Offline', cls:'offline', online:false };
+}
+function formatMcTime(sec){ sec=Math.round(sec||0); const h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60); return h?`${h}h ${m}m`:`${m}m`; }
+
+function showFriendMsg(text, ok) {
+    const el = document.getElementById('friendAddMsg');
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = 'block';
+    el.className = 'friend-add-msg ' + (ok ? 'ok' : 'err');
+}
+
+function sendFriendRequest(rawName) {
+    if (!currentUserId) { openDashboard(); return; }
+    const name = sanitizeField(rawName, 30);
+    if (!name) { showFriendMsg('Enter a username to add.', false); return; }
+    const target = siteUsers.find(u =>
+        u.username.toLowerCase() === name.toLowerCase() ||
+        (u.displayName || '').toLowerCase() === name.toLowerCase());
+    if (!target)                     { showFriendMsg(`No user named "${name}" found.`, false); return; }
+    if (target.id === currentUserId) { showFriendMsg("You can't add yourself.", false); return; }
+    const existing = findFriendship(currentUserId, target.id);
+    if (existing) {
+        if (existing.status === 'accepted')             showFriendMsg(`You're already friends with ${target.displayName || target.username}.`, false);
+        else if (existing.requester === currentUserId)  showFriendMsg(`Request to ${target.displayName || target.username} is already pending.`, false);
+        else                                            showFriendMsg(`${target.displayName || target.username} already sent you a request — check below.`, false);
+        return;
+    }
+    friendships.push({ id:'fr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+        requester: currentUserId, addressee: target.id, status:'pending', createdAt: new Date().toISOString() });
+    saveFriends(friendships);
+    showFriendMsg(`Friend request sent to ${target.displayName || target.username}.`, true);
+    const input = document.getElementById('friendAddInput'); if (input) input.value = '';
+    renderFriends();
+}
+function acceptFriendRequest(id) {
+    const f = friendships.find(x => x.id === id);
+    if (!f || f.addressee !== currentUserId) return;
+    f.status = 'accepted';
+    saveFriends(friendships);
+    renderFriends();
+    const u = siteUsers.find(x => x.id === f.requester);
+    showToast(`You are now friends with ${u ? (u.displayName||u.username) : 'this user'}`, 'user-check');
+}
+function declineFriendRequest(id) {
+    friendships = friendships.filter(f => f.id !== id);
+    saveFriends(friendships);
+    renderFriends();
+}
+function removeFriend(id) {
+    const f = friendships.find(x => x.id === id);
+    if (!f) return;
+    const other = siteUsers.find(u => u.id === friendOtherId(f, currentUserId));
+    showConfirm(`Remove ${other ? (other.displayName||other.username) : 'this friend'} from your friends?`, () => {
+        friendships = friendships.filter(x => x.id !== id);
+        saveFriends(friendships);
+        renderFriends();
+    });
+}
+
+function friendCardHtml(user, kind, frId) {
+    // kind: 'friend' | 'incoming' | 'outgoing'
+    const name = esc(user.displayName || user.username);
+    const pres = presenceOf(user);
+    // Sub-line: custom status wins; otherwise presence (friends) or @handle (requests).
+    const sub  = user.status ? esc(user.status)
+               : (kind === 'friend' ? pres.text : '@' + esc(user.username));
+    let actions = '';
+    if (kind === 'friend')        actions = `<button class="friend-btn remove" data-fr-remove="${frId}" type="button" title="Remove friend"><i class="fas fa-user-minus"></i></button>`;
+    else if (kind === 'incoming') actions = `<button class="friend-btn accept" data-fr-accept="${frId}" type="button"><i class="fas fa-check"></i> Accept</button>
+                                             <button class="friend-btn decline" data-fr-decline="${frId}" type="button" title="Decline"><i class="fas fa-xmark"></i></button>`;
+    else                          actions = `<span class="friend-pending"><i class="fas fa-clock"></i> Pending</span>
+                                             <button class="friend-btn decline" data-fr-decline="${frId}" type="button" title="Cancel request"><i class="fas fa-xmark"></i></button>`;
+    return `<div class="friend-card glass" data-fr-user="${user.id}" title="View profile">
+        <div class="friend-av-wrap">
+            <img class="friend-avatar" src="${esc(siteAvatarUrl(user))}" alt="${name}" loading="lazy" onerror="this.onerror=null;this.src='${avatarUrl('steve')}';">
+            <span class="friend-dot ${pres.cls}"></span>
+        </div>
+        <div class="friend-info">
+            <div class="friend-name">${name} ${roleBadgeHtml(user.role)}</div>
+            <div class="friend-user">${sub}</div>
+        </div>
+        <div class="friend-actions">${actions}</div>
+    </div>`;
+}
+
+// ── Friend info modal ─────────────────────────────────────────
+function openFriendInfo(userId) {
+    const u = siteUsers.find(x => x.id === userId);
+    const ov = document.getElementById('friendInfoOverlay');
+    const body = document.getElementById('friendInfoBody');
+    if (!u || !ov || !body) return;
+    const pres = presenceOf(u);
+    const fr = findFriendship(currentUserId, userId);
+    const isFriend = fr && fr.status === 'accepted';
+    const since = fr && fr.createdAt ? new Date(fr.createdAt).toLocaleDateString() : '—';
+    const stat = (label, val, icon) =>
+        `<div class="fi-stat"><i class="fas fa-${icon}"></i><div><span class="fi-stat-val">${val}</span><span class="fi-stat-lbl">${label}</span></div></div>`;
+    body.innerHTML = `
+        <div class="fi-header">
+            <div class="friend-av-wrap fi-av">
+                <img src="${esc(siteAvatarUrl(u))}" alt="" onerror="this.onerror=null;this.src='${avatarUrl('steve')}';">
+                <span class="friend-dot ${pres.cls}"></span>
+            </div>
+            <div class="fi-head-text">
+                <div class="fi-name">${esc(u.displayName || u.username)} ${roleBadgeHtml(u.role)}</div>
+                <div class="fi-handle">@${esc(u.username)}</div>
+                <div class="fi-presence ${pres.cls}">${pres.text}</div>
+            </div>
+        </div>
+        ${u.status ? `<div class="fi-status"><i class="fas fa-quote-left"></i> ${esc(u.status)}</div>` : ''}
+        ${u.bio ? `<div class="fi-bio">${esc(u.bio)}</div>` : ''}
+        <div class="fi-stats">
+            ${stat('In Minecraft', formatMcTime(u.mcTimeSec), 'gamepad')}
+            ${stat('On site',      formatDuration(u.totalTimeSec), 'clock')}
+            ${stat('Member since', esc(u.registeredAt || '—'), 'calendar-alt')}
+            ${stat('Last seen',    timeAgo(u.lastSeen), 'eye')}
+            ${isFriend ? stat('Friends since', since, 'user-friends') : ''}
+        </div>
+        ${isFriend ? `<button class="fi-remove-btn" data-fi-remove="${fr.id}"><i class="fas fa-user-minus"></i> Remove friend</button>` : ''}`;
+    ov.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+function closeFriendInfo() {
+    const ov = document.getElementById('friendInfoOverlay');
+    if (ov) ov.classList.remove('open');
+    document.body.style.overflow = '';
+}
+
+// Notification badge (incoming friend requests) on the account button.
+function updateRequestBadge() {
+    const badge = document.getElementById('reqBadge');
+    if (!badge) return;
+    const n = currentUserId ? getIncomingRequests(currentUserId).length : 0;
+    badge.textContent = n > 9 ? '9+' : String(n);
+    badge.style.display = n > 0 ? 'flex' : 'none';
+}
+
+function renderFriends() {
+    const section = document.getElementById('friendsSection');
+    if (!section) return;
+    // Only meaningful when signed in
+    section.style.display = currentUserId ? 'block' : 'none';
+    if (!currentUserId) return;
+
+    const incoming = getIncomingRequests(currentUserId);
+    const outgoing = getOutgoingRequests(currentUserId);
+    const friends  = getFriends(currentUserId);
+
+    const countEl = document.getElementById('friendsCount');
+    if (countEl) countEl.textContent = friends.length;
+    updateRequestBadge();
+
+    // Incoming / outgoing requests block
+    const reqWrap = document.getElementById('friendRequests');
+    if (reqWrap) {
+        let html = '';
+        if (incoming.length) {
+            html += `<div class="friend-req-title"><i class="fas fa-inbox"></i> Requests received <span class="friends-count">${incoming.length}</span></div>`;
+            incoming.forEach(f => { const u = siteUsers.find(x => x.id === f.requester); if (u) html += friendCardHtml(u, 'incoming', f.id); });
+        }
+        if (outgoing.length) {
+            html += `<div class="friend-req-title"><i class="fas fa-paper-plane"></i> Requests sent <span class="friends-count">${outgoing.length}</span></div>`;
+            outgoing.forEach(f => { const u = siteUsers.find(x => x.id === f.addressee); if (u) html += friendCardHtml(u, 'outgoing', f.id); });
+        }
+        reqWrap.innerHTML = html;
+        reqWrap.style.display = html ? 'grid' : 'none';
+    }
+
+    // Friends list
+    const grid = document.getElementById('friendsGrid');
+    const empty = document.getElementById('friendsEmpty');
+    if (grid) {
+        grid.innerHTML = '';
+        friends.forEach(f => { const u = siteUsers.find(x => x.id === friendOtherId(f, currentUserId)); if (u) grid.insertAdjacentHTML('beforeend', friendCardHtml(u, 'friend', f.id)); });
+    }
+    if (empty) empty.style.display = friends.length ? 'none' : 'flex';
+}
+
+// Friends UI event wiring (delegated)
+const friendAddForm = document.getElementById('friendAddForm');
+if (friendAddForm) friendAddForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = document.getElementById('friendAddInput');
+    sendFriendRequest(input ? input.value : '');
+});
+const friendsSectionEl = document.getElementById('friendsSection');
+if (friendsSectionEl) friendsSectionEl.addEventListener('click', e => {
+    const acc = e.target.closest('[data-fr-accept]');  if (acc) { acceptFriendRequest(acc.dataset.frAccept); return; }
+    const dec = e.target.closest('[data-fr-decline]'); if (dec) { declineFriendRequest(dec.dataset.frDecline); return; }
+    const rem = e.target.closest('[data-fr-remove]');  if (rem) { removeFriend(rem.dataset.frRemove); return; }
+    // Anywhere else on a card → open that user's info.
+    const card = e.target.closest('[data-fr-user]'); if (card) openFriendInfo(card.dataset.frUser);
+});
+
+// Friend info modal: close + remove-from-modal.
+const friendInfoOverlayEl = document.getElementById('friendInfoOverlay');
+if (friendInfoOverlayEl) {
+    friendInfoOverlayEl.addEventListener('click', e => {
+        if (e.target === friendInfoOverlayEl) { closeFriendInfo(); return; }
+        const rem = e.target.closest('[data-fi-remove]');
+        if (rem) { closeFriendInfo(); removeFriend(rem.dataset.fiRemove); }
+    });
+}
+const closeFriendInfoBtn = document.getElementById('closeFriendInfoBtn');
+if (closeFriendInfoBtn) closeFriendInfoBtn.addEventListener('click', closeFriendInfo);
 
 // UUID copy
 const uuidBtn=document.getElementById('activeAccountUuid');
@@ -1118,7 +1690,8 @@ function ensureProfileFor(authUser){
         u = { id:authUser.id, username:uname, email:authUser.email||'', password:'', role:'USER',
               displayName: meta.full_name||uname, bio:'Minecraft player',
               avatar: meta.avatar_url||meta.picture||'', registeredAt:todayStr(),
-              totalTimeSec:0, visitCount:0, lastSeen:new Date().toISOString(), banned:false };
+              totalTimeSec:0, visitCount:0, lastSeen:new Date().toISOString(), banned:false,
+              status:'', mcTimeSec:0 };
         siteUsers.push(u); saveSiteUsers(siteUsers);
         saveMcAccounts(u.id,[]); saveActiveMc(u.id,'');
     } else if(authUser.email && u.email!==authUser.email){
@@ -1190,7 +1763,8 @@ if (registerForm) {
     async function createLocalAccount(username, email, pass) {
         const newUser = { id:'su_'+Date.now(), username, email:email||'', password:await hashPassword(pass),
             role:'USER', displayName:username, bio:'Minecraft player', avatar:'', registeredAt:todayStr(),
-            totalTimeSec:0, visitCount:0, lastSeen:new Date().toISOString(), banned:false };
+            totalTimeSec:0, visitCount:0, lastSeen:new Date().toISOString(), banned:false,
+            status:'', mcTimeSec:0 };
         siteUsers.push(newUser); saveSiteUsers(siteUsers);
         saveMcAccounts(newUser.id, []); saveActiveMc(newUser.id, '');
         currentUserId = newUser.id; saveSession(newUser.id);
@@ -1336,7 +1910,13 @@ function loadProfileViewData(user) {
     const un = document.getElementById('profileUsername'); if(un)un.textContent=user.username;
     const rb = document.getElementById('profileRoleBadge'); if(rb){const ri=roleInfo(user.role);rb.innerHTML=`<i class="${ri.icon}"></i> ${ri.label}`;rb.className='badge-pro';rb.style.background=ri.grad;rb.style.color='#fff';}
     const dn = document.getElementById('profileDisplayName'); if(dn)dn.value=user.displayName||user.username;
+    const st = document.getElementById('profileStatus'); if(st)st.value=user.status||'';
     const bio= document.getElementById('profileBio'); if(bio)bio.value=user.bio||'';
+    const chips = document.getElementById('profileStatChips');
+    if (chips) chips.innerHTML =
+        `<span class="p-stat-chip"><i class="fas fa-gamepad"></i> ${formatMcTime(user.mcTimeSec)} <small>in Minecraft</small></span>`
+      + `<span class="p-stat-chip"><i class="fas fa-clock"></i> ${formatDuration(user.totalTimeSec)} <small>on site</small></span>`
+      + `<span class="p-stat-chip"><i class="fas fa-user-friends"></i> ${getFriends(user.id).length} <small>friends</small></span>`;
     // switch to profile tab
     document.querySelectorAll('.profile-tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-ptab')==='my-profile'));
     document.querySelectorAll('.ptab-content').forEach(c=>{c.style.display=c.getAttribute('data-ptab-content')==='my-profile'?'block':'none';});
@@ -1345,7 +1925,7 @@ function loadProfileViewData(user) {
 
 // ── Save profile ──────────────────────────────────────────────
 const saveProfileBtn=document.getElementById('saveProfileBtn');
-if(saveProfileBtn){saveProfileBtn.addEventListener('click',()=>{const user=siteUsers.find(u=>u.id===currentUserId);if(!user)return;const dn=document.getElementById('profileDisplayName');const bio=document.getElementById('profileBio');const img=document.getElementById('profileAvatarImg');user.displayName=sanitizeField(dn?dn.value:'',24)||user.username;user.bio=sanitizeField(bio?bio.value:'',120);const src=img?img.src:'';user.avatar=/^(data:image\/|https?:\/\/)/.test(src)?src:'';saveSiteUsers(siteUsers);renderNavbar();saveProfileBtn.textContent='Saved!';setTimeout(()=>{saveProfileBtn.innerHTML='<i class="fas fa-save"></i> Save Changes';},1500);});}
+if(saveProfileBtn){saveProfileBtn.addEventListener('click',()=>{const user=siteUsers.find(u=>u.id===currentUserId);if(!user)return;const dn=document.getElementById('profileDisplayName');const st=document.getElementById('profileStatus');const bio=document.getElementById('profileBio');const img=document.getElementById('profileAvatarImg');user.displayName=sanitizeField(dn?dn.value:'',24)||user.username;user.status=sanitizeField(st?st.value:'',100);user.bio=sanitizeField(bio?bio.value:'',120);const src=img?img.src:'';user.avatar=/^(data:image\/|https?:\/\/)/.test(src)?src:'';saveSiteUsers(siteUsers);renderNavbar();renderFriends();saveProfileBtn.textContent='Saved!';setTimeout(()=>{saveProfileBtn.innerHTML='<i class="fas fa-save"></i> Save Changes';},1500);});}
 
 // ── Avatar upload ─────────────────────────────────────────────
 const avatarUpload=document.getElementById('avatarUpload');
@@ -1364,20 +1944,61 @@ const goAccBtn=document.getElementById('goToAccountsBtn');
 if(goAccBtn){goAccBtn.addEventListener('click',()=>{closeDashboard();document.querySelector('[data-target="accounts"]').click();});}
 
 // ── Admin Panel ───────────────────────────────────────────────
-document.querySelectorAll('.admin-stab').forEach(stab=>{
-    stab.addEventListener('click',()=>{
-        const t=stab.getAttribute('data-stab');
-        document.querySelectorAll('.admin-stab').forEach(s=>s.classList.remove('active'));stab.classList.add('active');
-        document.querySelectorAll('.admin-stab-content').forEach(c=>{c.style.display=c.getAttribute('data-stab-content')===t?'block':'none';});
-        if(t==='site-stats')renderAdminStats();
-        if(t==='forum')renderAdminForum();
+let adminActiveTab='users';
+let adminForumFilter='all';
+let adminInspectedUserId=null;
+const adminSelectedUserIds=new Set();
+
+function openAdminSection(target){
+    adminActiveTab=target;
+    document.querySelectorAll('.admin-stab').forEach(tab=>{
+        const active=tab.getAttribute('data-stab')===target;
+        tab.classList.toggle('active',active);
+        tab.setAttribute('aria-selected',String(active));
     });
-});
+    document.querySelectorAll('.admin-stab-content').forEach(content=>{
+        content.style.display=content.getAttribute('data-stab-content')===target?'block':'none';
+    });
+    if(target==='users')renderAdminUsers();
+    if(target==='forum')renderAdminForum();
+    if(target==='site-stats')renderAdminStats();
+}
+document.querySelectorAll('.admin-stab').forEach(stab=>stab.addEventListener('click',()=>openAdminSection(stab.getAttribute('data-stab'))));
 
 const adminSearchInput=document.getElementById('adminUserSearch');
-if(adminSearchInput)adminSearchInput.addEventListener('input',()=>renderAdminUsers(adminSearchInput.value.trim().toLowerCase()));
 const adminRoleFilter=document.getElementById('adminRoleFilter');
-if(adminRoleFilter)adminRoleFilter.addEventListener('change',()=>renderAdminUsers(adminSearchInput?adminSearchInput.value.trim().toLowerCase():''));
+const adminStatusFilter=document.getElementById('adminStatusFilter');
+const adminUserSort=document.getElementById('adminUserSort');
+[adminSearchInput,adminRoleFilter,adminStatusFilter,adminUserSort].forEach(control=>{
+    if(control)control.addEventListener(control.tagName==='INPUT'?'input':'change',()=>renderAdminUsers());
+});
+const adminResetUserFilters=document.getElementById('adminResetUserFilters');
+if(adminResetUserFilters)adminResetUserFilters.addEventListener('click',()=>{
+    if(adminSearchInput)adminSearchInput.value='';
+    if(adminRoleFilter)adminRoleFilter.value='';
+    if(adminStatusFilter)adminStatusFilter.value='';
+    if(adminUserSort)adminUserSort.value='role';
+    renderAdminUsers();
+});
+const adminForumSearch=document.getElementById('adminForumSearch');
+if(adminForumSearch)adminForumSearch.addEventListener('input',renderAdminForum);
+document.querySelectorAll('[data-admin-forum-filter]').forEach(button=>button.addEventListener('click',()=>{
+    adminForumFilter=button.dataset.adminForumFilter||'all';
+    document.querySelectorAll('[data-admin-forum-filter]').forEach(item=>item.classList.toggle('active',item===button));
+    renderAdminForum();
+}));
+const adminAnalyticsRefresh=document.getElementById('adminAnalyticsRefresh');
+if(adminAnalyticsRefresh)adminAnalyticsRefresh.addEventListener('click',()=>{
+    adminAnalyticsRefresh.classList.add('is-loading');
+    renderAdminStats();
+    setTimeout(()=>adminAnalyticsRefresh.classList.remove('is-loading'),450);
+});
+document.addEventListener('keydown',event=>{
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&adminActiveTab==='users'&&dashOverlay?.classList.contains('open')){
+        event.preventDefault();
+        adminSearchInput?.focus();
+    }
+});
 
 // ── Admin helpers ─────────────────────────────────────────────
 function formatDuration(sec){
@@ -1404,6 +2025,28 @@ function parseRegDate(s){
 }
 function registeredWithinDays(s,days){ const t=parseRegDate(s); return !!t && (Date.now()-t)<=days*86400000; }
 function isRecentlyActive(iso,days){ if(!iso)return false; const t=new Date(iso).getTime(); return !isNaN(t)&&(Date.now()-t)<=days*86400000; }
+function isOnlineNow(iso){ if(!iso)return false;const t=new Date(iso).getTime();return !isNaN(t)&&(Date.now()-t)<=15*60000; }
+function canAdminManageTarget(viewer,target){
+    if(!viewer||!target||viewer.id===target.id||!canManageUsers(viewer))return false;
+    return isDev(viewer)||roleRank(target.role)<roleRank(viewer.role);
+}
+function adminAllowedRoles(viewer){
+    return isDev(viewer)?ROLE_ORDER:ROLE_ORDER.filter(role=>roleRank(role)<roleRank(viewer?.role));
+}
+function safeMcAccountExport(account){
+    const copy={...account};delete copy.password;delete copy.accessToken;delete copy.refreshToken;
+    return copy;
+}
+function safeUserExport(user){
+    const copy={...user};delete copy.password;
+    return {...copy,minecraftProfiles:(loadMcAccounts(user.id)||[]).map(safeMcAccountExport)};
+}
+function downloadJson(filename,data){
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
 
 function deleteUserAccount(uid){
     siteUsers=siteUsers.filter(u=>u.id!==uid);
@@ -1414,100 +2057,373 @@ function deleteUserAccount(uid){
 }
 function exportDatabase(){
     const data={ exportedAt:new Date().toISOString(), users:siteUsers.map(u=>{const c={...u};delete c.password;return c;}), mcAccounts:{}, forum:forumPosts, news:newsItems };
-    siteUsers.forEach(u=>{ data.mcAccounts[u.id]=loadMcAccounts(u.id)||[]; });
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download='spectral-db-'+new Date().toISOString().slice(0,10)+'.json';
-    a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    siteUsers.forEach(u=>{ data.mcAccounts[u.id]=(loadMcAccounts(u.id)||[]).map(safeMcAccountExport); });
+    downloadJson('spectral-db-'+new Date().toISOString().slice(0,10)+'.json',data);
+}
+function exportAdminUsers(users,label='users'){
+    if(!users.length){showToast('Select at least one user','circle-info');return;}
+    downloadJson(`spectral-${label}-${new Date().toISOString().slice(0,10)}.json`,{exportedAt:new Date().toISOString(),users:users.map(safeUserExport)});
+    showToast(`${users.length} user${users.length===1?'':'s'} exported`,'file-export');
 }
 function refreshAdmin(){
-    const s=document.getElementById('adminUserSearch');
-    renderAdminUsers(s?s.value.trim().toLowerCase():'');
-    renderAdminStats();
+    updateAdminOverview();
+    renderAdminUsers();
+    if(adminActiveTab==='forum')renderAdminForum();
+    if(adminActiveTab==='site-stats')renderAdminStats();
 }
 
 function renderAdminPanel() {
-    document.querySelectorAll('.admin-stab').forEach((s,i)=>s.classList.toggle('active',i===0));
-    document.querySelectorAll('.admin-stab-content').forEach((c,i)=>{c.style.display=i===0?'block':'none';});
-    renderAdminUsers('');
+    adminActiveTab='users';
+    adminSelectedUserIds.clear();
+    updateAdminOverview();
+    populateAdminBulkRoles();
+    openAdminSection('users');
 }
-function renderAdminUsers(search) {
-    const list=document.getElementById('adminUsersList');if(!list)return;
+function updateAdminOverview(){
+    const viewer=siteUsers.find(user=>user.id===currentUserId);
+    const pending=forumPosts.filter(post=>!post.approved&&!post.rejected).length;
+    const values={adminOverviewUsers:siteUsers.length,adminOverviewActive:siteUsers.filter(user=>isRecentlyActive(user.lastSeen,7)).length,adminOverviewPending:pending,adminOverviewBanned:siteUsers.filter(user=>user.banned).length,adminUsersTabCount:siteUsers.length,adminForumTabCount:pending};
+    Object.entries(values).forEach(([id,value])=>{const element=document.getElementById(id);if(element)element.textContent=String(value);});
+    const access=document.getElementById('adminAccessBadge');
+    if(access&&viewer){const info=roleInfo(viewer.role);access.innerHTML=`<i class="${info.icon}"></i> ${esc(info.label)} access`;}
+    const cloudState=document.getElementById('adminCloudState');
+    if(cloudState){cloudState.classList.toggle('is-cloud',Boolean(cloud));cloudState.innerHTML=cloud?'<i></i> Cloud connected':'<i></i> Local mode';}
+}
+function populateAdminBulkRoles(){
+    const select=document.getElementById('adminBulkRole');if(!select)return;
+    const viewer=siteUsers.find(user=>user.id===currentUserId);
+    select.innerHTML='<option value="">Choose role...</option>'+adminAllowedRoles(viewer).map(role=>`<option value="${role}">${ROLES[role].label}</option>`).join('');
+}
+function getAdminFilteredUsers(){
+    const search=(adminSearchInput?.value||'').trim().toLowerCase();
+    const role=adminRoleFilter?.value||'';
+    const status=adminStatusFilter?.value||'';
+    const sort=adminUserSort?.value||'role';
+    const users=siteUsers.filter(user=>{
+        const haystack=[user.username,user.displayName,user.bio,user.email].join(' ').toLowerCase();
+        if(search&&!haystack.includes(search))return false;
+        if(role&&user.role!==role)return false;
+        if(status==='online'&&!isOnlineNow(user.lastSeen))return false;
+        if(status==='active'&&!isRecentlyActive(user.lastSeen,7))return false;
+        if(status==='banned'&&!user.banned)return false;
+        if(status==='inactive'&&isRecentlyActive(user.lastSeen,30))return false;
+        return true;
+    });
+    const sorts={
+        role:(a,b)=>roleRank(b.role)-roleRank(a.role)||(a.username||'').localeCompare(b.username||''),
+        recent:(a,b)=>(new Date(b.lastSeen||0).getTime()||0)-(new Date(a.lastSeen||0).getTime()||0),
+        joined:(a,b)=>parseRegDate(b.registeredAt)-parseRegDate(a.registeredAt),
+        time:(a,b)=>(b.totalTimeSec||0)-(a.totalTimeSec||0),
+        name:(a,b)=>(a.displayName||a.username||'').localeCompare(b.displayName||b.username||'')
+    };
+    return users.sort(sorts[sort]||sorts.role);
+}
+function selectedAdminUsers(){
+    const viewer=siteUsers.find(user=>user.id===currentUserId);
+    const selected=siteUsers.filter(user=>adminSelectedUserIds.has(user.id)&&canAdminManageTarget(viewer,user));
+    const valid=new Set(selected.map(user=>user.id));
+    [...adminSelectedUserIds].forEach(id=>{if(!valid.has(id))adminSelectedUserIds.delete(id);});
+    return selected;
+}
+function updateAdminBulkBar(){
+    const selected=selectedAdminUsers();
+    const bar=document.getElementById('adminBulkBar');
+    const count=document.getElementById('adminSelectedCount');
+    if(bar)bar.hidden=selected.length===0;
+    if(count)count.textContent=`${selected.length} selected`;
+}
+function renderAdminUserInspector(user){
+    const panel=document.getElementById('adminUserInspector');if(!panel)return;
+    if(!user){panel.innerHTML='<div class="admin-inspector-empty"><span><i class="fas fa-user-gear"></i></span><h3>Select a user</h3><p>Open any account to inspect its activity, identities and access level.</p></div>';return;}
+    const profiles=loadMcAccounts(user.id)||[];
+    const info=roleInfo(user.role);
+    const profileRows=profiles.slice(0,4).map(account=>`<div class="admin-inspector-profile"><span><i class="${typeIcon(account.type)}"></i></span><div><b>${esc(account.username||'Unnamed')}</b><small>${esc(typeLabel(account.type))}</small></div></div>`).join('');
+    panel.innerHTML=`
+        <div class="admin-inspector-top"><span>Account details</span><button type="button" data-inspector-close aria-label="Close details"><i class="fas fa-times"></i></button></div>
+        <div class="admin-inspector-identity"><div class="admin-inspector-avatar"><img src="${esc(siteAvatarUrl(user))}" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'" alt=""><i class="${isOnlineNow(user.lastSeen)?'online':''}"></i></div><div><small>@${esc(user.username)}</small><h3>${esc(user.displayName||user.username)}</h3>${roleBadgeHtml(user.role)||'<span class="role-badge role-user"><i class="fas fa-user"></i> Player</span>'}</div></div>
+        <p class="admin-inspector-bio">${esc(user.bio||'No biography has been added yet.')}</p>
+        <div class="admin-inspector-access"><span style="--role-color:${info.color}"><i class="${info.icon}"></i></span><div><small>Access level</small><b>${esc(info.label)}</b></div><em>${user.banned?'Banned':isOnlineNow(user.lastSeen)?'Online':timeAgo(user.lastSeen)}</em></div>
+        <div class="admin-inspector-stats"><div><b>${formatDuration(user.totalTimeSec)}</b><small>Site time</small></div><div><b>${user.visitCount||0}</b><small>Visits</small></div><div><b>${profiles.length}</b><small>MC profiles</small></div><div><b>${getFriends(user.id).length}</b><small>Friends</small></div></div>
+        <div class="admin-inspector-section"><div class="admin-inspector-section-head"><span>Minecraft identities</span><b>${profiles.length}</b></div>${profileRows||'<p class="admin-inspector-muted">No Minecraft profiles</p>'}${profiles.length>4?`<p class="admin-inspector-more">+${profiles.length-4} more profiles</p>`:''}</div>
+        <div class="admin-inspector-meta"><span><small>Registered</small><b>${esc(user.registeredAt||'Unknown')}</b></span><span><small>Email</small><b>${esc(user.email||'Not provided')}</b></span><span><small>User ID</small><code>${esc(user.id)}</code></span></div>
+        <div class="admin-inspector-actions"><button type="button" data-inspector-copy><i class="fas fa-copy"></i> Copy ID</button><button type="button" data-inspector-export><i class="fas fa-file-export"></i> Export user</button></div>`;
+    panel.querySelector('[data-inspector-close]')?.addEventListener('click',()=>{adminInspectedUserId=null;renderAdminUserInspector(null);document.querySelectorAll('.admin-user-row').forEach(row=>row.classList.remove('is-inspected'));});
+    panel.querySelector('[data-inspector-copy]')?.addEventListener('click',()=>copyLocalText(user.id,'User ID copied'));
+    panel.querySelector('[data-inspector-export]')?.addEventListener('click',()=>exportAdminUsers([user],`user-${String(user.username||'account').replace(/[^a-z0-9_-]/gi,'-')}`));
+}
+function renderAdminUsers() {
+    const list=document.getElementById('adminUsersList');
+    if(!list)return;
     const viewer=siteUsers.find(u=>u.id===currentUserId);
-    const mayManage=canManageUsers(viewer);  // ADMIN+
-    const mayDev=isDev(viewer);              // DEV only
-    const roleFilterEl=document.getElementById('adminRoleFilter');
-    const roleFilter=roleFilterEl?roleFilterEl.value:'';
-    let users=siteUsers.slice().sort((a,b)=>roleRank(b.role)-roleRank(a.role)||(a.username||'').localeCompare(b.username||''));
-    if(search)users=users.filter(u=>u.username.toLowerCase().includes(search)||(u.displayName||'').toLowerCase().includes(search));
-    if(roleFilter)users=users.filter(u=>u.role===roleFilter);
+    const users=getAdminFilteredUsers();
+    const resultCount=document.getElementById('adminUserResultCount');
+    const selectAllWrap=document.getElementById('adminSelectAllWrap');
+    const selectAll=document.getElementById('adminSelectAllUsers');
+    const manageableUsers=users.filter(user=>canAdminManageTarget(viewer,user));
+
+    if(resultCount)resultCount.textContent=`${users.length} ${users.length===1?'user':'users'}`;
+    if(selectAllWrap)selectAllWrap.hidden=!manageableUsers.length;
+    if(selectAll){
+        const selectedVisible=manageableUsers.filter(user=>adminSelectedUserIds.has(user.id)).length;
+        selectAll.checked=Boolean(manageableUsers.length&&selectedVisible===manageableUsers.length);
+        selectAll.indeterminate=Boolean(selectedVisible&&selectedVisible<manageableUsers.length);
+    }
+
     list.innerHTML='';
-    if(!users.length){list.innerHTML='<p class="admin-empty">No users match your filters.</p>';return;}
-    users.forEach(u=>{
-        const isSelf=u.id===currentUserId;
-        const mcCount=(loadMcAccounts(u.id)||[]).length;
-        const allowedRoles=mayDev?ROLE_ORDER:ROLE_ORDER.filter(r=>r!=='DEV');
-        const roleOpts=allowedRoles.map(r=>`<option value="${r}"${u.role===r?'selected':''}>${ROLES[r].label}</option>`).join('');
-        const roleControl=(mayManage&&!isSelf)
-            ? `<select class="admin-role-select" data-uid="${u.id}">${roleOpts}</select>`
-            : (u.banned?'':roleBadgeHtml(u.role));
-        const actions=[];
-        if(mayManage&&!isSelf)actions.push(`<button class="admin-act-btn ${u.banned?'unban':'ban'}" data-act="ban"><i class="fas fa-${u.banned?'unlock':'ban'}"></i> ${u.banned?'Unban':'Ban'}</button>`);
-        if(mayDev&&!isSelf)actions.push(`<button class="admin-act-btn del" data-act="del"><i class="fas fa-trash-alt"></i></button>`);
-        const badge=u.banned?'<span class="role-badge role-banned"><i class="fas fa-ban"></i> Banned</span>':roleBadgeHtml(u.role);
-        const row=document.createElement('div');
-        row.className='admin-user-row'+(u.banned?' is-banned':'');
+    if(!users.length){
+        adminInspectedUserId=null;
+        list.innerHTML='<div class="admin-empty admin-empty-state"><i class="fas fa-user-slash"></i><strong>No users found</strong><span>Try another query or clear the filters.</span></div>';
+        renderAdminUserInspector(null);
+        updateAdminBulkBar();
+        return;
+    }
+    if(!users.some(user=>user.id===adminInspectedUserId))adminInspectedUserId=users[0].id;
+
+    users.forEach(user=>{
+        const manageable=canAdminManageTarget(viewer,user);
+        const isSelf=user.id===currentUserId;
+        const isSelected=adminSelectedUserIds.has(user.id);
+        const isInspected=user.id===adminInspectedUserId;
+        const online=isOnlineNow(user.lastSeen);
+        const recent=isRecentlyActive(user.lastSeen,7);
+        const mcCount=(loadMcAccounts(user.id)||[]).length;
+        const allowedRoles=adminAllowedRoles(viewer);
+        const roleOptions=allowedRoles.map(role=>`<option value="${role}"${user.role===role?' selected':''}>${esc(ROLES[role].label)}</option>`).join('');
+        const roleControl=manageable
+            ? `<select class="admin-role-select" aria-label="Role for ${esc(user.username)}">${roleOptions}</select>`
+            : '<span class="admin-role-locked" title="You cannot manage this role"><i class="fas fa-lock"></i></span>';
+        const badge=user.banned
+            ? '<span class="role-badge role-banned"><i class="fas fa-ban"></i> Banned</span>'
+            : roleBadgeHtml(user.role);
+        const row=document.createElement('article');
+        row.className=`admin-user-row${user.banned?' is-banned':''}${isSelected?' is-selected':''}${isInspected?' is-inspected':''}`;
+        row.dataset.uid=user.id;
         row.innerHTML=`
-            <img class="admin-user-avatar" src="${esc(siteAvatarUrl(u))}" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'" alt="">
+            <div class="admin-user-picker">
+                ${manageable?`<input class="admin-user-check" type="checkbox" aria-label="Select ${esc(user.username)}" ${isSelected?'checked':''}>`:'<i class="fas fa-shield-halved" title="Protected account"></i>'}
+            </div>
+            <div class="admin-user-avatar-wrap">
+                <img class="admin-user-avatar" src="${esc(siteAvatarUrl(user))}" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'" alt="">
+                <span class="admin-presence ${online?'is-online':recent?'is-recent':''}" title="${online?'Online now':recent?'Recently active':'Offline'}"></span>
+            </div>
             <div class="admin-user-main">
-                <div class="admin-user-name">${esc(u.displayName||u.username)} ${badge}</div>
-                <div class="admin-user-bio">${esc(u.bio||'No bio')} · ${mcCount} MC · since ${esc(u.registeredAt||'?')}</div>
+                <div class="admin-user-name-row">
+                    <strong class="admin-user-name">${esc(user.displayName||user.username)}</strong>
+                    ${badge}
+                    ${isSelf?'<span class="admin-you-pill">You</span>':''}
+                </div>
+                <div class="admin-user-handle">@${esc(user.username)} <span>·</span> ${esc(user.bio||'No bio yet')}</div>
                 <div class="admin-user-stats">
-                    <span title="Total time on site"><i class="fas fa-clock"></i> ${formatDuration(u.totalTimeSec)}</span>
-                    <span title="Visits"><i class="fas fa-right-to-bracket"></i> ${u.visitCount||0}</span>
-                    <span title="Last seen"><i class="fas fa-eye"></i> ${timeAgo(u.lastSeen)}</span>
+                    <span title="Minecraft identities"><i class="fas fa-cube"></i> ${mcCount} MC</span>
+                    <span title="Total time on site"><i class="fas fa-clock"></i> ${formatDuration(user.totalTimeSec)}</span>
+                    <span title="Visits"><i class="fas fa-right-to-bracket"></i> ${user.visitCount||0}</span>
+                    <span title="Last seen"><i class="fas fa-eye"></i> ${timeAgo(user.lastSeen)}</span>
                 </div>
             </div>
-            <div class="admin-user-controls">${roleControl}<div class="admin-user-actions">${actions.join('')}</div></div>`;
-        const sel=row.querySelector('.admin-role-select');
-        if(sel)sel.addEventListener('change',()=>{const t=siteUsers.find(x=>x.id===u.id);if(t){t.role=sel.value;saveSiteUsers(siteUsers);refreshAdmin();if(u.id===currentUserId){renderAll();showProfileView();}}});
-        const banBtn=row.querySelector('[data-act="ban"]');
-        if(banBtn)banBtn.addEventListener('click',()=>{const t=siteUsers.find(x=>x.id===u.id);if(!t)return;if(!t.banned){showConfirm(`Ban "${t.username}"? They won't be able to log in.`,()=>{t.banned=true;saveSiteUsers(siteUsers);refreshAdmin();});}else{t.banned=false;saveSiteUsers(siteUsers);refreshAdmin();}});
-        const delBtn=row.querySelector('[data-act="del"]');
-        if(delBtn)delBtn.addEventListener('click',()=>{showConfirm(`Permanently delete "${u.username}" and all their data?`,()=>{deleteUserAccount(u.id);refreshAdmin();});});
+            <div class="admin-user-controls">
+                <div class="admin-role-control">${roleControl}</div>
+                <div class="admin-user-actions">
+                    <button class="admin-act-btn inspect" data-act="inspect" type="button" aria-label="Inspect user"><i class="fas fa-arrow-right"></i></button>
+                    ${manageable?`<button class="admin-act-btn ${user.banned?'unban':'ban'}" data-act="ban" type="button"><i class="fas fa-${user.banned?'unlock':'ban'}"></i><span>${user.banned?'Unban':'Ban'}</span></button>`:''}
+                    ${isDev(viewer)&&!isSelf?'<button class="admin-act-btn del" data-act="del" type="button" aria-label="Delete user"><i class="fas fa-trash-alt"></i></button>':''}
+                </div>
+            </div>`;
+
+        const check=row.querySelector('.admin-user-check');
+        if(check)check.addEventListener('change',event=>{
+            event.stopPropagation();
+            if(check.checked)adminSelectedUserIds.add(user.id);else adminSelectedUserIds.delete(user.id);
+            renderAdminUsers();
+        });
+        const roleSelect=row.querySelector('.admin-role-select');
+        if(roleSelect)roleSelect.addEventListener('change',event=>{
+            event.stopPropagation();
+            const target=siteUsers.find(candidate=>candidate.id===user.id);
+            const actor=siteUsers.find(candidate=>candidate.id===currentUserId);
+            if(!target||!canAdminManageTarget(actor,target)||!adminAllowedRoles(actor).includes(roleSelect.value)){
+                showToast('This account is protected by the role hierarchy.','triangle-exclamation');
+                renderAdminUsers();
+                return;
+            }
+            target.role=roleSelect.value;
+            saveSiteUsers(siteUsers);
+            showToast(`${target.username} is now ${ROLES[target.role].label}.`,'check');
+            refreshAdmin();
+        });
+        const inspect=()=>{
+            adminInspectedUserId=user.id;
+            renderAdminUsers();
+        };
+        row.querySelector('[data-act="inspect"]')?.addEventListener('click',event=>{event.stopPropagation();inspect();});
+        row.addEventListener('click',event=>{
+            if(event.target.closest('button,select,input'))return;
+            inspect();
+        });
+        const banButton=row.querySelector('[data-act="ban"]');
+        if(banButton)banButton.addEventListener('click',event=>{
+            event.stopPropagation();
+            const target=siteUsers.find(candidate=>candidate.id===user.id);
+            const actor=siteUsers.find(candidate=>candidate.id===currentUserId);
+            if(!target||!canAdminManageTarget(actor,target))return showToast('This account is protected.','triangle-exclamation');
+            if(target.banned){
+                target.banned=false;
+                saveSiteUsers(siteUsers);
+                showToast(`${target.username} can sign in again.`,'check');
+                refreshAdmin();
+                return;
+            }
+            showConfirm(`Ban "${target.username}"? They will no longer be able to sign in.`,()=>{
+                target.banned=true;
+                saveSiteUsers(siteUsers);
+                showToast(`${target.username} has been banned.`,'check');
+                refreshAdmin();
+            });
+        });
+        const deleteButton=row.querySelector('[data-act="del"]');
+        if(deleteButton)deleteButton.addEventListener('click',event=>{
+            event.stopPropagation();
+            showConfirm(`Permanently delete "${user.username}" and all their local data?`,()=>{
+                adminSelectedUserIds.delete(user.id);
+                deleteUserAccount(user.id);
+                refreshAdmin();
+            });
+        });
         list.appendChild(row);
     });
+
+    renderAdminUserInspector(users.find(user=>user.id===adminInspectedUserId)||users[0]);
+    updateAdminBulkBar();
 }
+
+const adminSelectAllControl=document.getElementById('adminSelectAllUsers');
+adminSelectAllControl?.addEventListener('change',()=>{
+    const viewer=siteUsers.find(user=>user.id===currentUserId);
+    getAdminFilteredUsers().filter(user=>canAdminManageTarget(viewer,user)).forEach(user=>{
+        if(adminSelectAllControl.checked)adminSelectedUserIds.add(user.id);else adminSelectedUserIds.delete(user.id);
+    });
+    renderAdminUsers();
+});
+document.getElementById('adminBulkClear')?.addEventListener('click',()=>{
+    adminSelectedUserIds.clear();
+    renderAdminUsers();
+});
+document.getElementById('adminBulkApplyRole')?.addEventListener('click',()=>{
+    const viewer=siteUsers.find(user=>user.id===currentUserId);
+    const role=document.getElementById('adminBulkRole')?.value;
+    const targets=selectedAdminUsers().filter(user=>canAdminManageTarget(viewer,user));
+    if(!role||!adminAllowedRoles(viewer).includes(role))return showToast('Choose an allowed role first.','triangle-exclamation');
+    if(!targets.length)return showToast('Select at least one manageable user.','triangle-exclamation');
+    targets.forEach(user=>{user.role=role;});
+    saveSiteUsers(siteUsers);
+    showToast(`${targets.length} ${targets.length===1?'account':'accounts'} updated.`,'check');
+    adminSelectedUserIds.clear();
+    refreshAdmin();
+});
+document.getElementById('adminBulkBan')?.addEventListener('click',()=>{
+    const viewer=siteUsers.find(user=>user.id===currentUserId);
+    const targets=selectedAdminUsers().filter(user=>canAdminManageTarget(viewer,user)&&!user.banned);
+    if(!targets.length)return showToast('No selectable active accounts.','triangle-exclamation');
+    showConfirm(`Ban ${targets.length} selected ${targets.length===1?'account':'accounts'}?`,()=>{
+        targets.forEach(user=>{user.banned=true;});
+        saveSiteUsers(siteUsers);
+        showToast(`${targets.length} ${targets.length===1?'account':'accounts'} banned.`,'check');
+        adminSelectedUserIds.clear();
+        refreshAdmin();
+    });
+});
+document.getElementById('adminBulkUnban')?.addEventListener('click',()=>{
+    const viewer=siteUsers.find(user=>user.id===currentUserId);
+    const targets=selectedAdminUsers().filter(user=>canAdminManageTarget(viewer,user)&&user.banned);
+    if(!targets.length)return showToast('No selected banned accounts.','triangle-exclamation');
+    targets.forEach(user=>{user.banned=false;});
+    saveSiteUsers(siteUsers);
+    showToast(`${targets.length} ${targets.length===1?'account':'accounts'} restored.`,'check');
+    adminSelectedUserIds.clear();
+    refreshAdmin();
+});
+document.getElementById('adminBulkExport')?.addEventListener('click',()=>{
+    const targets=selectedAdminUsers();
+    if(!targets.length)return showToast('Select users to export.','triangle-exclamation');
+    exportAdminUsers(targets,'selected-users');
+});
+
 function renderAdminForum() {
-    const list=document.getElementById('adminForumList');if(!list)return;
+    const list=document.getElementById('adminForumList');
+    if(!list)return;
+    updateAdminOverview();
+    const query=(document.getElementById('adminForumSearch')?.value||'').trim().toLowerCase();
+    const statusOf=post=>post.rejected?'rejected':post.approved?'approved':'pending';
+    const statusPriority={pending:0,approved:1,rejected:2};
+    const posts=forumPosts.filter(post=>{
+        const status=statusOf(post);
+        const matchesStatus=adminForumFilter==='all'||status===adminForumFilter;
+        const haystack=`${post.title||''} ${post.text||''} ${post.authorName||''}`.toLowerCase();
+        return matchesStatus&&(!query||haystack.includes(query));
+    }).sort((a,b)=>statusPriority[statusOf(a)]-statusPriority[statusOf(b)]||String(b.date||'').localeCompare(String(a.date||'')));
+    const count=document.getElementById('adminForumResultCount');
+    if(count)count.textContent=`${posts.length} ${posts.length===1?'post':'posts'}`;
     list.innerHTML='';
-    if(forumPosts.length===0){list.innerHTML='<p style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px;">No forum posts yet</p>';return;}
-    forumPosts.forEach(p=>{
-        const item=document.createElement('div');item.className='admin-forum-item';
-        const statusClass=p.rejected?'afs-rejected':p.approved?'afs-approved':'afs-pending';
-        const statusLabel=p.rejected?'Rejected':p.approved?'Approved':'Pending';
+    if(!posts.length){
+        list.innerHTML='<div class="admin-empty admin-empty-state"><i class="fas fa-inbox"></i><strong>Queue is clear</strong><span>No posts match the current view.</span></div>';
+        return;
+    }
+    posts.forEach(post=>{
+        const status=statusOf(post);
+        const statusLabel=status[0].toUpperCase()+status.slice(1);
+        const item=document.createElement('article');
+        item.className=`admin-forum-item is-${status}`;
         item.innerHTML=`
-            <div style="display:flex;align-items:center;gap:8px;">
-                <div class="admin-forum-title">${esc(p.title)}</div>
-                <span class="admin-forum-status ${statusClass}">${statusLabel}</span>
+            <div class="admin-forum-item-head">
+                <div class="admin-forum-signal"><i class="fas fa-${status==='pending'?'clock':status==='approved'?'check':'xmark'}"></i></div>
+                <div class="admin-forum-copy">
+                    <div class="admin-forum-title-row">
+                        <h4 class="admin-forum-title">${esc(post.title||'Untitled idea')}</h4>
+                        <span class="admin-forum-status afs-${status}">${statusLabel}</span>
+                    </div>
+                    <div class="admin-forum-meta">by ${esc(post.authorName||'Unknown')} <span>·</span> ${esc(post.date||'No date')} <span>·</span> ${(post.upvotes||[]).length} upvote${(post.upvotes||[]).length===1?'':'s'}</div>
+                </div>
             </div>
-            <div class="admin-forum-meta">by ${esc(p.authorName)} · ${esc(p.date)} · ${p.upvotes.length} upvote${p.upvotes.length!==1?'s':''}</div>
-            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:8px;line-height:1.5;">${esc(p.text.slice(0,120))}${p.text.length>120?'…':''}</div>
+            <p class="admin-forum-preview">${esc(String(post.text||'').slice(0,220))}${String(post.text||'').length>220?'…':''}</p>
             <div class="admin-forum-actions">
-                ${!p.approved&&!p.rejected?`<button class="admin-forum-approve" data-id="${p.id}"><i class="fas fa-check"></i> Approve</button>`:''}
-                ${!p.rejected?`<button class="admin-forum-reject" data-id="${p.id}"><i class="fas fa-times"></i> Reject</button>`:''}
-                ${p.rejected?`<button class="admin-forum-approve" data-id="${p.id}">Restore</button>`:''}
-                <button class="admin-forum-reject" data-id="${p.id}" data-del="1" style="background:rgba(239,68,68,0.2);">Delete</button>
+                ${status!=='approved'?`<button class="admin-forum-approve" data-action="approve" type="button"><i class="fas fa-check"></i> ${status==='rejected'?'Restore':'Approve'}</button>`:''}
+                ${status!=='rejected'?'<button class="admin-forum-reject" data-action="reject" type="button"><i class="fas fa-xmark"></i> Reject</button>':''}
+                <button class="admin-forum-delete" data-action="delete" type="button"><i class="fas fa-trash-alt"></i> Delete</button>
             </div>`;
-        item.querySelectorAll('.admin-forum-approve').forEach(btn=>btn.addEventListener('click',()=>{const post=forumPosts.find(x=>x.id===btn.dataset.id);if(post){post.approved=true;post.rejected=false;saveForum(forumPosts);renderAdminForum();renderForum();}}));
-        item.querySelectorAll('.admin-forum-reject:not([data-del])').forEach(btn=>btn.addEventListener('click',()=>{const post=forumPosts.find(x=>x.id===btn.dataset.id);if(post){post.approved=false;post.rejected=true;saveForum(forumPosts);renderAdminForum();renderForum();}}));
-        item.querySelectorAll('.admin-forum-reject[data-del]').forEach(btn=>btn.addEventListener('click',()=>{showConfirm('Delete this idea permanently?',()=>{forumPosts=forumPosts.filter(x=>x.id!==btn.dataset.id);saveForum(forumPosts);renderAdminForum();renderForum();});}));
+        item.querySelector('[data-action="approve"]')?.addEventListener('click',()=>{
+            const target=forumPosts.find(candidate=>candidate.id===post.id);
+            if(!target)return;
+            target.approved=true;
+            target.rejected=false;
+            saveForum(forumPosts);
+            renderAdminForum();
+            renderForum();
+            showToast('Post approved.','check');
+        });
+        item.querySelector('[data-action="reject"]')?.addEventListener('click',()=>{
+            const target=forumPosts.find(candidate=>candidate.id===post.id);
+            if(!target)return;
+            target.approved=false;
+            target.rejected=true;
+            saveForum(forumPosts);
+            renderAdminForum();
+            renderForum();
+            showToast('Post moved to rejected.','check');
+        });
+        item.querySelector('[data-action="delete"]')?.addEventListener('click',()=>{
+            showConfirm('Delete this idea permanently?',()=>{
+                forumPosts=forumPosts.filter(candidate=>candidate.id!==post.id);
+                saveForum(forumPosts);
+                renderAdminForum();
+                renderForum();
+            });
+        });
         list.appendChild(item);
     });
 }
+
 function renderAdminStats() {
     const grid=document.getElementById('adminStatsGrid');if(!grid)return;
+    updateAdminOverview();
     const viewer=siteUsers.find(u=>u.id===currentUserId);
     const dev=isDev(viewer);
 
@@ -1590,7 +2506,7 @@ function renderAdminStats() {
         </div>`;
 
     const ex=document.getElementById('devExportBtn'); if(ex)ex.addEventListener('click',exportDatabase);
-    const rl=document.getElementById('devReloadBtn'); if(rl)rl.addEventListener('click',()=>{ rl.disabled=true; rl.innerHTML='<i class="fas fa-rotate fa-spin"></i> Reloading...'; Promise.resolve(cloudBootstrap()).then(()=>{ if(dashOverlay&&dashOverlay.classList.contains('open')){renderAdminPanel();document.querySelectorAll('.admin-stab').forEach(s=>s.classList.toggle('active',s.dataset.stab==='site-stats'));document.querySelectorAll('.admin-stab-content').forEach(c=>c.style.display=c.dataset.stabContent==='site-stats'?'block':'none');renderAdminStats();} }); });
+    const rl=document.getElementById('devReloadBtn'); if(rl)rl.addEventListener('click',()=>{ rl.disabled=true; rl.innerHTML='<i class="fas fa-rotate fa-spin"></i> Reloading...'; Promise.resolve(cloudBootstrap()).then(()=>{ if(dashOverlay&&dashOverlay.classList.contains('open')){updateAdminOverview();openAdminSection('site-stats');} }); });
     const rs=document.getElementById('devResetBtn'); if(rs)rs.addEventListener('click',()=>{ showConfirm('Clear ALL local data on this device? Cloud data is kept and reloads on refresh.',()=>{ try{Object.keys(localStorage).filter(k=>k.startsWith('spectral_')).forEach(k=>localStorage.removeItem(k));}catch{} location.reload(); }); });
 }
 
@@ -1710,6 +2626,215 @@ newsItems.forEach(n=>n.isCurrent=false);const newItem={id:'news_'+Date.now(),dat
 // ══════════════════════════════════════════════════════════════
 // FORUM
 // ══════════════════════════════════════════════════════════════
+// News system v2: filtering, rich release cards and a local-first editor.
+const NEWS_DRAFT_KEY = 'spectral_news_draft_v2';
+const NEWS_TYPES = {
+    add: { label:'Added', icon:'plus' },
+    imp: { label:'Improved', icon:'arrow-up' },
+    fix: { label:'Fixed', icon:'wrench' },
+    breaking: { label:'Important', icon:'triangle-exclamation' },
+    security: { label:'Security', icon:'shield-halved' }
+};
+const NEWS_ICONS = new Set(['bolt','puzzle-piece','robot','gauge-high','language','terminal','palette','globe','cubes','shield-halved','wand-magic-sparkles','code-branch']);
+let newsViewState = { query:'', filter:'all' };
+let editingNewsId = null;
+let newsDraftTimer = 0;
+
+function validNewsType(type) { return Object.prototype.hasOwnProperty.call(NEWS_TYPES,type) ? type : 'add'; }
+function validNewsIcon(icon) { return NEWS_ICONS.has(icon) ? icon : 'bolt'; }
+function formatNewsText(value) {
+    let safe = esc(value || '');
+    safe = safe.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+    return safe.replace(/\n/g, '<br>');
+}
+function releaseToMarkdown(item) {
+    const channel = item.channel ? ` · ${item.channel}` : '';
+    const version = item.version ? ` ${item.version}` : '';
+    const summary = item.summary ? `\n\n${item.summary}` : '';
+    const lines = (item.items || []).map(change => {
+        const meta = NEWS_TYPES[validNewsType(change.type)];
+        return `- **${meta.label}:** ${change.text}`;
+    }).join('\n');
+    return `## ${item.title}${version}\n\n_${item.date}${channel}_${summary}\n\n${lines}`.trim();
+}
+function copyLocalText(text, successMessage) {
+    const done=()=>showToast(successMessage || 'Copied to clipboard','copy');
+    if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done).catch(()=>{});
+    else {
+        const area=document.createElement('textarea');area.value=text;area.style.cssText='position:fixed;left:-9999px;top:0';
+        document.body.appendChild(area);area.select();try{document.execCommand('copy');done();}catch{}area.remove();
+    }
+}
+function releaseCardMarkup(item, isDev, preview) {
+    const items = Array.isArray(item.items) ? item.items : [];
+    const counts = items.reduce((all,change)=>{const type=validNewsType(change.type);all[type]=(all[type]||0)+1;return all;},{});
+    const channel = ['stable','beta','dev','website'].includes(item.channel) ? item.channel : 'stable';
+    const releaseIcon = validNewsIcon(item.icon);
+    const version = item.version || (item.isCurrent ? 'Latest' : 'Release');
+    const summary = item.summary || (items[0] ? items[0].text.replace(/[*`\[\]()]/g,'').slice(0,170) : 'Release notes and product changes.');
+    const list = items.map(change=>`<li class="${validNewsType(change.type)}">${formatNewsText(change.text)}</li>`).join('');
+    const typeSummary = ['add','imp','fix'].filter(type=>counts[type]).map(type=>`<span><i class="fas fa-${NEWS_TYPES[type].icon} ${type}"></i>${counts[type]} ${NEWS_TYPES[type].label.toLowerCase()}</span>`).join('');
+    const devActions = isDev && !preview ? `
+        <button class="release-action" data-release-action="pin" title="Mark as current"><i class="fas fa-thumbtack"></i></button>
+        <button class="release-action" data-release-action="edit" title="Edit update"><i class="fas fa-pen"></i></button>
+        <button class="release-action" data-release-action="duplicate" title="Duplicate update"><i class="fas fa-clone"></i></button>
+        <button class="release-action danger" data-release-action="delete" title="Delete update"><i class="fas fa-trash-alt"></i></button>` : '';
+    return `<div class="timeline-card glass${item.dimmed?' dimmed':''}${item.isCurrent?' is-current expanded':''}${preview?' expanded':''}" data-news-id="${esc(item.id||'preview')}">
+        <div class="release-card-head">
+            <div class="release-icon ${channel}"><i class="fas fa-${releaseIcon}"></i></div>
+            <div class="release-card-main">
+                <div class="release-meta"><span class="release-version">${esc(version)}</span><span class="release-channel ${channel}">${esc(channel)}</span><span class="release-change-count">${items.length} change${items.length===1?'':'s'}</span>${item.isCurrent?'<span class="tag new">CURRENT</span>':''}</div>
+                <h3>${esc(item.title||'Untitled release')}</h3><p class="release-summary">${formatNewsText(summary)}</p>
+            </div>
+            ${preview?'':`<div class="release-actions"><button class="release-action" data-release-action="copy" title="Copy as Markdown"><i class="fas fa-copy"></i></button>${devActions}</div>`}
+        </div>
+        <div class="release-details"><div class="release-details-inner"><div class="release-details-content"><ul class="changelog">${list||'<li class="imp">Add at least one changelog item.</li>'}</ul></div></div></div>
+        ${preview?'':`<div class="release-card-foot"><div class="release-type-summary">${typeSummary||'<span>Release notes</span>'}</div><button class="release-expand" type="button" aria-expanded="${item.isCurrent?'true':'false'}"><span>${item.isCurrent?'Hide details':'View details'}</span><i class="fas fa-chevron-down"></i></button></div>`}
+    </div>`;
+}
+function renderNewsTimeline() {
+    const timeline=document.getElementById('updatesTimeline');if(!timeline)return;
+    const user=siteUsers.find(u=>u.id===currentUserId);
+    const isDev=Boolean(user&&user.role==='DEV');
+    const query=newsViewState.query.trim().toLowerCase();
+    let visible=newsItems.filter(item=>{
+        const matchesType=newsViewState.filter==='all'||(item.items||[]).some(change=>validNewsType(change.type)===newsViewState.filter);
+        const haystack=[item.title,item.date,item.version,item.channel,item.summary,...(item.items||[]).map(change=>change.text)].join(' ').toLowerCase();
+        return matchesType&&(!query||haystack.includes(query));
+    });
+    const releaseCount=document.getElementById('updatesReleaseCount');if(releaseCount)releaseCount.textContent=String(newsItems.length);
+    const changeCount=document.getElementById('updatesChangeCount');if(changeCount)changeCount.textContent=String(newsItems.reduce((n,item)=>n+(item.items||[]).length,0));
+    const latestDate=document.getElementById('updatesLatestDate');if(latestDate)latestDate.textContent=newsItems[0]?.date||'—';
+    const featured=newsItems.find(item=>item.isCurrent)||newsItems[0];
+    if(featured){
+        const featuredIcon=document.getElementById('updatesFeaturedIcon');if(featuredIcon)featuredIcon.className=`fas fa-${validNewsIcon(featured.icon)}`;
+        const featuredTitle=document.getElementById('updatesFeaturedTitle');if(featuredTitle)featuredTitle.textContent=featured.title||'Latest release';
+        const featuredSummary=document.getElementById('updatesFeaturedSummary');if(featuredSummary)featuredSummary.textContent=featured.summary||featured.items?.[0]?.text||'Release notes are ready.';
+        const featuredVersion=document.getElementById('updatesFeaturedVersion');if(featuredVersion)featuredVersion.textContent=featured.version||'Latest';
+        const featuredChannel=document.getElementById('updatesFeaturedChannel');if(featuredChannel)featuredChannel.textContent=featured.channel||'stable';
+    }
+    const empty=document.getElementById('updatesEmpty');if(empty)empty.hidden=visible.length>0;
+    timeline.style.display=visible.length?'block':'none';
+    timeline.innerHTML='<div class="timeline-line" aria-hidden="true"></div>';
+    visible.forEach(item=>{
+        const article=document.createElement('article');article.className='timeline-item';article.dataset.newsId=item.id;
+        article.innerHTML=`<div class="date-badge">${esc(item.date)}</div>${releaseCardMarkup(item,isDev,false)}`;
+        const card=article.querySelector('.timeline-card');
+        const expand=article.querySelector('.release-expand');
+        if(expand)expand.addEventListener('click',()=>{const open=card.classList.toggle('expanded');expand.setAttribute('aria-expanded',String(open));expand.querySelector('span').textContent=open?'Hide details':'View details';});
+        card.addEventListener('pointermove',e=>{if(liteOn())return;const r=card.getBoundingClientRect();card.style.setProperty('--card-x',`${e.clientX-r.left}px`);card.style.setProperty('--card-y',`${e.clientY-r.top}px`);});
+        article.querySelectorAll('[data-release-action]').forEach(button=>button.addEventListener('click',e=>{
+            e.stopPropagation();const action=button.dataset.releaseAction;
+            if(action==='copy')copyLocalText(releaseToMarkdown(item),'Release copied as Markdown');
+            if(action==='edit')openNewsEditor(item,false);
+            if(action==='duplicate')openNewsEditor(item,true);
+            if(action==='pin'){
+                newsItems.forEach(news=>news.isCurrent=news.id===item.id?!item.isCurrent:false);saveNews(newsItems);renderNewsTimeline();
+            }
+            if(action==='delete')showConfirm(`Delete update "${item.title}"?`,()=>{newsItems=newsItems.filter(news=>news.id!==item.id);saveNews(newsItems);renderNewsTimeline();showToast('Update deleted','trash');});
+        }));
+        timeline.appendChild(article);
+    });
+    const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduce)timeline.querySelectorAll('.timeline-item').forEach(item=>item.classList.add('in-view'));
+    else {
+        const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('in-view');observer.unobserve(entry.target);}}),{threshold:.12,rootMargin:'0px 0px -35px'});
+        timeline.querySelectorAll('.timeline-item').forEach(item=>observer.observe(item));
+    }
+}
+
+const updatesSearchInput=document.getElementById('updatesSearchInput');
+if(updatesSearchInput)updatesSearchInput.addEventListener('input',()=>{newsViewState.query=updatesSearchInput.value;renderNewsTimeline();});
+document.querySelectorAll('[data-news-filter]').forEach(button=>button.addEventListener('click',()=>{
+    newsViewState.filter=button.dataset.newsFilter||'all';document.querySelectorAll('[data-news-filter]').forEach(other=>other.classList.toggle('active',other===button));renderNewsTimeline();
+}));
+const updatesReset=document.getElementById('updatesResetFilters');if(updatesReset)updatesReset.addEventListener('click',()=>{
+    newsViewState={query:'',filter:'all'};if(updatesSearchInput)updatesSearchInput.value='';document.querySelectorAll('[data-news-filter]').forEach(button=>button.classList.toggle('active',button.dataset.newsFilter==='all'));renderNewsTimeline();
+});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'&&document.getElementById('updates')?.classList.contains('active-tab')){e.preventDefault();updatesSearchInput?.focus();}});
+document.getElementById('updatesFeaturedOpen')?.addEventListener('click',()=>{
+    const current=newsItems.find(item=>item.isCurrent)||newsItems[0];if(!current)return;
+    if(newsViewState.query||newsViewState.filter!=='all'){newsViewState={query:'',filter:'all'};if(updatesSearchInput)updatesSearchInput.value='';document.querySelectorAll('[data-news-filter]').forEach(button=>button.classList.toggle('active',button.dataset.newsFilter==='all'));renderNewsTimeline();}
+    requestAnimationFrame(()=>{const article=[...document.querySelectorAll('.timeline-item')].find(item=>item.dataset.newsId===current.id);if(!article)return;article.querySelector('.timeline-card')?.classList.add('expanded');const expand=article.querySelector('.release-expand');if(expand){expand.setAttribute('aria-expanded','true');const label=expand.querySelector('span');if(label)label.textContent='Hide details';}article.scrollIntoView({behavior:'smooth',block:'center'});});
+});
+
+function newsRowTemplate(type='add',text='') {
+    const selected=validNewsType(type);
+    const options=Object.entries(NEWS_TYPES).map(([key,meta])=>`<option value="${key}"${key===selected?' selected':''}>${meta.label}</option>`).join('');
+    return `<div class="news-item-row"><div class="nie-row-main"><select class="nie-type" aria-label="Change type">${options}</select><textarea class="nie-text" rows="2" placeholder="Describe the change…">${esc(text)}</textarea><div class="nie-row-actions"><button type="button" data-row-action="up" title="Move up"><i class="fas fa-arrow-up"></i></button><button type="button" data-row-action="down" title="Move down"><i class="fas fa-arrow-down"></i></button><button type="button" class="nie-remove" data-row-action="remove" title="Remove"><i class="fas fa-times"></i></button></div></div><div class="nie-format-bar"><button type="button" data-news-format="bold" title="Bold"><b>B</b></button><button type="button" data-news-format="code" title="Inline code">&lt;/&gt;</button><button type="button" data-news-format="link" title="Link"><i class="fas fa-link"></i></button></div></div>`;
+}
+function updateNewsItemCount() {
+    const count=document.querySelectorAll('#newsItemRows .news-item-row').length;
+    const label=document.getElementById('newsItemCount');if(label)label.textContent=`${count} item${count===1?'':'s'}`;
+}
+function applyNewsFormat(textarea,format) {
+    const start=textarea.selectionStart||0,end=textarea.selectionEnd||0,selected=textarea.value.slice(start,end);
+    const wrappers={bold:['**','**','bold text'],code:['`','`','code'],link:['[','](https://)','link text']};
+    const [before,after,fallback]=wrappers[format]||wrappers.bold;const content=selected||fallback;
+    textarea.setRangeText(before+content+after,start,end,'select');textarea.focus();textarea.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function bindNewsRow(row) {
+    const textarea=row.querySelector('.nie-text');
+    row.querySelectorAll('[data-row-action]').forEach(button=>button.addEventListener('click',()=>{
+        const action=button.dataset.rowAction,rows=document.getElementById('newsItemRows');
+        if(action==='remove'){if(rows.children.length>1)row.remove();else textarea.value='';}
+        if(action==='up'&&row.previousElementSibling)rows.insertBefore(row,row.previousElementSibling);
+        if(action==='down'&&row.nextElementSibling)rows.insertBefore(row.nextElementSibling,row);
+        updateNewsItemCount();markNewsEditorDirty();updateLiveNewsPreview();
+    }));
+    row.querySelectorAll('[data-news-format]').forEach(button=>button.addEventListener('click',()=>applyNewsFormat(textarea,button.dataset.newsFormat)));
+    row.querySelector('.nie-type')?.addEventListener('change',()=>{markNewsEditorDirty();updateLiveNewsPreview();});
+    textarea?.addEventListener('input',()=>{markNewsEditorDirty();updateLiveNewsPreview();});
+}
+function addNewsItemRow(type='add',text='',focus=true) {
+    const rows=document.getElementById('newsItemRows');if(!rows)return;
+    rows.insertAdjacentHTML('beforeend',newsRowTemplate(type,text));const row=rows.lastElementChild;bindNewsRow(row);updateNewsItemCount();updateLiveNewsPreview();if(focus)row.querySelector('.nie-text')?.focus();
+}
+function collectNewsEditor() {
+    const items=[];document.querySelectorAll('#newsItemRows .news-item-row').forEach(row=>{const text=row.querySelector('.nie-text')?.value.trim();if(text)items.push({type:validNewsType(row.querySelector('.nie-type')?.value),text});});
+    return {id:editingNewsId||`news_${Date.now()}`,date:document.getElementById('newsDate')?.value.trim()||'',title:document.getElementById('newsTitle')?.value.trim()||'',version:document.getElementById('newsVersion')?.value.trim()||'',channel:document.getElementById('newsChannel')?.value||'stable',icon:validNewsIcon(document.getElementById('newsIcon')?.value),summary:document.getElementById('newsSummary')?.value.trim()||'',isCurrent:Boolean(document.getElementById('newsIsCurrent')?.checked),dimmed:false,items};
+}
+function updateLiveNewsPreview() {
+    const host=document.getElementById('newsLivePreview');if(!host)return;const draft=collectNewsEditor();
+    host.innerHTML=(!draft.title&&!draft.summary&&!draft.items.length)?'<div class="news-preview-placeholder"><div><i class="fas fa-wand-magic-sparkles"></i>Start typing to build the release preview.</div></div>':releaseCardMarkup({...draft,title:draft.title||'Untitled release',date:draft.date||'Release date'},false,true);
+}
+function setNewsEditorData(item) {
+    const set=(id,value)=>{const el=document.getElementById(id);if(el)el.value=value||'';};
+    set('newsTitle',item.title);set('newsVersion',item.version);set('newsDate',item.date);set('newsChannel',item.channel||'stable');set('newsIcon',validNewsIcon(item.icon));set('newsSummary',item.summary);
+    const current=document.getElementById('newsIsCurrent');if(current)current.checked=item.isCurrent!==false;
+    const rows=document.getElementById('newsItemRows');if(rows){rows.innerHTML='';(item.items?.length?item.items:[{type:'add',text:''}]).forEach(change=>addNewsItemRow(change.type,change.text,false));}
+    updateNewsItemCount();updateLiveNewsPreview();
+}
+function readNewsDraft(){try{return JSON.parse(localStorage.getItem(NEWS_DRAFT_KEY)||'null');}catch{return null;}}
+function saveNewsDraft(notify=true){const draft=collectNewsEditor();try{localStorage.setItem(NEWS_DRAFT_KEY,JSON.stringify(draft));}catch{}const status=document.getElementById('newsDraftStatus');if(status)status.innerHTML='<i class="fas fa-circle-check"></i> Draft saved locally';if(notify)showToast('Draft saved locally','floppy-disk');}
+function markNewsEditorDirty(){const status=document.getElementById('newsDraftStatus');if(status)status.innerHTML='<i class="fas fa-circle"></i> Saving draft…';clearTimeout(newsDraftTimer);newsDraftTimer=setTimeout(()=>saveNewsDraft(false),700);}
+function openNewsEditor(item=null,duplicate=false){
+    if(item instanceof Event||!item?.id)item=null;
+    if(!newsEditorOverlay)return;const restored=!item&&readNewsDraft();const source=item||restored||{date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),title:'',version:'',channel:'stable',icon:'bolt',summary:'',isCurrent:true,items:[{type:'add',text:''}]};
+    editingNewsId=item&&!duplicate?item.id:null;
+    const data=duplicate?{...source,title:`${source.title} (copy)`,isCurrent:false}:source;
+    document.getElementById('newsEditorModeLabel').textContent=editingNewsId?'Editing release':duplicate?'Duplicate release':restored?'Restored local draft':'New release';
+    document.getElementById('newsPublishLabel').textContent=editingNewsId?'Save Changes':'Publish Update';setNewsEditorData(data);
+    newsEditorOverlay.classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>document.getElementById('newsTitle')?.focus(),80);
+}
+function closeNewsEditor(){if(!newsEditorOverlay)return;newsEditorOverlay.classList.remove('open');document.body.style.overflow='';}
+
+document.querySelectorAll('[data-add-news-type]').forEach(button=>button.addEventListener('click',()=>addNewsItemRow(button.dataset.addNewsType,'',true)));
+['newsTitle','newsVersion','newsDate','newsChannel','newsIcon','newsSummary','newsIsCurrent'].forEach(id=>document.getElementById(id)?.addEventListener('input',()=>{markNewsEditorDirty();updateLiveNewsPreview();}));
+document.getElementById('saveNewsDraftBtn')?.addEventListener('click',()=>saveNewsDraft(true));
+document.getElementById('copyNewsMarkdownBtn')?.addEventListener('click',()=>copyLocalText(releaseToMarkdown(collectNewsEditor()),'Draft copied as Markdown'));
+document.getElementById('clearNewsEditorBtn')?.addEventListener('click',()=>showConfirm('Clear every field in this draft?',()=>{editingNewsId=null;try{localStorage.removeItem(NEWS_DRAFT_KEY);}catch{}setNewsEditorData({date:new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}),channel:'stable',icon:'bolt',isCurrent:true,items:[{type:'add',text:''}]});document.getElementById('newsEditorModeLabel').textContent='New release';document.getElementById('newsPublishLabel').textContent='Publish Update';}));
+const newsEditorFormV2=document.getElementById('newsEditorFormV2');
+if(newsEditorFormV2)newsEditorFormV2.addEventListener('submit',e=>{
+    e.preventDefault();const entry=collectNewsEditor();if(!entry.title||!entry.date){showToast('Add a release title and date','triangle-exclamation');return;}if(!entry.items.length){showToast('Add at least one changelog item','triangle-exclamation');return;}
+    if(entry.isCurrent)newsItems.forEach(item=>item.isCurrent=false);
+    if(editingNewsId){const index=newsItems.findIndex(item=>item.id===editingNewsId);if(index>=0)newsItems[index]={...newsItems[index],...entry,id:editingNewsId};}
+    else newsItems.unshift(entry);
+    saveNews(newsItems);clearTimeout(newsDraftTimer);try{localStorage.removeItem(NEWS_DRAFT_KEY);}catch{}closeNewsEditor();renderNewsTimeline();showToast(editingNewsId?'Update saved':'Update published locally','check');editingNewsId=null;
+});
+
 function renderForum() {
     const list  = document.getElementById('forumPostsList');
     const empty = document.getElementById('forumEmpty');
