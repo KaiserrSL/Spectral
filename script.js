@@ -686,13 +686,6 @@ function showToast(msg, icon='circle-info'){
     setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),420);},3800);
 }
 
-// ── Download CTA (no public build yet → friendly toast) ──────
-const downloadBtn=document.getElementById('downloadBtn');
-if(downloadBtn)downloadBtn.addEventListener('click',e=>{
-    e.preventDefault();
-    showToast('Desktop build is coming soon — follow updates on Discord.','circle-info');
-});
-
 // ── FAQ accordion — smooth scrollHeight-based ────────────────
 document.querySelectorAll('#faqList .faq-q').forEach(q => {
     q.addEventListener('click', () => {
