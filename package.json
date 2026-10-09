@@ -1,0 +1,22 @@
+{
+  "name": "spectral-site",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "compose": "node tools/compose-source.mjs",
+    "check:source": "node tools/compose-source.mjs --check",
+    "lint": "eslint boot.js script.js tools/**/*.mjs tests/**/*.mjs",
+    "test": "node --test",
+    "build:css": "lightningcss --minify style.css -o style.min.css",
+    "build:js": "terser boot.js --compress passes=2 --mangle --comments false -o boot.min.js && terser script.js --compress passes=2 --mangle --comments false -o script.min.js",
+    "build": "pnpm run compose && pnpm run build:css && pnpm run build:js",
+    "check": "pnpm run check:source && pnpm run lint && pnpm test && pnpm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.8.0",
+    "globals": "17.9.0",
+    "lightningcss-cli": "1.33.0",
+    "terser": "5.49.0"
+  }
+}

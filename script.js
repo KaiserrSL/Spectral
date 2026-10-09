@@ -1,3 +1,4 @@
+// Generated from src/js/*.js by `pnpm compose`. Edit the ordered fragments.
 // ══════════════════════════════════════════════════════════════
 // PARTICLE CLASS
 // ══════════════════════════════════════════════════════════════
@@ -11,44 +12,66 @@ class Particle {
         this.lightness = 50 + Math.random() * 20;
         this.opacity = 0.3 + Math.random() * 0.4;
     }
-    update(W, H, mouse) {
-        this.hue = (this.hue + this.hueSpeed) % 360;
-        this.x += this.speedX; this.y += this.speedY;
+    update(W, H, mouse, frameStep = 1) {
+        this.hue = (this.hue + this.hueSpeed * frameStep) % 360;
+        this.x += this.speedX * frameStep; this.y += this.speedY * frameStep;
         if (mouse.active) {
             const dx = this.x - mouse.x, dy = this.y - mouse.y;
-            const dist = Math.sqrt(dx*dx + dy*dy), maxDist = 150;
-            if (dist < maxDist && dist > 0) {
+            const distSq = dx*dx + dy*dy, maxDist = 150;
+            if (distSq < maxDist*maxDist && distSq > 0) {
+                const dist = Math.sqrt(distSq);
                 const force = (maxDist - dist) / maxDist;
-                const angle = Math.atan2(dy, dx);
-                this.speedX += Math.cos(angle) * force * 0.15;
-                this.speedY += Math.sin(angle) * force * 0.15;
+                const impulse = force * 0.11 * frameStep / dist;
+                this.speedX += dx * impulse;
+                this.speedY += dy * impulse;
                 this.size = this.baseSize + force * 2.5;
-            } else { this.size += (this.baseSize - this.size) * 0.05; }
-        } else { this.size += (this.baseSize - this.size) * 0.02; }
-        this.speedX *= 0.98; this.speedY *= 0.98;
+            } else { this.size += (this.baseSize - this.size) * Math.min(.16, .05 * frameStep); }
+        } else { this.size += (this.baseSize - this.size) * Math.min(.1, .02 * frameStep); }
+        const damping = Math.pow(.98, frameStep);
+        this.speedX *= damping; this.speedY *= damping;
         const s = Math.sqrt(this.speedX*this.speedX + this.speedY*this.speedY);
         if (s < 0.05) { const a = Math.random()*Math.PI*2; this.speedX = Math.cos(a)*0.05; this.speedY = Math.sin(a)*0.05; }
         if (s > 1.2) { this.speedX = (this.speedX/s)*1.2; this.speedY = (this.speedY/s)*1.2; }
         if (this.x > W+20) this.x = -20; if (this.x < -20) this.x = W+20;
         if (this.y > H+20) this.y = -20; if (this.y < -20) this.y = H+20;
     }
-    draw(ctx) {
+    draw(ctx, lowPower = false) {
         // On light theme, render darker/more saturated dots so they stay visible
         const L = SPECTRAL_LIGHT ? Math.min(this.lightness, 46) : this.lightness;
         const S = SPECTRAL_LIGHT ? Math.min(this.saturation + 18, 92) : this.saturation;
         const color = `hsl(${this.hue},${S}%,${L}%)`;
-        ctx.save();
         ctx.globalAlpha = SPECTRAL_LIGHT ? Math.min(this.opacity + 0.22, 0.85) : this.opacity;
-        ctx.shadowBlur = SPECTRAL_LIGHT ? 6 : 15; ctx.shadowColor = color; ctx.fillStyle = color;
+        ctx.shadowBlur = lowPower ? 0 : (SPECTRAL_LIGHT ? 3 : 7); ctx.shadowColor = color; ctx.fillStyle = color;
         ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill();
         if (!SPECTRAL_LIGHT && this.opacity > 0.25) {
-            ctx.shadowBlur = 30; ctx.globalAlpha = this.opacity * 0.15;
+            ctx.shadowBlur = lowPower ? 0 : 12; ctx.globalAlpha = this.opacity * 0.11;
             ctx.beginPath(); ctx.arc(this.x, this.y, this.size*3, 0, Math.PI*2); ctx.fill();
         }
-        ctx.restore();
     }
 }
-
+// Shared, DOM-free account rules. Cloud permissions must also be enforced by RLS/RPC.
+const AccountPolicy = Object.freeze({
+    ranks: Object.freeze({USER:0,VETERAN:1,PRO:2,LEGEND:3,SPECTRAL:4,MODERATOR:10,ADMIN:20,DEV:30}),
+    canManage(actor,target,role=null){
+        if(!actor||actor.banned||!target||actor.id===target.id)return false;
+        const rank=this.ranks[actor.role]??-1;
+        if(rank<20||!(target.role in this.ranks))return false;
+        if(actor.role!=='DEV'&&this.ranks[target.role]>=rank)return false;
+        return role===null||(role in this.ranks&&(actor.role==='DEV'||this.ranks[role]<rank));
+    },
+    reservations(value){
+        if(!Array.isArray(value))return [];
+        const seen=new Set();
+        return value.slice().reverse().filter(order=>{
+            if(!order||!/^[-\w]{1,100}$/.test(order.userId||'')||!['PRO','LEGEND','SPECTRAL'].includes(order.role)||!['monthly','yearly'].includes(order.billing)||order.status!=='reserved'||!Number.isFinite(order.quotedPrice)||order.quotedPrice<0||seen.has(order.userId))return false;
+            seen.add(order.userId);return true;
+        }).slice(0,250).map(order=>({id:String(order.id||'').slice(0,100),userId:order.userId,role:order.role,billing:order.billing,quotedPrice:order.quotedPrice,currency:'USD',status:'reserved',createdAt:String(order.createdAt||'').slice(0,40)})).reverse();
+    },
+    recent(value,windowMs,now=Date.now()){
+        const time=new Date(value).getTime();
+        return Boolean(value)&&Number.isFinite(time)&&time<=now&&now-time<=windowMs;
+    }
+});
 // ══════════════════════════════════════════════════════════════
 // MAIN
 // ══════════════════════════════════════════════════════════════
@@ -61,23 +84,31 @@ const ctx = canvas.getContext('2d');
 let particles = [], canvasWidth, canvasHeight, animationId;
 let mouse = { x: -9999, y: -9999, active: false };
 let canvasRunning = false;
+let lastCanvasFrame = 0;
 // Touch devices: lighter background, no pointer-driven effects (saves battery/jank)
 const IS_TOUCH = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+let REDUCED_MOTION = reducedMotionQuery.matches;
 // Lightweight mode: weak devices skip the heavy canvas/tilt/parallax work.
-// The class is set super-early by the inline <head> detector.
+// The class is set super-early by boot.min.js in the document head.
 function liteOn() { return document.documentElement.classList.contains('lite-mode'); }
-document.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true; });
-document.addEventListener('mouseleave', () => { mouse.active = false; });
+function canvasShouldIdle() { return liteOn() || REDUCED_MOTION || window.innerWidth <= 620; }
+if (!liteOn() && !REDUCED_MOTION) document.addEventListener('mouseleave', () => { mouse.active = false; });
 function resizeCanvas() {
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     canvasWidth = canvas.width; canvasHeight = canvas.height; initParticles();
+    if (REDUCED_MOTION && !liteOn()) {
+        particles.forEach(p => p.draw(ctx, true));
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
+    }
 }
 function initParticles() {
     particles = [];
-    if (liteOn()) return;                 // no particles in lightweight mode
+    if (canvasShouldIdle()) return;
     // Fewer particles on phones/tablets — the O(n²) link drawing is the heavy part
-    const cap = IS_TOUCH ? 42 : 120;
-    const count = Math.min(cap, Math.floor((canvasWidth * canvasHeight) / 10000));
+    const cap = IS_TOUCH ? 16 : 48;
+    const count = Math.min(cap, Math.floor((canvasWidth * canvasHeight) / 22000));
     for (let i = 0; i < count; i++) {
         particles.push(new Particle(Math.random()*canvasWidth, Math.random()*canvasHeight,
             1.5+Math.random()*3.5, (Math.random()-.5)*.6, (Math.random()-.5)*.6, 210+Math.random()*120));
@@ -85,27 +116,43 @@ function initParticles() {
 }
 function drawLines() {
     const maxDist = 130;
+    let connections = 0;
+    ctx.beginPath();
     for (let i = 0; i < particles.length; i++)
         for (let j = i+1; j < particles.length; j++) {
             const dx = particles[i].x-particles[j].x, dy = particles[i].y-particles[j].y;
             const dist = dx*dx+dy*dy;
             if (dist < maxDist*maxDist) {
-                const a = (1-Math.sqrt(dist)/maxDist) * (SPECTRAL_LIGHT ? 0.28 : 0.2);
-                ctx.strokeStyle = SPECTRAL_LIGHT ? `rgba(99,102,241,${a})` : `rgba(255,255,255,${a})`;
-                ctx.lineWidth = 0.5; ctx.beginPath();
-                ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y); ctx.stroke();
+                connections++;
+                ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);
             }
         }
+    if (connections) {
+        ctx.globalAlpha = SPECTRAL_LIGHT ? .16 : .11;
+        ctx.strokeStyle = SPECTRAL_LIGHT ? 'rgb(99,102,241)' : 'rgb(214,220,255)';
+        ctx.lineWidth = .55;
+        ctx.stroke();
+    }
     if (mouse.active) {
         const mmd = 180;
+        let mouseConnections = 0;
+        ctx.beginPath();
         for (const p of particles) {
             const dx = p.x-mouse.x, dy = p.y-mouse.y, dist = dx*dx+dy*dy;
             if (dist < mmd*mmd) {
-                ctx.strokeStyle = `rgba(99,102,241,${(1-Math.sqrt(dist)/mmd)*0.2})`;
-                ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(mouse.x,mouse.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+                mouseConnections++;
+                ctx.moveTo(mouse.x,mouse.y); ctx.lineTo(p.x,p.y);
             }
         }
+        if (mouseConnections) {
+            ctx.globalAlpha = .13;
+            ctx.strokeStyle = 'rgb(99,102,241)';
+            ctx.lineWidth = .6;
+            ctx.stroke();
+        }
     }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
 }
 // ── Runtime FPS watchdog ─────────────────────────────────────
 // Some devices report plenty of cores yet still chug. If the canvas
@@ -116,41 +163,67 @@ function checkFps(ts) {
     if (_perfChecked || !window.__SPECTRAL_LITE_AUTO) return;
     if (_perfStart === null) { _perfStart = ts; return; }
     const elapsed = ts - _perfStart;
-    if (elapsed < 600) return;            // warm-up grace period
+    if (elapsed < 900) return;            // warm-up grace period
     _perfFrames++;
-    if (elapsed >= 2600) {                // ~2s sample window after warm-up
+    if (elapsed >= 4500) {                // longer sample avoids false positives during page startup
         _perfChecked = true;
-        const fps = (_perfFrames * 1000) / (elapsed - 600);
-        if (fps < 30 && typeof enableLiteMode === 'function') enableLiteMode(true, true);
+        const fps = (_perfFrames * 1000) / (elapsed - 900);
+        if (fps < 24 && typeof enableLiteMode === 'function') enableLiteMode(false, true);
     }
 }
 function animate(ts) {
-    if (liteOn() || document.hidden) { canvasRunning = false; cancelAnimationFrame(animationId); return; }   // stop in lite mode/background tabs
+    if (canvasShouldIdle() || document.hidden) { canvasRunning = false; cancelAnimationFrame(animationId); return; }
     canvasRunning = true;
     checkFps(ts || performance.now());
+    const now = ts || performance.now();
+    const minFrame = IS_TOUCH ? 32 : 16;
+    const elapsed = lastCanvasFrame ? now - lastCanvasFrame : 16.67;
+    if (elapsed < minFrame) { animationId = requestAnimationFrame(animate); return; }
+    lastCanvasFrame = now;
+    const frameStep = Math.min(2, elapsed / 16.67);
     ctx.clearRect(0,0,canvasWidth,canvasHeight);
-    particles.forEach(p => { p.update(canvasWidth,canvasHeight,mouse); p.draw(ctx); });
+    particles.forEach(p => { p.update(canvasWidth,canvasHeight,mouse,frameStep); p.draw(ctx,IS_TOUCH); });
     drawLines();
     animationId = requestAnimationFrame(animate);
 }
-window.addEventListener('resize', () => { clearTimeout(window._resizeTimer); window._resizeTimer = setTimeout(resizeCanvas, 200); });
+window.addEventListener('resize', () => {
+    clearTimeout(window._resizeTimer);
+    window._resizeTimer = setTimeout(() => {
+        resizeCanvas();
+        if (!canvasShouldIdle() && !canvasRunning) animate(performance.now());
+    }, 200);
+});
 resizeCanvas();
-if (!liteOn()) animate();                 // don't even start the loop on weak devices
+if (!canvasShouldIdle()) animate();
+const handleReducedMotionChange = event => {
+    REDUCED_MOTION = event.matches;
+    mouse.active = false;
+    cancelAnimationFrame(animationId);
+    canvasRunning = false;
+    ctx.clearRect(0,0,canvasWidth,canvasHeight);
+    document.querySelectorAll('.animate-on-scroll,.timeline-item').forEach(element=>element.classList.add('visible','in-view'));
+    resizeCanvas();
+    if (!canvasShouldIdle() && !document.hidden) animate(performance.now());
+};
+if (typeof reducedMotionQuery.addEventListener === 'function') reducedMotionQuery.addEventListener('change', handleReducedMotionChange);
+else if (typeof reducedMotionQuery.addListener === 'function') reducedMotionQuery.addListener(handleReducedMotionChange);
 
 // Pause continuous canvas work in background tabs and resume with a clean frame.
 document.addEventListener('visibilitychange', () => {
+    document.documentElement.classList.toggle('motion-paused', document.hidden);
     if (document.hidden) {
         canvasRunning = false;
         cancelAnimationFrame(animationId);
         return;
     }
-    if (!liteOn() && !canvasRunning) animate(performance.now());
+    lastCanvasFrame = performance.now();
+    if (!canvasShouldIdle() && !canvasRunning) animate(lastCanvasFrame);
 });
 
 // One shared pointer update drives the background glow without layout work.
 let atmosphereRaf = null;
 document.addEventListener('pointermove', e => {
-    if (liteOn() || IS_TOUCH) return;
+    if (liteOn() || IS_TOUCH || REDUCED_MOTION) return;
     mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true;
     if (atmosphereRaf) return;
     atmosphereRaf = requestAnimationFrame(() => {
@@ -161,60 +234,252 @@ document.addEventListener('pointermove', e => {
 }, { passive: true });
 
 // ── Tab navigation ───────────────────────────────────────────
-const navButtons = document.querySelectorAll('.nav-btn');
-let isTransitioning = false;
-navButtons.forEach(btn => {
-    btn.addEventListener('click', e => {
-        e.preventDefault(); if (isTransitioning) return;
-        const targetId = btn.getAttribute('data-target');
-        if (!targetId || btn.classList.contains('active')) return;
-        isTransitioning = true;
-        navButtons.forEach(b => b.classList.remove('active')); btn.classList.add('active');
-        const cur = document.querySelector('.tab-content.active-tab');
-        const next = document.getElementById(targetId);
-        if (cur && next) {
-            cur.style.opacity='0'; cur.style.transform='translateY(20px) scale(0.97)';
-            setTimeout(() => {
-                cur.classList.remove('active-tab'); cur.style.display='none';
-                next.style.display='block'; next.style.opacity='0'; next.style.transform='translateY(20px) scale(0.97)';
-                void next.offsetWidth;
-                requestAnimationFrame(() => {
-                    next.classList.add('active-tab'); next.style.opacity='1'; next.style.transform='translateY(0) scale(1)';
-                    setTimeout(() => { isTransitioning=false; reinitScrollAnimations(); }, 300);
-                });
-            }, 250);
+// Keep visually hidden dialogs out of keyboard and assistive-technology navigation.
+const dialogOverlays = [...document.querySelectorAll('[role="dialog"]')];
+const dialogStates = new WeakMap();
+const DIALOG_FOCUSABLE = [
+    'a[href]', 'button:not([disabled])', 'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])'
+].join(',');
+function dialogFocusableElements(dialog) {
+    return [...dialog.querySelectorAll(DIALOG_FOCUSABLE)].filter(element => {
+        const style = getComputedStyle(element);
+        return !element.closest('[hidden],[inert]')
+            && style.display !== 'none'
+            && style.visibility !== 'hidden'
+            && element.getClientRects().length > 0;
+    });
+}
+function topOpenDialog() {
+    return dialogOverlays
+        .filter(dialog => dialog.classList.contains('open'))
+        .sort((a, b) => (parseInt(getComputedStyle(a).zIndex, 10) || 0) - (parseInt(getComputedStyle(b).zIndex, 10) || 0))
+        .pop() || null;
+}
+function syncDialogStackAccessibility() {
+    const top = topOpenDialog();
+    dialogOverlays.forEach(dialog => {
+        const interactive = dialog === top;
+        dialog.setAttribute('aria-hidden', String(!interactive));
+        dialog.inert = !interactive;
+    });
+}
+function syncBodyScrollLock() {
+    if (topOpenDialog()) document.body.style.overflow = 'hidden';
+    else if (!document.body.classList.contains('nav-menu-open')) document.body.style.overflow = '';
+}
+function syncDialogAccessibility(dialog) {
+    const open = dialog.classList.contains('open');
+    dialog.setAttribute('aria-hidden', String(!open));
+    dialog.inert = !open;
+    const previous = dialogStates.get(dialog);
+    if (!previous) {
+        dialogStates.set(dialog, { open, returnFocus: null });
+        syncDialogStackAccessibility();
+        return;
+    }
+    if (previous.open === open) {
+        syncDialogStackAccessibility();
+        return;
+    }
+    previous.open = open;
+    if (open) {
+        previous.returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        requestAnimationFrame(() => {
+            if (!dialog.classList.contains('open')) return;
+            const [first] = dialogFocusableElements(dialog);
+            if (first) first.focus();
+            else {
+                dialog.setAttribute('tabindex', '-1');
+                dialog.focus();
+            }
+        });
+    } else {
+        const returnFocus = previous.returnFocus;
+        previous.returnFocus = null;
+        requestAnimationFrame(() => {
+            const canReturn = returnFocus?.isConnected
+                && typeof returnFocus.focus === 'function'
+                && returnFocus.matches?.(DIALOG_FOCUSABLE)
+                && !returnFocus.closest('[hidden],[inert]')
+                && returnFocus.getClientRects().length > 0;
+            if (canReturn) returnFocus.focus();
+            else {
+                const underlying = topOpenDialog();
+                const [fallback] = underlying ? dialogFocusableElements(underlying) : [];
+                fallback?.focus();
+            }
+        });
+    }
+    syncDialogStackAccessibility();
+    syncBodyScrollLock();
+}
+dialogOverlays.forEach(dialog => {
+    syncDialogAccessibility(dialog);
+    new MutationObserver(() => syncDialogAccessibility(dialog)).observe(dialog, { attributes: true, attributeFilter: ['class'] });
+});
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+        const checkout = document.getElementById('roleCheckoutSheet');
+        if (checkout && !checkout.hidden) {
+            event.preventDefault();
+            document.getElementById('roleCheckoutClose')?.click();
+            return;
         }
-        history.pushState(null,'',`#${targetId}`);
+        const dialog = topOpenDialog();
+        if (!dialog) return;
+        const dismiss = dialog.querySelector('[aria-label^="Close" i], .confirm-cancel');
+        if (dismiss) {
+            event.preventDefault();
+            dismiss.click();
+        }
+        return;
+    }
+    if (event.key !== 'Tab') return;
+    const dialog = topOpenDialog();
+    if (!dialog) return;
+    const focusable = dialogFocusableElements(dialog);
+    if (!focusable.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!dialog.contains(document.activeElement)) {
+        event.preventDefault();
+        first.focus();
+    } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+    }
+});
+
+let scrollObserver = null;
+const navButtons = [...document.querySelectorAll('.nav-btn')];
+const navIndicator = document.getElementById('navActiveIndicator');
+let navIndicatorFrame = 0;
+function syncNavIndicator() {
+    if (!navIndicator || window.innerWidth <= 1180) return;
+    const active = document.querySelector('.nav-links-container .nav-btn.active');
+    if (!active) return;
+    navIndicator.style.width = `${active.offsetWidth}px`;
+    navIndicator.style.transform = `translate3d(${active.offsetLeft}px,0,0)`;
+    navIndicator.classList.add('is-ready');
+}
+function scheduleNavIndicator() {
+    cancelAnimationFrame(navIndicatorFrame);
+    navIndicatorFrame = requestAnimationFrame(syncNavIndicator);
+}
+window.addEventListener('resize', scheduleNavIndicator);
+if (navIndicator && 'ResizeObserver' in window) new ResizeObserver(scheduleNavIndicator).observe(navIndicator.parentElement);
+document.fonts?.ready.then(scheduleNavIndicator);
+const SITE_ROUTE_IDS = new Set(navButtons.map(button=>button.getAttribute('data-target')).filter(id=>id&&document.getElementById(id)));
+const DEV_SECTION_IDS = new Set(['dev-pipeline','dev-systems','dev-source']);
+function validSiteRoute(value){return DEV_SECTION_IDS.has(value)?'development':SITE_ROUTE_IDS.has(value)?value:'home';}
+function activateSiteRoute(route,{historyMode='push',animate=true}={}){
+    const targetId=validSiteRoute(route);
+    const current=document.querySelector('.tab-content.active-tab');
+    const next=document.getElementById(targetId);
+    if(!next)return false;
+    navButtons.forEach(button=>{
+        const active=button.getAttribute('data-target')===targetId;
+        button.classList.toggle('active',active);
+        if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+    });
+    scheduleNavIndicator();
+    if(historyMode==='push'&&location.hash!==`#${targetId}`)history.pushState(null,'',`#${targetId}`);
+    else if(historyMode==='replace'&&location.hash!==`#${targetId}`)history.replaceState(null,'',`#${targetId}`);
+    if(current===next){window.scrollTo({top:0,behavior:'instant'});return true;}
+    document.querySelectorAll('.tab-content').forEach(section=>{
+        const active=section===next;
+        section.classList.toggle('active-tab',active);
+        section.classList.remove('route-enter');
+        section.style.removeProperty('display');
+        section.style.removeProperty('opacity');
+        section.style.removeProperty('transform');
+        section.setAttribute('aria-hidden',String(!active));
+        section.inert=!active;
+    });
+    if(animate&&!liteOn()&&!REDUCED_MOTION)next.classList.add('route-enter');
+    window.scrollTo({top:0,behavior:'instant'});
+    reinitScrollAnimations();
+    return true;
+}
+navButtons.forEach(button => {
+    button.addEventListener('click', event => {
+        event.preventDefault();
+        activateSiteRoute(button.getAttribute('data-target'));
     });
 });
 window.addEventListener('popstate', () => {
-    const hash = window.location.hash.slice(1)||'home';
-    const btn = document.querySelector(`[data-target="${hash}"]`);
-    if (btn && !isTransitioning) btn.click();
+    const hash=window.location.hash.slice(1)||'home';
+    activateSiteRoute(hash,{historyMode:'none'});
+    if(DEV_SECTION_IDS.has(hash))requestAnimationFrame(()=>scrollBelowNavbar(document.getElementById(hash)));
+});
+// Hero and footer hash links switch the SPA tab instead of scrolling to hidden content.
+document.querySelectorAll('a[href^="#"]:not(.nav-btn)').forEach(link => {
+    link.addEventListener('click', event => {
+        const targetId = link.getAttribute('href')?.slice(1);
+        const target = targetId && document.getElementById(targetId);
+        if (!target?.classList.contains('tab-content')) return;
+        event.preventDefault();
+        activateSiteRoute(targetId);
+    });
+});
+document.querySelectorAll('[data-af-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+        activateSiteRoute(button.getAttribute('data-af-tab'));
+    });
 });
 
-// Clicking the top-left logo returns to the Home tab (or scrolls to top if already there)
-const logoContainer = document.querySelector('.logo-container');
-if (logoContainer) {
-    logoContainer.style.cursor = 'pointer';
-    logoContainer.setAttribute('role', 'button');
-    logoContainer.setAttribute('aria-label', 'Go to home');
-    logoContainer.addEventListener('click', () => {
-        const homeBtn = document.querySelector('.nav-links-container [data-target="home"]');
-        if (homeBtn && !homeBtn.classList.contains('active')) homeBtn.click();
-        else window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-}
+// Honour a valid route when the page is opened or refreshed with a hash.
+const initialRoute = window.location.hash.slice(1);
+// Supabase returns OAuth/recovery tokens in the fragment. Keep it untouched
+// until the Auth client has established the session.
+const isAuthRedirectHash = /(?:^|&)(?:access_token|refresh_token|error|error_code|type)=/.test(initialRoute);
+if(isAuthRedirectHash)activateSiteRoute('home',{historyMode:'none',animate:false});
+else if(initialRoute)activateSiteRoute(initialRoute,{historyMode:SITE_ROUTE_IDS.has(initialRoute)||DEV_SECTION_IDS.has(initialRoute)?'none':'replace',animate:false});
+else activateSiteRoute('home',{historyMode:'none',animate:false});
+if(DEV_SECTION_IDS.has(initialRoute))requestAnimationFrame(()=>scrollBelowNavbar(document.getElementById(initialRoute)));
 
 // ── Scroll animations ────────────────────────────────────────
-const scrollObserver = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) { setTimeout(()=>e.target.classList.add('visible'),80); scrollObserver.unobserve(e.target); } });
+scrollObserver = (liteOn() || REDUCED_MOTION) ? null : new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        requestAnimationFrame(() => e.target.classList.add('visible'));
+        scrollObserver.unobserve(e.target);
+    });
 }, { threshold:0.15, rootMargin:'0px 0px -50px 0px' });
 function reinitScrollAnimations() {
     const active = document.querySelector('.tab-content.active-tab');
-    if (active) active.querySelectorAll('.animate-on-scroll:not(.visible)').forEach(el => scrollObserver.observe(el));
+    if (!active) return;
+    const pending = active.querySelectorAll('.animate-on-scroll:not(.visible)');
+    if (!scrollObserver) pending.forEach(el => el.classList.add('visible'));
+    else pending.forEach(el => scrollObserver.observe(el));
 }
-document.querySelectorAll('.animate-on-scroll').forEach(el => scrollObserver.observe(el));
+document.querySelectorAll('.animate-on-scroll').forEach(el => {
+    if (scrollObserver) scrollObserver.observe(el);
+    else el.classList.add('visible');
+});
+
+// Retarget short content changes without forcing layout between rapid clicks.
+const panelChangeMotions = new WeakMap();
+function revealUpdatedPanel(element) {
+    if (!element || REDUCED_MOTION || liteOn() || !element.animate) return;
+    panelChangeMotions.get(element)?.cancel();
+    const motion = element.animate([
+        { opacity: .86, transform: 'translate3d(0, 6px, 0)' },
+        { opacity: 1, transform: 'translate3d(0, 0, 0)' }
+    ], { duration: 280, easing: 'cubic-bezier(.2, .8, .25, 1)' });
+    panelChangeMotions.set(element, motion);
+    motion.finished.then(() => {
+        if (panelChangeMotions.get(element) === motion) panelChangeMotions.delete(element);
+    }).catch(() => {});
+}
 
 // Home feature deck: hover, click and keyboard selection share one state.
 const homeFeatureCards = [...document.querySelectorAll('[data-home-feature]')];
@@ -224,6 +489,8 @@ function activateHomeFeature(card) {
         const active = item === card;
         item.classList.toggle('is-active', active);
         item.setAttribute('aria-pressed', String(active));
+        const label = item.querySelector('.feature-card-open b');
+        if (label) label.textContent = active ? 'In focus' : 'Focus this tool';
     });
 }
 homeFeatureCards.forEach((card, index) => {
@@ -247,29 +514,115 @@ homeFeatureCards.forEach((card, index) => {
 });
 
 // ── Magnetic buttons ─────────────────────────────────────────
-document.querySelectorAll('.magnetic-btn').forEach(btn => {
-    let d={cx:0,cy:0,tx:0,ty:0},raf=null;
-    function upd(){const l=0.15;d.cx+=(d.tx-d.cx)*l;d.cy+=(d.ty-d.cy)*l;btn.style.transform=`translate(${d.cx}px,${d.cy}px)`;if(Math.abs(d.tx-d.cx)>0.1||Math.abs(d.ty-d.cy)>0.1)raf=requestAnimationFrame(upd);else raf=null;}
-    btn.addEventListener('mousemove',e=>{if(liteOn())return;const r=btn.getBoundingClientRect();d.tx=(e.clientX-r.left-r.width/2)*0.3;d.ty=(e.clientY-r.top-r.height/2)*0.3;if(!raf)raf=requestAnimationFrame(upd);});
-    btn.addEventListener('mouseleave',()=>{d.tx=0;d.ty=0;if(!raf)raf=requestAnimationFrame(upd);});
-});
+// A single animation loop serves every magnetic control. Geometry is read once
+// on pointer entry instead of on every move, avoiding layout work mid-frame.
+if (!liteOn() && !REDUCED_MOTION && !IS_TOUCH) {
+    const magneticStates = new WeakMap();
+    const activeMagnets = new Set();
+    let magneticRaf = null;
+
+    const queueMagneticFrame = () => {
+        if (!magneticRaf) magneticRaf = requestAnimationFrame(updateMagnets);
+    };
+    function updateMagnets() {
+        let keepRunning = false;
+        activeMagnets.forEach(btn => {
+            const state = magneticStates.get(btn);
+            const smoothing = .18;
+            state.cx += (state.tx - state.cx) * smoothing;
+            state.cy += (state.ty - state.cy) * smoothing;
+            const moving = Math.abs(state.tx - state.cx) > .08 || Math.abs(state.ty - state.cy) > .08;
+            if (moving) {
+                keepRunning = true;
+                btn.style.transform = `translate3d(${state.cx.toFixed(2)}px,${state.cy.toFixed(2)}px,0)`;
+                return;
+            }
+            state.cx = state.tx;
+            state.cy = state.ty;
+            if (state.tx === 0 && state.ty === 0) {
+                btn.style.removeProperty('transform');
+                btn.classList.remove('is-magnetic');
+                activeMagnets.delete(btn);
+            } else {
+                btn.style.transform = `translate3d(${state.cx.toFixed(2)}px,${state.cy.toFixed(2)}px,0)`;
+            }
+        });
+        magneticRaf = keepRunning ? requestAnimationFrame(updateMagnets) : null;
+    }
+
+    document.querySelectorAll('.magnetic-btn').forEach(btn => {
+        const state = { cx: 0, cy: 0, tx: 0, ty: 0, rect: null };
+        magneticStates.set(btn, state);
+        btn.addEventListener('pointerenter', () => {
+            state.rect = btn.getBoundingClientRect();
+            btn.classList.add('is-magnetic');
+        }, { passive: true });
+        btn.addEventListener('pointermove', event => {
+            if (liteOn()) return;
+            const rect = state.rect || btn.getBoundingClientRect();
+            state.rect = rect;
+            state.tx = (event.clientX - rect.left - rect.width / 2) * .3;
+            state.ty = (event.clientY - rect.top - rect.height / 2) * .3;
+            btn.classList.add('is-magnetic');
+            activeMagnets.add(btn);
+            queueMagneticFrame();
+        }, { passive: true });
+        const releaseMagnet = () => {
+            state.tx = 0;
+            state.ty = 0;
+            state.rect = null;
+            activeMagnets.add(btn);
+            queueMagneticFrame();
+        };
+        btn.addEventListener('pointerleave', releaseMagnet, { passive: true });
+        btn.addEventListener('pointercancel', releaseMagnet, { passive: true });
+    });
+}
 
 // ── 3D tilt ──────────────────────────────────────────────────
 const tiltEls = document.querySelectorAll('.tilt-card-lg,.tilt-card-sm');
 const tiltData = new WeakMap();
 tiltEls.forEach(el => tiltData.set(el,{cx:0,cy:0,tx:0,ty:0}));
 let tiltRaf=null;
-function updateTilt(){let needs=false;tiltEls.forEach(el=>{const d=tiltData.get(el),l=0.1;d.cx+=(d.tx-d.cx)*l;d.cy+=(d.ty-d.cy)*l;if(Math.abs(d.tx-d.cx)>0.01||Math.abs(d.ty-d.cy)>0.01)needs=true;el.style.transform=`perspective(1200px) rotateX(${d.cx}deg) rotateY(${d.cy}deg) scale(1.01)`;});if(needs)tiltRaf=requestAnimationFrame(updateTilt);else tiltRaf=null;}
-let mmThrottle=null;
-document.addEventListener('mousemove',e=>{if(liteOn()||mmThrottle)return;mmThrottle=setTimeout(()=>{mmThrottle=null;},16);tiltEls.forEach(el=>{const r=el.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;const exp={left:r.left-80,right:r.right+80,top:r.top-80,bottom:r.bottom+80};const hover=(e.clientX>=exp.left&&e.clientX<=exp.right&&e.clientY>=exp.top&&e.clientY<=exp.bottom);const d=tiltData.get(el);const i=el.classList.contains('tilt-card-lg')?25:18;if(hover){d.tx=((y-r.height/2)/i)*-1;d.ty=(x-r.width/2)/i;}else{d.tx=0;d.ty=0;}});if(!tiltRaf)tiltRaf=requestAnimationFrame(updateTilt);});
+const activeTilts = new Set();
+function updateTilt(){
+    let needs=false;
+    activeTilts.forEach(el=>{
+        const d=tiltData.get(el),l=.14;
+        d.cx+=(d.tx-d.cx)*l; d.cy+=(d.ty-d.cy)*l;
+        if(Math.abs(d.tx-d.cx)>.015||Math.abs(d.ty-d.cy)>.015) needs=true;
+        else if(d.tx===0&&d.ty===0){ d.cx=0; d.cy=0; activeTilts.delete(el); el.classList.remove('is-tilting'); }
+        el.style.transform=`perspective(1200px) rotateX(${d.cx}deg) rotateY(${d.cy}deg) translateZ(0)`;
+    });
+    if(needs) tiltRaf=requestAnimationFrame(updateTilt); else tiltRaf=null;
+}
+if (!liteOn() && !IS_TOUCH && !REDUCED_MOTION) tiltEls.forEach(el=>{
+    let rect=null, moveRaf=null, latestEvent=null;
+    const queue=()=>{ if(!tiltRaf) tiltRaf=requestAnimationFrame(updateTilt); };
+    el.addEventListener('pointerenter',()=>{ rect=el.getBoundingClientRect(); el.classList.add('is-tilting'); activeTilts.add(el); queue(); },{passive:true});
+    el.addEventListener('pointermove',event=>{
+        latestEvent=event;
+        if(moveRaf) return;
+        moveRaf=requestAnimationFrame(()=>{
+            moveRaf=null;
+            if(!rect) rect=el.getBoundingClientRect();
+            const d=tiltData.get(el), intensity=el.classList.contains('tilt-card-lg')?34:28;
+            d.tx=((latestEvent.clientY-rect.top-rect.height/2)/intensity)*-1;
+            d.ty=(latestEvent.clientX-rect.left-rect.width/2)/intensity;
+            activeTilts.add(el); queue();
+        });
+    },{passive:true});
+    el.addEventListener('pointerleave',()=>{ const d=tiltData.get(el); d.tx=0; d.ty=0; rect=null; activeTilts.add(el); queue(); },{passive:true});
+});
 
 // ── Ripple ───────────────────────────────────────────────────
-document.querySelectorAll('.btn-primary,.btn-secondary,.lu-play').forEach(btn=>{btn.addEventListener('click',function(e){if(liteOn())return;const r=this.getBoundingClientRect(),sp=document.createElement('span');sp.className='ripple-effect';sp.style.left=(e.clientX-r.left)+'px';sp.style.top=(e.clientY-r.top)+'px';this.appendChild(sp);setTimeout(()=>sp.remove(),600);});});
+document.querySelectorAll('.btn-primary,.btn-secondary,.lu-play').forEach(btn=>{btn.addEventListener('click',function(e){if(liteOn()||REDUCED_MOTION)return;const r=this.getBoundingClientRect(),sp=document.createElement('span');sp.className='ripple-effect';const keyboardClick=e.detail===0;sp.style.left=(keyboardClick?r.width/2:e.clientX-r.left)+'px';sp.style.top=(keyboardClick?r.height/2:e.clientY-r.top)+'px';this.appendChild(sp);setTimeout(()=>sp.remove(),600);});});
 
 // ── Theme toggle ─────────────────────────────────────────────
 const THEME_KEY = 'spectral_theme';
-const themeToggleBtn = document.getElementById('themeToggleBtn');
-const themeIcon = document.getElementById('themeIcon');
+const profileThemeToggle = document.getElementById('profileThemeToggle');
+const profileThemeIcon = document.getElementById('profileThemeIcon');
+const profileThemeState = document.getElementById('profileThemeState');
 function applyTheme(theme, animate) {
     if (animate) {
         document.body.classList.add('theme-switching');
@@ -278,42 +631,55 @@ function applyTheme(theme, animate) {
     SPECTRAL_LIGHT = (theme === 'light');
     if (theme === 'light') {
         document.body.classList.add('light-theme');
-        if (themeIcon) themeIcon.className = 'fas fa-moon';
+        if (profileThemeIcon) profileThemeIcon.className = 'fas fa-sun';
+        if (profileThemeState) profileThemeState.textContent = 'Light palette is active';
     } else {
         document.body.classList.remove('light-theme');
-        if (themeIcon) themeIcon.className = 'fas fa-sun';
+        if (profileThemeIcon) profileThemeIcon.className = 'fas fa-moon';
+        if (profileThemeState) profileThemeState.textContent = 'Dark palette is active';
     }
+    if (profileThemeToggle) profileThemeToggle.checked = (theme === 'light');
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.content = theme === 'light' ? '#f4f6ff' : '#080a18';
 }
-applyTheme(localStorage.getItem(THEME_KEY) || 'dark', false);
-if (themeToggleBtn) {
-    themeToggleBtn.addEventListener('click', () => {
-        const next = document.body.classList.contains('light-theme') ? 'dark' : 'light';
-        localStorage.setItem(THEME_KEY, next);
+let initialTheme = 'dark';
+try { initialTheme = localStorage.getItem(THEME_KEY) || 'dark'; } catch {}
+applyTheme(initialTheme, false);
+if (profileThemeToggle) {
+    profileThemeToggle.addEventListener('change', () => {
+        const next = profileThemeToggle.checked ? 'light' : 'dark';
+        try { localStorage.setItem(THEME_KEY, next); } catch {}
         applyTheme(next, true);
     });
 }
 
 // ── Lightweight (performance) mode ───────────────────────────
 // The <head> detector already decided the initial mode. Here we
-// wire up the warning banner and the toggle FAB so the user can
-// switch between the full and light versions.
+// wire up the warning banner and the profile performance control.
 const LITE_KEY = 'spectral_lite';
 const LITE_BANNER_KEY = 'spectral_lite_banner_dismissed';
-const liteToggleBtn = document.getElementById('liteToggleBtn');
-const liteIcon = document.getElementById('liteIcon');
+const profileLiteToggle = document.getElementById('profileLiteToggle');
+const profileLiteIcon = document.getElementById('profileLiteIcon');
+const profileLiteState = document.getElementById('profileLiteState');
+const profilePerformanceNote = document.getElementById('profilePerformanceNote');
 
-function updateLiteFab() {
-    if (!liteToggleBtn) return;
+function updateLiteControl() {
     const on = liteOn();
-    liteToggleBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    liteToggleBtn.title = on ? 'Лёгкий режим включён — нажмите для полной версии'
-                             : 'Включить лёгкую версию сайта';
-    if (liteIcon) liteIcon.className = on ? 'fas fa-bolt' : 'fas fa-feather';
+    if (profileLiteToggle) profileLiteToggle.checked = on;
+    if (profileLiteIcon) profileLiteIcon.className = on ? 'fas fa-bolt' : 'fas fa-gauge-high';
+    if (profileLiteState) profileLiteState.textContent = on ? 'Optimized rendering is active' : 'Full visual quality';
+    const note = profilePerformanceNote && profilePerformanceNote.querySelector('span');
+    if (note) note.textContent = on
+        ? (window.__SPECTRAL_LITE_AUTO
+            ? 'Enabled automatically for this device. Blur, particles and continuous motion are paused.'
+            : 'Blur, particles and continuous motion are paused. The page reloads once when this setting changes.')
+        : 'Uses the complete visual experience. The page reloads once when this setting changes.';
 }
 
 let liteBannerEl = null;
 function showLiteBanner() {
     if (liteBannerEl || !liteOn()) return;
+    if (!window.__SPECTRAL_LITE_AUTO) return;
     try { if (sessionStorage.getItem(LITE_BANNER_KEY) === '1') return; } catch (e) {}
     const b = document.createElement('div');
     b.className = 'lite-banner';
@@ -344,7 +710,8 @@ function enableLiteMode(persist, fromWatchdog) {
     if (persist) { try { localStorage.setItem(LITE_KEY, 'on'); } catch (e) {} }
     cancelAnimationFrame(animationId);
     try { ctx.clearRect(0, 0, canvasWidth, canvasHeight); } catch (e) {}
-    updateLiteFab();
+    document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('visible'));
+    updateLiteControl();
     showLiteBanner();
     if (fromWatchdog) console.log('%c⚡ Spectral: low FPS detected → switched to the lightweight version', 'color:#f59e0b;font-weight:bold;');
 }
@@ -360,58 +727,91 @@ function switchToLite() {
     location.reload();
 }
 
-if (liteToggleBtn) {
-    liteToggleBtn.addEventListener('click', () => { liteOn() ? switchToFull() : switchToLite(); });
+if (profileLiteToggle) {
+    profileLiteToggle.addEventListener('change', () => { profileLiteToggle.checked ? switchToLite() : switchToFull(); });
 }
-updateLiteFab();
+updateLiteControl();
 if (liteOn()) showLiteBanner();
 
 // ── Scroll to top ────────────────────────────────────────────
 const scrollTopBtn = document.getElementById('scrollToTop');
-window.addEventListener('scroll',()=>{scrollTopBtn&&(scrollTopBtn.classList.toggle('visible',window.scrollY>500));});
-scrollTopBtn&&scrollTopBtn.addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+scrollTopBtn&&scrollTopBtn.addEventListener('click',()=>window.scrollTo({top:0,behavior:(liteOn()||REDUCED_MOTION)?'auto':'smooth'}));
 
 // ── Pulsing dot ──────────────────────────────────────────────
 const pulseDot = document.querySelector('.pulse-dot');
-if(pulseDot){let sc=1,dir=1;(function pulse(){if(liteOn()){pulseDot.style.transform='';return;}sc+=0.02*dir;if(sc>=1.3)dir=-1;if(sc<=1)dir=1;pulseDot.style.transform=`scale(${sc})`;requestAnimationFrame(pulse);})();}
+if(pulseDot&&!liteOn()&&!REDUCED_MOTION) pulseDot.classList.add('motion-pulse');
 
 // ── Parallax ─────────────────────────────────────────────────
-const ambients = document.querySelectorAll('.ambient-light');
-window.addEventListener('scroll',()=>{if(liteOn())return;const s=window.scrollY;ambients.forEach((l,i)=>{l.style.transform=`translateY(${-(s*(0.05+i*0.02))}px)`;});});
 
 // ── Navbar scroll (theme-aware) ──────────────────────────────
 const navbar=document.querySelector('.navbar');let lastScroll=0;
-window.addEventListener('scroll',()=>{
+let scrollEffectsRaf=null;
+function updateScrollEffects(){
+    scrollEffectsRaf=null;
     const cur=window.scrollY;
-    if(!navbar){return;}
-    if(navbar.classList.contains('nav-open')){ lastScroll=cur; return; } // keep bar put while menu is open
-    if(cur>100){
-        navbar.style.transform = cur>lastScroll ? 'translateY(-100%)' : 'translateY(0)';
-        if(cur>lastScroll){
-            navbar.style.background=''; navbar.style.boxShadow='';
+    if(scrollTopBtn) scrollTopBtn.classList.toggle('visible',cur>500);
+    if(navbar){
+        if(navbar.classList.contains('nav-open')){ lastScroll=cur; return; }
+        if(cur>100){
+            const delta=cur-lastScroll;
+            if(Math.abs(delta)>=8){
+                const hiding=delta>0;
+                navbar.classList.toggle('is-hidden',hiding);
+                navbar.classList.toggle('is-scrolled',!hiding);
+                lastScroll=cur;
+            }
         }else{
-            // Pinned bar uses a theme-appropriate solid backdrop
-            navbar.style.background = SPECTRAL_LIGHT ? 'rgba(234,236,252,0.92)' : 'rgba(5,5,7,0.95)';
-            navbar.style.backdropFilter='blur(20px)';
-            navbar.style.boxShadow = SPECTRAL_LIGHT ? '0 4px 30px rgba(99,102,241,0.12)' : '0 4px 30px rgba(0,0,0,0.3)';
+            navbar.classList.remove('is-hidden','is-scrolled');
+            lastScroll=cur;
         }
-    }else{
-        navbar.style.transform='translateY(0)';
-        navbar.style.background=''; navbar.style.boxShadow='';
-    }
-    lastScroll=cur;
-});
+    }else lastScroll=cur;
+}
+window.addEventListener('scroll',()=>{
+    if(!scrollEffectsRaf) scrollEffectsRaf=requestAnimationFrame(updateScrollEffects);
+},{passive:true});
+
+// Browsers may apply native fragment scrolling after deferred scripts run.
+// SPA route hashes identify sections, so direct routes still open at the top
+// with primary navigation visible.
+window.addEventListener('load',()=>{
+    if(!SITE_ROUTE_IDS.has(location.hash.slice(1)))return;
+    window.scrollTo({top:0,behavior:'instant'});
+    navbar?.classList.remove('is-hidden','is-scrolled');
+    lastScroll=0;
+},{once:true});
 
 // ── Mobile hamburger menu ────────────────────────────────────
 const navBurger = document.getElementById('navBurger');
 const navBackdrop = document.getElementById('navBackdrop');
+const navLinksPanel = document.getElementById('primaryNavigation');
+function syncNavAccessibility() {
+    const compact = window.innerWidth <= 1180;
+    const open = Boolean(navbar?.classList.contains('nav-open'));
+    if (navLinksPanel) {
+        navLinksPanel.setAttribute('aria-hidden', String(compact && !open));
+        navLinksPanel.inert = compact && !open;
+    }
+    if (navBackdrop) navBackdrop.setAttribute('aria-hidden', String(!open));
+}
 function setNavOpen(open) {
     if (!navbar) return;
-    navbar.classList.toggle('nav-open', open);
-    if (navBackdrop) navBackdrop.classList.toggle('show', open);
-    if (navBurger) navBurger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    const wasOpen=navbar.classList.contains('nav-open');
+    const shouldOpen = open && window.innerWidth <= 1180;
+    navbar.classList.toggle('nav-open', shouldOpen);
+    document.body.classList.toggle('nav-menu-open', shouldOpen);
+    if (navBackdrop) navBackdrop.classList.toggle('show', shouldOpen);
+    if (navBurger) {
+        navBurger.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+        navBurger.setAttribute('aria-label', shouldOpen ? 'Close menu' : 'Open menu');
+    }
+    syncNavAccessibility();
     // make sure the bar is visible when opening
-    if (open) { navbar.style.transform = 'translateY(0)'; }
+    if (shouldOpen) {
+        navbar.classList.remove('is-hidden');
+        requestAnimationFrame(()=>navLinksPanel?.querySelector('.nav-btn')?.focus());
+    } else if (wasOpen && window.innerWidth <= 1180 && navLinksPanel?.contains(document.activeElement)) {
+        navBurger?.focus();
+    }
 }
 if (navBurger) navBurger.addEventListener('click', () => setNavOpen(!navbar.classList.contains('nav-open')));
 if (navBackdrop) navBackdrop.addEventListener('click', () => setNavOpen(false));
@@ -419,20 +819,29 @@ if (navBackdrop) navBackdrop.addEventListener('click', () => setNavOpen(false));
 document.querySelectorAll('.nav-links-container .nav-btn').forEach(btn => {
     btn.addEventListener('click', () => setNavOpen(false));
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') setNavOpen(false); });
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && navbar?.classList.contains('nav-open') && !topOpenDialog()) {
+        setNavOpen(false);
+        navBurger?.focus();
+    }
+});
 // auto-close if the viewport grows back to desktop
-window.addEventListener('resize', () => { if (window.innerWidth > 820) setNavOpen(false); });
+window.addEventListener('resize', () => {
+    if (window.innerWidth > 1180) setNavOpen(false);
+    else syncNavAccessibility();
+});
+syncNavAccessibility();
 
 // ── Terminal animation ───────────────────────────────────────
 // Typewriter terminal: types each line character-by-character with a caret.
-let _termTyping=false;
+let _termTyping=false, _termPlayed=false;
 function runTerminal(){
     const body=document.getElementById('terminalBody');
-    if(!body||_termTyping) return;
+    if(!body||_termTyping||_termPlayed) return;
     const allLines=[...body.querySelectorAll('.t-line')];
     const typed=allLines.filter(l=>l.querySelector('.t-text[data-text]'));
     const cursorLine=body.querySelector('.t-cursorline');
-    _termTyping=true;
+    _termTyping=true; _termPlayed=true;
     allLines.forEach(l=>l.style.opacity='0');
     typed.forEach(l=>{const t=l.querySelector('.t-text');t.textContent='';l.classList.remove('typing');});
     let i=0;
@@ -441,27 +850,52 @@ function runTerminal(){
         const line=typed[i], el=line.querySelector('.t-text');
         const chars=[...(el.getAttribute('data-text')||'')];  // spread → safe for emoji
         line.style.opacity='1'; line.classList.add('typing');
-        let c=0;
-        (function ch(){
-            el.textContent=chars.slice(0,c).join(''); c++;
-            if(c<=chars.length){ setTimeout(ch, 16+Math.random()*26); }
-            else { line.classList.remove('typing'); i++; setTimeout(typeLine, 230); }
-        })();
+        const duration=Math.max(280,chars.length*22);
+        let start=0,lastCount=-1;
+        function typeFrame(ts){
+            if(!start) start=ts;
+            const progress=Math.min(1,(ts-start)/duration);
+            const count=Math.min(chars.length,Math.ceil(progress*chars.length));
+            if(count!==lastCount){ el.textContent=chars.slice(0,count).join(''); lastCount=count; }
+            if(progress<1) requestAnimationFrame(typeFrame);
+            else { line.classList.remove('typing'); i++; setTimeout(typeLine,120); }
+        }
+        requestAnimationFrame(typeFrame);
     }
     typeLine();
 }
 // No unobserve → replays each time the console scrolls back into view (flag guards overlap).
-const termObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)runTerminal();}),{threshold:0.5});
-const termBody=document.getElementById('terminalBody');if(termBody)termObs.observe(termBody);
+const termBody=document.getElementById('terminalBody');
+if(termBody){
+    if(liteOn()||REDUCED_MOTION){
+        termBody.querySelectorAll('.t-line').forEach(line=>line.style.opacity='1');
+        termBody.querySelectorAll('.t-text[data-text]').forEach(el=>el.textContent=el.getAttribute('data-text')||'');
+    }else{
+        const termObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){runTerminal();termObs.unobserve(e.target);}}),{threshold:0.45});
+        termObs.observe(termBody);
+    }
+}
 
 // ── af-bar animation ─────────────────────────────────────────
-const barObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.querySelectorAll('.af-bar-fill').forEach(f=>{const w=f.getAttribute('data-width')+'%';setTimeout(()=>{f.style.width=w;},200);});barObs.unobserve(e.target);}}),{threshold:0.3});
-document.querySelectorAll('.af-showcase').forEach(el=>barObs.observe(el));
+function fillFeatureBar(fill){
+    fill.style.setProperty('--bar-progress',String((Number(fill.getAttribute('data-width'))||0)/100));
+    fill.classList.add('is-filled');
+}
+if(liteOn()||REDUCED_MOTION){
+    document.querySelectorAll('.af-bar-fill').forEach(fillFeatureBar);
+}else{
+    const barObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){requestAnimationFrame(()=>e.target.querySelectorAll('.af-bar-fill').forEach(fillFeatureBar));barObs.unobserve(e.target);}}),{threshold:0.3});
+    document.querySelectorAll('.af-showcase').forEach(el=>barObs.observe(el));
+}
 
 // ── Counter animation ────────────────────────────────────────
-function animCounter(el,target,dur=1800){let suffix='';if(target>=1000){suffix='K+';target/=1000;}let start=null;(function step(ts){if(!start)start=ts;const p=Math.min((ts-start)/dur,1);const e2=1-Math.pow(1-p,3);const cur=target*e2;el.textContent=(Number.isInteger(target)?Math.floor(cur):cur.toFixed(1))+suffix;if(p<1)requestAnimationFrame(step);else el.textContent=(Number.isInteger(target)?target:target.toFixed(1))+suffix;})(null);}
-const cntObs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.querySelectorAll('.af-stat-num[data-count]').forEach(el=>{animCounter(el,parseInt(el.getAttribute('data-count')));});cntObs.unobserve(e.target);}}),{threshold:0.4});
-document.querySelectorAll('.af-stats-strip').forEach(el=>cntObs.observe(el));
+function animCounter(el,target,dur=1100){let start=0,last=-1;function step(ts){if(!start)start=ts;const p=Math.min((ts-start)/dur,1);const value=Math.floor(target*(1-Math.pow(1-p,3)));if(value!==last){el.textContent=String(value);last=value;}if(p<1)requestAnimationFrame(step);else el.textContent=String(target);}requestAnimationFrame(step);}
+const cntObs=(liteOn()||REDUCED_MOTION)?null:new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.querySelectorAll('.af-stat-num[data-count]').forEach(el=>animCounter(el,parseInt(el.getAttribute('data-count'))));cntObs.unobserve(e.target);}}),{threshold:0.35});
+if(liteOn()||REDUCED_MOTION){
+    document.querySelectorAll('.af-stat-num[data-count]').forEach(el=>{const value=parseInt(el.getAttribute('data-count'));el.textContent=value>=1000?(value/1000)+'K+':String(value);});
+}else{
+    document.querySelectorAll('.af-stats-strip').forEach(el=>cntObs.observe(el));
+}
 
 // ── Development explorer ─────────────────────────────────────
 const DEV_CODE_NOTES = {
@@ -491,14 +925,14 @@ function activateCodeExample(key) {
         const selected = tab.getAttribute('data-tab') === key;
         tab.classList.toggle('active', selected);
         tab.setAttribute('aria-selected', String(selected));
+        tab.setAttribute('tabindex', selected ? '0' : '-1');
     });
     document.querySelectorAll('.code-pane').forEach(pane => {
         const show = pane.getAttribute('data-pane') === key;
         pane.style.display = show ? 'block' : 'none';
+        pane.setAttribute('aria-hidden', String(!show));
         if (show) {
-            pane.classList.remove('code-pane--in');
-            void pane.offsetWidth;
-            pane.classList.add('code-pane--in');
+            revealUpdatedPanel(pane);
         }
     });
     const note = DEV_CODE_NOTES[key];
@@ -517,15 +951,55 @@ function activateCodeExample(key) {
             return item;
         }));
     }
-    if (panel) {
-        panel.classList.remove('is-changing');
-        void panel.offsetWidth;
-        panel.classList.add('is-changing');
-    }
+    revealUpdatedPanel(panel);
 }
 
 document.querySelectorAll('.code-tab').forEach(tab => {
     tab.addEventListener('click', () => activateCodeExample(tab.getAttribute('data-tab')));
+});
+
+const DEV_STAGES = [
+    {key:'profile',number:'01',icon:'sliders',accent:'139,124,255',title:'Read the selected profile',description:'Spectral gathers the instance, account, memory, window and launch preferences before touching the game files.',input:'Selected instance + player profile',output:'One validated GameSettings object',insight:'If the wrong instance opens, check the selection and account before changing Java or mods.'},
+    {key:'version',number:'02',icon:'cubes-stacked',accent:'76,168,255',title:'Resolve the game version',description:'Version metadata tells the launcher which libraries, assets and inherited settings this instance actually needs.',input:'Minecraft version + instance files',output:'Resolved libraries, assets and metadata',insight:'A missing file or mismatched loader often shows up here. Reinstall the affected version before rebuilding the whole instance.'},
+    {key:'java',number:'03',icon:'mug-hot',accent:'255,184,77',title:'Match a compatible Java runtime',description:'The required Java major version comes from the selected game build. Spectral looks for a runtime that meets it.',input:'Required Java major version',output:'Compatible Java executable',insight:'If Java cannot be found, check the version requirement and select or install a matching runtime.'},
+    {key:'command',number:'04',icon:'list-check',accent:'255,111,207',title:'Assemble the launch command',description:'LauncherCore prepares native files, builds the classpath and passes the right game and JVM arguments to the process.',input:'Resolved files + settings + account',output:'Complete Minecraft command',insight:'A missing native or invalid argument should be diagnosed from the exact command stage, not guessed from the game window.'},
+    {key:'result',number:'05',icon:'wave-square',accent:'69,214,181',title:'Observe the running process',description:'QProcess streams output and exit state into Console, so a failure remains inspectable after the game closes.',input:'Minecraft JVM process',output:'Logs, exit code and visible errors',insight:'When asking for help, share the final relevant Console lines and the selected Minecraft and Java versions.'}
+];
+function activateDevStage(key, focus = false) {
+    const index = DEV_STAGES.findIndex(stage => stage.key === key);
+    if (index < 0) return;
+    const stage = DEV_STAGES[index];
+    document.querySelectorAll('[data-dev-stage]').forEach(button => {
+        const active = button.dataset.devStage === key;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-selected', String(active));
+        button.tabIndex = active ? 0 : -1;
+    });
+    const panel = document.getElementById('devStagePanel');
+    if (!panel) return;
+    panel.setAttribute('aria-labelledby', document.querySelector(`[data-dev-stage="${key}"]`)?.id || '');
+    panel.style.setProperty('--stage-rgb', stage.accent);
+    const values = {devStageNumber:stage.number, devStageTitle:stage.title, devStageDescription:stage.description, devStageInput:stage.input, devStageOutput:stage.output, devStageInsight:stage.insight, devStageCounter:`${index+1} of ${DEV_STAGES.length}`, devPipelineProgress:`${stage.number} / 05`};
+    Object.entries(values).forEach(([id,value]) => { const node=document.getElementById(id); if(node)node.textContent=value; });
+    const icon = document.getElementById('devStageIcon');
+    if (icon) icon.className = `fas fa-${stage.icon}`;
+    revealUpdatedPanel(panel);
+    if (focus) document.querySelector(`[data-dev-stage="${key}"]`)?.focus();
+}
+document.querySelectorAll('[data-dev-stage]').forEach(button => button.addEventListener('click', () => activateDevStage(button.dataset.devStage)));
+document.querySelectorAll('[data-dev-stage]').forEach((button,index) => button.addEventListener('keydown', event => {
+    if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End'].includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? DEV_STAGES.length-1 : (index + (['ArrowRight','ArrowDown'].includes(event.key) ? 1 : -1) + DEV_STAGES.length) % DEV_STAGES.length;
+    activateDevStage(DEV_STAGES[next].key, true);
+}));
+document.getElementById('devStagePrev')?.addEventListener('click', () => {
+    const index=DEV_STAGES.findIndex(stage=>document.querySelector(`[data-dev-stage="${stage.key}"]`)?.classList.contains('active'));
+    activateDevStage(DEV_STAGES[(index-1+DEV_STAGES.length)%DEV_STAGES.length].key);
+});
+document.getElementById('devStageNext')?.addEventListener('click', () => {
+    const index=DEV_STAGES.findIndex(stage=>document.querySelector(`[data-dev-stage="${stage.key}"]`)?.classList.contains('active'));
+    activateDevStage(DEV_STAGES[(index+1)%DEV_STAGES.length].key);
 });
 
 const DEV_SYSTEMS = {
@@ -580,6 +1054,7 @@ function activateDevSystem(key, focusPanel = false) {
         const selected = button.getAttribute('data-dev-system') === key;
         button.classList.toggle('active', selected);
         button.setAttribute('aria-selected', String(selected));
+        button.setAttribute('tabindex', selected ? '0' : '-1');
     });
     const icon = document.querySelector('#devSystemIcon i');
     const title = document.getElementById('devSystemTitle');
@@ -620,17 +1095,21 @@ function activateDevSystem(key, focusPanel = false) {
     const panel = document.querySelector('.dev-system-panel');
     if (panel) {
         panel.dataset.systemCode = system.code;
+        const number = document.getElementById('devSystemNumber');
+        if (number) number.textContent = system.code;
+        document.querySelectorAll('[data-layer-node]').forEach(node => node.classList.toggle('active', node.dataset.layerNode === key));
+        const activeTab = document.querySelector(`[data-dev-system="${key}"]`);
+        if (activeTab?.id) panel.setAttribute('aria-labelledby', activeTab.id);
         panel.style.setProperty('--system-rgb', system.accent);
-        panel.classList.remove('is-changing');
-        void panel.offsetWidth;
-        panel.classList.add('is-changing');
-        if (focusPanel && window.innerWidth <= 560) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        revealUpdatedPanel(panel.querySelector('.dev-system-content'));
+        if (focusPanel && window.innerWidth <= 560) panel.scrollIntoView({ behavior: (REDUCED_MOTION || liteOn()) ? 'auto' : 'smooth', block: 'nearest' });
     }
 }
 
 document.querySelectorAll('[data-dev-system]').forEach(button => {
     button.addEventListener('click', () => activateDevSystem(button.getAttribute('data-dev-system'), true));
 });
+document.querySelectorAll('[data-layer-node]').forEach(button => button.addEventListener('click', () => activateDevSystem(button.dataset.layerNode)));
 
 document.querySelectorAll('[data-dev-target]').forEach(button => {
     button.addEventListener('click', () => {
@@ -639,10 +1118,29 @@ document.querySelectorAll('[data-dev-target]').forEach(button => {
     });
 });
 
+function scrollBelowNavbar(target, extraGap = 18) {
+    if (!target) return;
+    const navbar = document.querySelector('.navbar');
+    const navbarHeight = navbar ? Math.ceil(navbar.getBoundingClientRect().height) : 0;
+    const top = Math.max(0, window.scrollY + target.getBoundingClientRect().top - navbarHeight - extraGap);
+    window.scrollTo({
+        top,
+        behavior: (liteOn() || REDUCED_MOTION) ? 'auto' : 'smooth'
+    });
+}
+document.querySelectorAll('.dev-document-index a[href^="#dev-"]').forEach(link=>link.addEventListener('click',event=>{
+    const id=link.getAttribute('href').slice(1);
+    const target=document.getElementById(id);
+    if(!target)return;
+    event.preventDefault();
+    history.pushState(null,'',`#${id}`);
+    scrollBelowNavbar(target);
+}));
+
 document.querySelectorAll('[data-dev-scroll]').forEach(button => {
     button.addEventListener('click', () => {
         const target = document.getElementById(button.getAttribute('data-dev-scroll'));
-        if (target) target.scrollIntoView({ behavior: liteOn() ? 'auto' : 'smooth', block: 'start' });
+        scrollBelowNavbar(target);
     });
 });
 
@@ -650,10 +1148,12 @@ function enableHorizontalTabKeys(selector) {
     const tabs = [...document.querySelectorAll(selector)];
     tabs.forEach((tab, index) => {
         tab.addEventListener('keydown', event => {
-            if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
             event.preventDefault();
-            const step = event.key === 'ArrowRight' ? 1 : -1;
-            tabs[(index + step + tabs.length) % tabs.length].focus();
+            const step = ['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1;
+            const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + step + tabs.length) % tabs.length];
+            next.focus();
+            next.click();
         });
     });
 }
@@ -663,21 +1163,25 @@ enableHorizontalTabKeys('.code-tab');
 // Code editor appearance: play the reveal on the active pane the first time it scrolls into view.
 const codeEditorEl=document.querySelector('.code-editor');
 if(codeEditorEl){
-    const ceObs=new IntersectionObserver(entries=>entries.forEach(e=>{
-        if(!e.isIntersecting) return;
-        const at=document.querySelector('.code-tab.active');
-        const dp=at?at.getAttribute('data-tab'):null;
-        const pane=dp?document.querySelector(`.code-pane[data-pane="${dp}"]`):document.querySelector('.code-pane');
-        if(pane){ pane.classList.remove('code-pane--in'); void pane.offsetWidth; pane.classList.add('code-pane--in'); }
-        ceObs.unobserve(e.target);
-    }),{threshold:0.35});
-    ceObs.observe(codeEditorEl);
+    if(liteOn()){
+        codeEditorEl.querySelector('.code-pane.active')?.classList.add('code-pane--in');
+    }else{
+        const ceObs=new IntersectionObserver(entries=>entries.forEach(e=>{
+            if(!e.isIntersecting) return;
+            const at=document.querySelector('.code-tab.active');
+            const dp=at?at.getAttribute('data-tab'):null;
+            const pane=dp?document.querySelector(`.code-pane[data-pane="${dp}"]`):document.querySelector('.code-pane');
+            if(pane){ pane.classList.remove('code-pane--in'); void pane.offsetWidth; pane.classList.add('code-pane--in'); }
+            ceObs.unobserve(e.target);
+        }),{threshold:0.35});
+        ceObs.observe(codeEditorEl);
+    }
 }
 
 // ── Lightweight toast ────────────────────────────────────────
 function showToast(msg, icon='circle-info'){
     let host=document.getElementById('toastHost');
-    if(!host){host=document.createElement('div');host.id='toastHost';host.className='toast-host';document.body.appendChild(host);}
+    if(!host){host=document.createElement('div');host.id='toastHost';host.className='toast-host';host.setAttribute('role','status');host.setAttribute('aria-live','polite');host.setAttribute('aria-atomic','false');document.body.appendChild(host);}
     const t=document.createElement('div');t.className='toast';
     t.innerHTML=`<i class="fas fa-${icon}"></i><span></span>`;
     t.querySelector('span').textContent=msg;
@@ -687,39 +1191,192 @@ function showToast(msg, icon='circle-info'){
 }
 
 // ── FAQ accordion — smooth scrollHeight-based ────────────────
-document.querySelectorAll('#faqList .faq-q').forEach(q => {
+document.querySelectorAll('#faqList .faq-q').forEach((q,index) => {
+    const answer=q.closest('.faq-item')?.querySelector('.faq-a');
+    if(!q.id)q.id=`faqQuestion${index+1}`;
+    if(answer){if(!answer.id)answer.id=`faqAnswer${index+1}`;q.setAttribute('aria-controls',answer.id);answer.setAttribute('role','region');answer.setAttribute('aria-labelledby',q.id);}
+    q.setAttribute('aria-expanded', String(q.closest('.faq-item')?.classList.contains('open')));
     q.addEventListener('click', () => {
-        const item   = q.closest('.faq-item');
-        const answer = item.querySelector('.faq-a');
+        const item = q.closest('.faq-item');
         const isOpen = item.classList.contains('open');
-
-        // collapse all others
         document.querySelectorAll('#faqList .faq-item').forEach(i => {
-            if (i !== item && i.classList.contains('open')) {
+            if (i !== item) {
                 i.classList.remove('open');
-                const a = i.querySelector('.faq-a');
-                a.style.maxHeight = a.scrollHeight + 'px';
-                requestAnimationFrame(() => { a.style.maxHeight = '0px'; });
+                i.querySelector('.faq-q')?.setAttribute('aria-expanded','false');
             }
         });
-
-        if (!isOpen) {
-            item.classList.add('open');
-            answer.style.maxHeight = '0px';
-            requestAnimationFrame(() => {
-                answer.style.maxHeight = answer.scrollHeight + 'px';
-            });
-        } else {
-            item.classList.remove('open');
-            answer.style.maxHeight = answer.scrollHeight + 'px';
-            requestAnimationFrame(() => { answer.style.maxHeight = '0px'; });
-        }
+        item.classList.toggle('open', !isOpen);
+        q.setAttribute('aria-expanded', String(!isOpen));
     });
 });
-
 // ══════════════════════════════════════════════════════════════
 // STORAGE KEYS
 // ══════════════════════════════════════════════════════════════
+// Support diagnostic workspace: one symptom drives one focused solution.
+const supportFixButtons=[...document.querySelectorAll('[data-support-fix]')];
+const supportFixPanels=[...document.querySelectorAll('[data-support-panel]')];
+function activateSupportFix(key){
+    if(!key)return;
+    const briefIssue=document.getElementById('supportBriefIssue');
+    const issueForFix={crash:'Game crashes or freezes',loader:'Fabric or Forge fails',performance:'Low FPS or stutter',account:'Account or offline play'};
+    if(briefIssue && issueForFix[key]) { briefIssue.value=issueForFix[key]; updateSupportBrief(); }
+    supportFixButtons.forEach(button=>{
+        const active=button.dataset.supportFix===key;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-selected',String(active));
+        button.tabIndex=active?0:-1;
+    });
+    supportFixPanels.forEach(panel=>{
+        const active=panel.dataset.supportPanel===key;
+        panel.hidden=!active;
+        panel.classList.toggle('active',active);
+    });
+    updateSupportChecklist();
+}
+function updateSupportChecklist(){
+    const panel=supportFixPanels.find(item=>!item.hidden);
+    const checks=[...(panel?.querySelectorAll('.support-checklist input')||[])];
+    const done=checks.filter(check=>check.checked).length;
+    const count=document.getElementById('supportChecklistCount');
+    const fill=document.getElementById('supportProgressFill');
+    if(count)count.textContent=`${done} / ${checks.length}`;
+    if(fill)fill.style.transform=`scaleX(${checks.length?done/checks.length:0})`;
+    panel?.classList.toggle('is-complete',done===checks.length&&checks.length>0);
+}
+supportFixButtons.forEach(button=>{
+    button.addEventListener('click',()=>activateSupportFix(button.dataset.supportFix));
+    button.addEventListener('keydown',event=>{
+        if(!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.key))return;
+        event.preventDefault();
+        const step=['ArrowDown','ArrowRight'].includes(event.key)?1:-1;
+        const available=supportFixButtons.filter(item=>!item.classList.contains('is-filtered-out'));
+        const current=available.indexOf(button);
+        const next=available[(current+step+available.length)%available.length];
+        if(next){activateSupportFix(next.dataset.supportFix);next.focus();}
+    });
+});
+if(supportFixButtons.length)activateSupportFix(supportFixButtons.find(button=>button.classList.contains('active'))?.dataset.supportFix||supportFixButtons[0].dataset.supportFix);
+document.querySelectorAll('.support-checklist input').forEach(check=>check.addEventListener('change',updateSupportChecklist));
+document.querySelectorAll('.support-reset-checks').forEach(button=>button.addEventListener('click',()=>{
+    button.closest('[data-support-panel]')?.querySelectorAll('.support-checklist input').forEach(check=>{check.checked=false;});
+    updateSupportChecklist();
+}));
+document.querySelectorAll('[data-support-jump]').forEach(button=>button.addEventListener('click',()=>scrollBelowNavbar(document.getElementById(button.dataset.supportJump))));
+
+const supportSearchInput=document.getElementById('supportSearchInput');
+const supportSearchStatus=document.getElementById('supportSearchStatus');
+const supportActionButtons=[...document.querySelectorAll('.support-fix-actions [data-support-question]')];
+const supportTopicButtons=[...document.querySelectorAll('.support-topic-strip [data-support-topic]')];
+let activeSupportTopic='all';
+function filterSupportKnowledge(){
+    const query=(supportSearchInput?.value||'').trim().toLowerCase();
+    const faqItems=[...document.querySelectorAll('#faqList .faq-item')];
+    let faqMatches=0;
+    faqItems.forEach(item=>{
+        const match=(!query||item.textContent.toLowerCase().includes(query))&&(activeSupportTopic==='all'||item.dataset.supportTopic===activeSupportTopic);
+        item.classList.toggle('is-filtered-out',!match);
+        if(match)faqMatches++;
+    });
+    supportActionButtons.forEach(button=>{
+        const match=!query||button.textContent.toLowerCase().includes(query);
+        button.classList.toggle('is-filtered-out',!match);
+    });
+    supportFixButtons.forEach(button=>{
+        const panel=document.querySelector(`[data-support-panel="${button.dataset.supportFix}"]`);
+        const match=!query||`${button.textContent} ${panel?.textContent||''}`.toLowerCase().includes(query);
+        button.classList.toggle('is-filtered-out',!match);
+    });
+    const visibleFix=supportFixButtons.find(button=>!button.classList.contains('is-filtered-out'));
+    const activeFix=supportFixButtons.find(button=>button.classList.contains('active'));
+    const faqVisibleCount=document.getElementById('faqVisibleCount');
+    const supportNoResults=document.getElementById('supportNoResults');
+    const faqList=document.getElementById('faqList');
+    if(faqVisibleCount)faqVisibleCount.textContent=`${faqMatches} ${faqMatches===1?'guide':'guides'}`;
+    if(supportNoResults)supportNoResults.hidden=faqMatches>0;
+    faqList?.classList.toggle('is-empty',faqMatches===0);
+    document.querySelector('.support-diagnostic-workspace')?.classList.toggle('no-diagnostic-match',!visibleFix);
+    if(visibleFix&&activeFix?.classList.contains('is-filtered-out'))activateSupportFix(visibleFix.dataset.supportFix);
+    if(supportSearchStatus){
+        supportSearchStatus.textContent=query
+            ? `${faqMatches} ${faqMatches===1?'guide':'guides'} found${activeSupportTopic==='all'?'':` in ${activeSupportTopic}`}`
+            : `${faqMatches} ${faqMatches===1?'guide':'guides'}${activeSupportTopic==='all'?` and ${supportActionButtons.length+supportFixButtons.length} guided checks`:` in ${activeSupportTopic}`}`;
+    }
+}
+supportSearchInput?.addEventListener('input',filterSupportKnowledge);
+supportTopicButtons.forEach(button=>button.addEventListener('click',()=>{
+    activeSupportTopic=button.dataset.supportTopic;
+    supportTopicButtons.forEach(item=>{
+        const active=item===button;
+        item.classList.toggle('active',active);
+        item.setAttribute('aria-pressed',String(active));
+    });
+    filterSupportKnowledge();
+}));
+document.addEventListener('keydown',event=>{
+    if(event.key!=='/'||event.ctrlKey||event.metaKey||event.altKey)return;
+    const target=event.target;
+    if(target instanceof HTMLInputElement||target instanceof HTMLTextAreaElement||target?.isContentEditable)return;
+    const supportTab=document.getElementById('support');
+    if(!supportTab?.classList.contains('active-tab'))return;
+    event.preventDefault();supportSearchInput?.focus();
+});
+document.querySelectorAll('[data-support-question]').forEach(button=>button.addEventListener('click',()=>{
+    const query=(button.dataset.supportQuestion||'').toLowerCase();
+    if(supportSearchInput){supportSearchInput.value='';filterSupportKnowledge();}
+    const item=[...document.querySelectorAll('#faqList .faq-item')].find(entry=>entry.textContent.toLowerCase().includes(query));
+    if(!item){showToast('Open the Console guide for the full diagnostic path','circle-info');return;}
+    if(!item.classList.contains('open'))item.querySelector('.faq-q')?.click();
+    const scrollTarget=window.innerWidth>=900?item.closest('.support-knowledge-studio'):item;
+    requestAnimationFrame(()=>scrollBelowNavbar(scrollTarget));
+}));
+document.querySelectorAll('[data-support-guide]').forEach(button=>button.addEventListener('click',()=>{
+    const item=document.querySelector(`#faqList [data-support-id="${button.dataset.supportGuide}"]`);
+    if(!item)return;
+    if(supportSearchInput)supportSearchInput.value='';
+    activeSupportTopic='all';
+    supportTopicButtons.forEach(topic=>{
+        const active=topic.dataset.supportTopic==='all';
+        topic.classList.toggle('active',active);
+        topic.setAttribute('aria-pressed',String(active));
+    });
+    filterSupportKnowledge();
+    if(!item.classList.contains('open'))item.querySelector('.faq-q')?.click();
+    requestAnimationFrame(()=>scrollBelowNavbar(item));
+}));
+
+// The support note stays local until the visitor explicitly copies it.
+const supportBriefForm=document.getElementById('supportBriefForm');
+function buildSupportBrief(){
+    const value=id=>document.getElementById(id)?.value.trim()||'';
+    return [
+        'Spectral support note',
+        `Issue: ${value('supportBriefIssue')}`,
+        `Minecraft version: ${value('supportBriefVersion')||'Not provided'}`,
+        `Java version: ${value('supportBriefJava')||'Not provided'}`,
+        `Error or observation: ${value('supportBriefError')||'Not provided'}`
+    ].join('\n');
+}
+function updateSupportBrief(){
+    const preview=document.getElementById('supportBriefPreview');
+    if(preview)preview.textContent=buildSupportBrief();
+    const status=document.getElementById('supportBriefStatus');
+    if(status)status.textContent='';
+}
+supportBriefForm?.addEventListener('input',updateSupportBrief);
+supportBriefForm?.addEventListener('change',updateSupportBrief);
+supportBriefForm?.addEventListener('reset',()=>requestAnimationFrame(updateSupportBrief));
+document.getElementById('supportBriefCopy')?.addEventListener('click',async()=>{
+    const status=document.getElementById('supportBriefStatus');
+    try {
+        await navigator.clipboard.writeText(buildSupportBrief());
+        if(status)status.textContent='Copied. Review it before sharing.';
+    } catch {
+        if(status)status.textContent='Copy unavailable here. Select the preview text instead.';
+        window.getSelection()?.selectAllChildren(document.getElementById('supportBriefPreview'));
+    }
+});
+updateSupportBrief();
+
 const K_USERS   = 'spectral_site_users';
 const K_SESSION = 'spectral_site_session';
 const K_MC_PFX  = 'spectral_launcher_';
@@ -727,24 +1384,109 @@ const K_MC_ACT  = 'spectral_mc_active_';
 const K_FORUM   = 'spectral_forum';
 const K_NEWS    = 'spectral_news';
 const K_FRIENDS = 'spectral_friends';
+const K_ROLE_ORDERS = 'spectral_role_orders';
+const K_PROFILE_STYLES = 'spectral_profile_styles';
+const K_DEV_ROLE_PREVIEWS = 'spectral_dev_role_previews';
 
-// ── Supabase cloud database ───────────────────────────────────
-// Accounts + Minecraft profiles are mirrored to a Supabase project so they
-// persist across devices and hosts (local, GitHub Pages, future launcher).
-// The anon key is public by design and safe to ship in client code.
-const SUPABASE_URL      = 'https://iliokfdcwdcnyjfwmbie.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlsaW9rZmRjd2RjbnlqZndtYmllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDY4MTYsImV4cCI6MjA5ODIyMjgxNn0.28lW48163YxtcxAuACtyXHMcj1e3SGOCmiXZq29C2Ck';
-let cloud = null;
-try {
-    if (window.supabase && window.supabase.createClient) {
-        cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-        console.warn('Supabase library not loaded — running in local-only mode.');
+// CSP-compatible image fallback handling for static and dynamically rendered
+// images. Inline event-handler attributes are intentionally not used.
+document.addEventListener('error', event => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement)) return;
+    if (image.hasAttribute('data-hide-on-error')) {
+        image.hidden = true;
+        const fallbackIcon = image.nextElementSibling;
+        if (fallbackIcon instanceof HTMLElement) fallbackIcon.style.display = 'flex';
+        return;
     }
-} catch (e) { console.warn('Supabase init failed — running in local-only mode.', e); }
+    if (image.hasAttribute('data-avatar-fallback') && image.dataset.fallbackApplied !== 'true') {
+        image.dataset.fallbackApplied = 'true';
+        image.src = 'assets/avatar-placeholder.svg';
+    }
+}, true);
+
+// ── Optional Supabase authentication + owner-scoped sync ─────
+// The project URL and publishable key identify the browser client. Table access
+// must be protected by the RLS policies in supabase/security_hardening.sql.
+const SUPABASE_URL = document.querySelector('meta[name="spectral-supabase-url"]')?.content.trim() || '';
+const SUPABASE_PUBLIC_KEY = document.querySelector('meta[name="spectral-supabase-publishable-key"]')?.content.trim()
+    || document.querySelector('meta[name="spectral-supabase-anon-key"]')?.content.trim() || '';
+const SUPABASE_SCRIPT_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.0/dist/umd/supabase.min.js';
+const SUPABASE_SCRIPT_INTEGRITY = 'sha384-De+l/Df7qym5QBDVocD3+gW1S7IjR3epf+6KbRDjB3FCCzM/LqVTwqckT6FhFar8';
+let cloud = null;
+let cloudAuthUserId = null;
+
+function validSupabaseConfig() {
+    if (!SUPABASE_URL || !SUPABASE_PUBLIC_KEY) return false;
+    try {
+        const url = new URL(SUPABASE_URL);
+        return url.protocol === 'https:'
+            && /^[a-z0-9-]+\.supabase\.co$/i.test(url.hostname)
+            && (/^sb_publishable_[A-Za-z0-9_-]+$/.test(SUPABASE_PUBLIC_KEY)
+                || /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(SUPABASE_PUBLIC_KEY));
+    } catch {
+        return false;
+    }
+}
+
+async function loadSupabaseLibrary() {
+    if (window.supabase?.createClient) return;
+    await new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[src="${SUPABASE_SCRIPT_URL}"]`);
+        if (existing) {
+            existing.addEventListener('load', resolve, { once:true });
+            existing.addEventListener('error', () => reject(new Error('Authentication library unavailable')), { once:true });
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = SUPABASE_SCRIPT_URL;
+        script.integrity = SUPABASE_SCRIPT_INTEGRITY;
+        script.crossOrigin = 'anonymous';
+        script.referrerPolicy = 'no-referrer';
+        script.addEventListener('load', resolve, { once:true });
+        script.addEventListener('error', () => reject(new Error('Authentication library unavailable')), { once:true });
+        document.head.appendChild(script);
+    });
+}
+
+async function initCloudClient() {
+    if (cloud) return cloud;
+    if (!validSupabaseConfig()) return null;
+    try {
+        await loadSupabaseLibrary();
+        cloud = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLIC_KEY, {
+            auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true }
+        });
+        return cloud;
+    } catch (error) {
+        console.warn('[auth] Optional cloud connection is unavailable; local data remains available.');
+        return null;
+    }
+}
 // While true, local writes are NOT pushed back to the cloud (used during the
 // initial load so freshly-downloaded data is not echoed straight back up).
 let cloudSyncing = false;
+let cloudRetryAfter = 0;
+let cloudNetworkWarningShown = false;
+function cloudReady() {
+    return Boolean(cloud && cloudAuthUserId && !cloudSyncing && navigator.onLine !== false && Date.now() >= cloudRetryAfter);
+}
+function handleCloudError(area, error) {
+    const message = error?.message || String(error || 'Unknown cloud error');
+    if (/failed to fetch|network|load failed/i.test(message)) {
+        cloudRetryAfter = Date.now() + 5 * 60 * 1000;
+        if (!cloudNetworkWarningShown) {
+            cloudNetworkWarningShown = true;
+            console.warn('[cloud] offline — local data remains available; sync will retry later.');
+        }
+        return;
+    }
+    console.warn(`[cloud] ${area}:`, message);
+}
+window.addEventListener('online', () => {
+    cloudRetryAfter = 0;
+    cloudNetworkWarningShown = false;
+});
 
 // ── Censorship ───────────────────────────────────────────────
 const BANNED = ['fuck','shit','ass','bitch','bastard','crap','dick','cock','nigga',
@@ -768,6 +1510,26 @@ function esc(s) {
 // Strip control chars and clamp length for stored fields
 function sanitizeField(s, max) {
     return String(s == null ? '' : s).replace(/[\x00-\x1F\x7F]/g, '').trim().slice(0, max || 200);
+}
+
+function safeIdentifier(value, fallback = '') {
+    const normalized = String(value == null ? '' : value).trim();
+    return /^[A-Za-z0-9_-]{1,64}$/.test(normalized) ? normalized : fallback;
+}
+
+const AVATAR_DATA_RE = /^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/i;
+function safeAvatarUrl(value, fallback = '') {
+    const candidate = String(value == null ? '' : value).trim();
+    if (!candidate) return fallback;
+    if (candidate.length <= 1_500_000 && AVATAR_DATA_RE.test(candidate)) return candidate;
+    try {
+        const url = new URL(candidate);
+        const allowedHost = url.hostname === 'minotar.net'
+            || url.hostname === 'lh3.googleusercontent.com'
+            || url.hostname.endsWith('.googleusercontent.com');
+        if (url.protocol === 'https:' && !url.username && !url.password && allowedHost) return url.href;
+    } catch {}
+    return fallback;
 }
 
 // ── Password hashing ─────────────────────────────────────────
@@ -794,38 +1556,39 @@ async function hashPassword(pw) {
     return 'w' + h1.toString(16).padStart(8, '0') + h2.toString(16).padStart(8, '0');
 }
 function looksHashed(s) { return /^[a-f0-9]{64}$/.test(s) || /^w[a-f0-9]{16}$/.test(s); }
-
 // ══════════════════════════════════════════════════════════════
 // SITE USERS (two-tier system)
 // ══════════════════════════════════════════════════════════════
+const LOCAL_DEVELOPMENT_ORIGIN = location.protocol === 'file:' || ['localhost','127.0.0.1','[::1]'].includes(location.hostname);
+const LOCAL_OWNER_PASSWORD = LOCAL_DEVELOPMENT_ORIGIN && !validSupabaseConfig() ? 'devpass' : '';
 const DEFAULT_SITE_USERS = [
-    { id:'su_dev', username:'_kaiserr_',  password:'devpass', role:'DEV',       displayName:'_kaiserr_',  bio:'Developer of Spectral',    avatar:'', registeredAt:'01.01.2026', totalTimeSec:154800, visitCount:212, lastSeen:'2026-06-28T09:10:00Z', banned:false },
-    { id:'su_adm', username:'Console',    password:'1234',    role:'ADMIN',     displayName:'Console',    bio:'Keeping the servers tidy', avatar:'', registeredAt:'10.02.2024', totalTimeSec:98400,  visitCount:140, lastSeen:'2026-06-27T20:00:00Z', banned:false },
-    { id:'su_mod', username:'Redstone',   password:'1234',    role:'MODERATOR', displayName:'Redstone',   bio:'Forum moderator',          avatar:'', registeredAt:'05.03.2024', totalTimeSec:61200,  visitCount:97,  lastSeen:'2026-06-26T14:30:00Z', banned:false },
-    { id:'su_pro', username:'Steve_Pro',  password:'1234',    role:'PRO',       displayName:'Steve_Pro',  bio:'Minecraft enthusiast',     avatar:'', registeredAt:'15.01.2024', totalTimeSec:45720,  visitCount:64,  lastSeen:'2026-06-25T11:00:00Z', banned:false },
-    { id:'su_vet', username:'Enderman42', password:'1234',    role:'VETERAN',   displayName:'Enderman42', bio:'Been here since day one',  avatar:'', registeredAt:'22.04.2024', totalTimeSec:23400,  visitCount:38,  lastSeen:'2026-06-20T18:45:00Z', banned:false },
-    { id:'su_usr', username:'Alex',       password:'1234',    role:'USER',      displayName:'Alex',       bio:'Builder',                  avatar:'', registeredAt:'20.02.2024', totalTimeSec:7200,   visitCount:12,  lastSeen:'2026-06-12T08:20:00Z', banned:false }
+    { id:'su_dev', username:'_kaiserr_',  password:LOCAL_OWNER_PASSWORD, role:'DEV',       displayName:'_kaiserr_',  bio:'Developer of Spectral',    avatar:'', registeredAt:'01.01.2026', totalTimeSec:154800, visitCount:212, lastSeen:'2026-06-28T09:10:00Z', banned:false },
+    { id:'su_adm', username:'Console',    password:'', role:'ADMIN',     displayName:'Console',    bio:'Keeping the servers tidy', avatar:'', registeredAt:'10.02.2024', totalTimeSec:98400,  visitCount:140, lastSeen:'2026-06-27T20:00:00Z', banned:false },
+    { id:'su_mod', username:'Redstone',   password:'', role:'MODERATOR', displayName:'Redstone',   bio:'Forum moderator',          avatar:'', registeredAt:'05.03.2024', totalTimeSec:61200,  visitCount:97,  lastSeen:'2026-06-26T14:30:00Z', banned:false },
+    { id:'su_pro', username:'Steve_Pro',  password:'', role:'PRO',       displayName:'Steve_Pro',  bio:'Minecraft enthusiast',     avatar:'', registeredAt:'15.01.2024', totalTimeSec:45720,  visitCount:64,  lastSeen:'2026-06-25T11:00:00Z', banned:false },
+    { id:'su_vet', username:'Enderman42', password:'', role:'VETERAN',   displayName:'Enderman42', bio:'Been here since day one',  avatar:'', registeredAt:'22.04.2024', totalTimeSec:23400,  visitCount:38,  lastSeen:'2026-06-20T18:45:00Z', banned:false },
+    { id:'su_usr', username:'Alex',       password:'', role:'USER',      displayName:'Alex',       bio:'Builder',                  avatar:'', registeredAt:'20.02.2024', totalTimeSec:7200,   visitCount:12,  lastSeen:'2026-06-12T08:20:00Z', banned:false }
 ];
 const DEFAULT_MC_ACCOUNTS = {
     'su_dev': [
-        { id:'la_d1', username:'_kaiserr_', type:'elyby',     addedAt:'01.01.2026', playtime:'0h',   favorite:false, password:'', uuid:offlineUuid('_kaiserr_'), lastUsed:null }
+        { id:'la_d1', username:'_kaiserr_', type:'elyby',     addedAt:'01.01.2026', playtime:'0h',   favorite:false, uuid:offlineUuid('_kaiserr_'), lastUsed:null }
     ],
     'su_pro': [
-        { id:'la_p1', username:'Steve_Pro',  type:'microsoft', addedAt:'15.01.2024', playtime:'127h', favorite:false, password:'', uuid:offlineUuid('Steve_Pro'),  lastUsed:null },
-        { id:'la_p2', username:'Enderman42', type:'offline',   addedAt:'20.04.2024', playtime:'23h',  favorite:true,  password:'', uuid:offlineUuid('Enderman42'), lastUsed:null }
+        { id:'la_p1', username:'Steve_Pro',  type:'microsoft', addedAt:'15.01.2024', playtime:'127h', favorite:false, uuid:offlineUuid('Steve_Pro'),  lastUsed:null },
+        { id:'la_p2', username:'Enderman42', type:'offline',   addedAt:'20.04.2024', playtime:'23h',  favorite:true,  uuid:offlineUuid('Enderman42'), lastUsed:null }
     ],
     'su_usr': [
-        { id:'la_u1', username:'Alex',       type:'elyby',     addedAt:'20.02.2024', playtime:'43h',  favorite:false, password:'', uuid:offlineUuid('Alex'),       lastUsed:null }
+        { id:'la_u1', username:'Alex',       type:'elyby',     addedAt:'20.02.2024', playtime:'43h',  favorite:false, uuid:offlineUuid('Alex'),       lastUsed:null }
     ],
     'su_adm': [
-        { id:'la_a1', username:'Console',    type:'microsoft', addedAt:'10.02.2024', playtime:'88h',  favorite:false, password:'', uuid:offlineUuid('Console'),    lastUsed:null }
+        { id:'la_a1', username:'Console',    type:'microsoft', addedAt:'10.02.2024', playtime:'88h',  favorite:false, uuid:offlineUuid('Console'),    lastUsed:null }
     ],
     'su_mod': [
-        { id:'la_m1', username:'Redstone',   type:'microsoft', addedAt:'05.03.2024', playtime:'54h',  favorite:true,  password:'', uuid:offlineUuid('Redstone'),   lastUsed:null },
-        { id:'la_m2', username:'TorchBearer',type:'offline',   addedAt:'06.03.2024', playtime:'9h',   favorite:false, password:'', uuid:offlineUuid('TorchBearer'),lastUsed:null }
+        { id:'la_m1', username:'Redstone',   type:'microsoft', addedAt:'05.03.2024', playtime:'54h',  favorite:true,  uuid:offlineUuid('Redstone'),   lastUsed:null },
+        { id:'la_m2', username:'TorchBearer',type:'offline',   addedAt:'06.03.2024', playtime:'9h',   favorite:false, uuid:offlineUuid('TorchBearer'),lastUsed:null }
     ],
     'su_vet': [
-        { id:'la_v1', username:'Enderman42', type:'elyby',     addedAt:'22.04.2024', playtime:'31h',  favorite:false, password:'', uuid:offlineUuid('Enderman42'), lastUsed:null }
+        { id:'la_v1', username:'Enderman42', type:'elyby',     addedAt:'22.04.2024', playtime:'31h',  favorite:false, uuid:offlineUuid('Enderman42'), lastUsed:null }
     ]
 };
 const DEFAULT_FORUM = [
@@ -883,167 +1646,316 @@ const DEFAULT_NEWS = [
 ];
 
 // ── Storage helpers ───────────────────────────────────────────
-function loadSiteUsers()  { try{const r=localStorage.getItem(K_USERS); return r?JSON.parse(r):null;}catch{return null;} }
-function saveSiteUsers(u) { try{localStorage.setItem(K_USERS,JSON.stringify(u));}catch{} cloudPushUsers(u); }
-function loadSession()    { return localStorage.getItem(K_SESSION)||null; }
+function readJsonStorage(key, fallback, validate) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        const value = JSON.parse(raw);
+        return !validate || validate(value) ? value : fallback;
+    } catch {
+        return fallback;
+    }
+}
+const STORED_ROLE_KEYS = new Set(['USER','VETERAN','PRO','LEGEND','SPECTRAL','MODERATOR','ADMIN','DEV']);
+const SEEDED_USER_IDS = new Set(DEFAULT_SITE_USERS.map(user => user.id));
+function normalizeStoredUser(user) {
+    if (!user || typeof user !== 'object') return null;
+    const id = safeIdentifier(user.id);
+    const username = sanitizeField(user.username, 20);
+    if (!id || !username) return null;
+    const role = STORED_ROLE_KEYS.has(user.role) ? user.role : 'USER';
+    // Keep an existing owner's local credential during the demo migration.
+    // New visitors still receive a passwordless showcase profile, and cloud
+    // deployments never accept a seeded password from browser storage.
+    const keepLocalOwnerPassword = id === 'su_dev' && LOCAL_DEVELOPMENT_ORIGIN && !validSupabaseConfig();
+    const storedPassword = sanitizeField(user.password, 128);
+    return {
+        id,
+        username,
+        email: sanitizeField(user.email, 254),
+        password: SEEDED_USER_IDS.has(id) && !keepLocalOwnerPassword ? '' : (keepLocalOwnerPassword ? storedPassword || LOCAL_OWNER_PASSWORD : storedPassword),
+        role,
+        roleSource: sanitizeField(user.roleSource,32),
+        displayName: sanitizeField(user.displayName || username, 24) || username,
+        bio: sanitizeField(user.bio, 120),
+        avatar: safeAvatarUrl(user.avatar),
+        registeredAt: sanitizeField(user.registeredAt, 24),
+        totalTimeSec: Math.max(0, Number(user.totalTimeSec) || 0),
+        visitCount: Math.max(0, Math.floor(Number(user.visitCount) || 0)),
+        lastSeen: user.lastSeen && !isNaN(new Date(user.lastSeen).getTime()) ? new Date(user.lastSeen).toISOString() : null,
+        banned: Boolean(user.banned),
+        status: sanitizeField(user.status, 100),
+        mcTimeSec: Math.max(0, Number(user.mcTimeSec) || 0)
+    };
+}
+function loadSiteUsers()  {
+    const users = readJsonStorage(K_USERS, null, Array.isArray);
+    return users ? users.map(normalizeStoredUser).filter(Boolean).slice(0, 250) : null;
+}
+function saveSiteUsers(u) { try{localStorage.setItem(K_USERS,JSON.stringify(u));}catch{return false;} cloudPushUsers(u); return true; }
+function loadSession()    { try{return localStorage.getItem(K_SESSION)||null;}catch{return null;} }
 function saveSession(id)  { try{if(id)localStorage.setItem(K_SESSION,id);else localStorage.removeItem(K_SESSION);}catch{} }
-function loadMcAccounts(uid)   { try{const r=localStorage.getItem(K_MC_PFX+uid);return r?JSON.parse(r):null;}catch{return null;} }
-function saveMcAccounts(uid,a) { try{localStorage.setItem(K_MC_PFX+uid,JSON.stringify(a));}catch{} cloudPushMc(uid); }
-function loadActiveMc(uid)     { return localStorage.getItem(K_MC_ACT+uid)||null; }
-function saveActiveMc(uid,id)  { try{if(id)localStorage.setItem(K_MC_ACT+uid,id);else localStorage.removeItem(K_MC_ACT+uid);}catch{} cloudPushMc(uid); }
-
-// ── Cloud sync: push helpers ──────────────────────────────────
-// Mirror the just-written local state up to Supabase. Fire-and-forget: any
-// failure is logged but never blocks the UI, so the site keeps working offline.
-// True until Supabase rejects the status/mc_time_sec columns (migration not run
-// yet) — then we push without them so the rest of user sync keeps working.
-let usersHaveExtraCols = true;
-function cloudPushUsers(users) {
-    if (!cloud || cloudSyncing || !Array.isArray(users)) return;
-    const rows = users.map(u => {
-        const row = {
-            id: u.id, username: u.username, email: u.email || '', password_hash: u.password || '',
-            role: u.role || 'USER', display_name: u.displayName || u.username,
-            bio: u.bio || '', avatar: u.avatar || '', registered_at: u.registeredAt || '',
-            total_time_sec: Math.round(u.totalTimeSec || 0), visit_count: u.visitCount || 0,
-            last_seen: u.lastSeen || null, banned: !!u.banned
+function loadMcAccounts(uid) {
+    const accounts = readJsonStorage(K_MC_PFX+uid, null, Array.isArray);
+    if (!accounts) return null;
+    let changed = false;
+    const sanitized = accounts.map(account => {
+        if (!account || typeof account !== 'object') { changed = true; return null; }
+        const { password, accessToken, refreshToken, ...safe } = account;
+        if (password || accessToken || refreshToken) changed = true;
+        const id = safeIdentifier(safe.id);
+        const username = sanitizeField(safe.username, 32);
+        if (!id || !username) { changed = true; return null; }
+        const type = ['microsoft','elyby','offline'].includes(safe.type) ? safe.type : 'offline';
+        return {
+            id,
+            username,
+            displayName: sanitizeField(safe.displayName || username, 32) || username,
+            type,
+            uuid: sanitizeField(safe.uuid, 36),
+            addedAt: sanitizeField(safe.addedAt, 24),
+            playtime: sanitizeField(safe.playtime, 24) || '0h',
+            favorite: Boolean(safe.favorite),
+            lastUsed: safe.lastUsed && !isNaN(new Date(safe.lastUsed).getTime()) ? new Date(safe.lastUsed).toISOString() : null
         };
-        if (usersHaveExtraCols) {
-            row.status = (u.status || '').slice(0, 100);
-            row.mc_time_sec = Math.round(u.mcTimeSec || 0);
-        }
-        return row;
-    });
-    cloud.from('site_users').upsert(rows).then(({ error }) => {
-        if (!error) return;
-        // Columns not migrated yet → drop them and retry once, then stop trying.
-        if (usersHaveExtraCols && /status|mc_time_sec|column|schema cache/i.test(error.message)) {
-            usersHaveExtraCols = false;
-            console.warn('[cloud] status/mc_time_sec columns missing — run add_status_and_playtime.sql. Retrying without them.');
-            cloudPushUsers(users);
-        } else {
-            console.warn('[cloud] users push:', error.message);
-        }
-    });
+    }).filter(Boolean).slice(0, 100);
+    if (changed) {
+        try { localStorage.setItem(K_MC_PFX+uid, JSON.stringify(sanitized)); } catch {}
+    }
+    return sanitized;
+}
+function saveMcAccounts(uid,a) { try{localStorage.setItem(K_MC_PFX+uid,JSON.stringify(a));}catch{} cloudPushMc(uid); }
+function loadActiveMc(uid)     { try{return localStorage.getItem(K_MC_ACT+uid)||null;}catch{return null;} }
+function saveActiveMc(uid,id)  { try{if(id)localStorage.setItem(K_MC_ACT+uid,id);else localStorage.removeItem(K_MC_ACT+uid);}catch{} cloudPushMc(uid); }
+function loadRoleOrders() { return AccountPolicy.reservations(readJsonStorage(K_ROLE_ORDERS, [], Array.isArray)); }
+function saveRoleOrders(orders) { try{localStorage.setItem(K_ROLE_ORDERS,JSON.stringify(AccountPolicy.reservations(orders)));return true;}catch{return false;} }
+function loadProfileStyles() { return readJsonStorage(K_PROFILE_STYLES, {}, value=>value&&typeof value==='object'&&!Array.isArray(value)); }
+function saveProfileStyles(styles) { try{localStorage.setItem(K_PROFILE_STYLES,JSON.stringify(styles||{}));}catch{} }
+function loadDevRolePreviews() { return readJsonStorage(K_DEV_ROLE_PREVIEWS, {}, value=>value&&typeof value==='object'&&!Array.isArray(value)); }
+function saveDevRolePreviews(previews) { try{localStorage.setItem(K_DEV_ROLE_PREVIEWS,JSON.stringify(previews||{}));}catch{} }
+
+// ── Cloud sync: authenticated owner only ──────────────────────
+// These helpers never send the complete local database. They can only touch
+// the authenticated user's own profile, Minecraft profiles and friendships.
+// Privileged fields (role, ban state and account ownership) are server-owned.
+function cloudPushUsers(users) {
+    if (!cloudReady() || !Array.isArray(users)) return;
+    const user = users.find(candidate => candidate.id === cloudAuthUserId);
+    if (!user) return;
+    const row = {
+        username: sanitizeField(user.username, 20),
+        display_name: sanitizeField(user.displayName || user.username, 24),
+        bio: sanitizeField(user.bio, 120),
+        avatar: safeAvatarUrl(user.avatar),
+        total_time_sec: Math.max(0, Math.round(Number(user.totalTimeSec) || 0)),
+        visit_count: Math.max(0, Math.floor(Number(user.visitCount) || 0)),
+        last_seen: user.lastSeen || null,
+        status: sanitizeField(user.status, 100),
+        mc_time_sec: Math.max(0, Math.round(Number(user.mcTimeSec) || 0))
+    };
+    cloud.from('site_users').update(row).eq('id', cloudAuthUserId)
+        .then(({ error }) => { if (error) handleCloudError('profile sync', error); })
+        .catch(error => handleCloudError('profile sync', error));
 }
 function cloudPushMc(uid) {
-    if (!cloud || cloudSyncing || !uid) return;
-    const arr      = loadMcAccounts(uid) || [];
-    const activeId = loadActiveMc(uid) || '';
-    const rows = arr.map(a => ({
-        id: a.id, user_id: uid, username: a.username,
-        display_name: a.displayName || a.username, type: a.type || 'offline',
-        uuid: a.uuid || '', added_at: a.addedAt || '', playtime: a.playtime || '0h',
-        favorite: !!a.favorite, last_used: a.lastUsed || null,
-        mc_password: a.password || '', is_active: a.id === activeId
-    }));
+    if (!cloudReady() || uid !== cloudAuthUserId) return;
+    const arr = (loadMcAccounts(uid) || []).slice(0, 100);
+    const activeId = safeIdentifier(loadActiveMc(uid));
+    const rows = arr.map(account => ({
+        id: safeIdentifier(account.id),
+        user_id: cloudAuthUserId,
+        username: sanitizeField(account.username, 32),
+        display_name: sanitizeField(account.displayName || account.username, 32),
+        type: ['microsoft','elyby','offline'].includes(account.type) ? account.type : 'offline',
+        uuid: sanitizeField(account.uuid, 36),
+        added_at: sanitizeField(account.addedAt, 24),
+        playtime: sanitizeField(account.playtime, 24) || '0h',
+        favorite: Boolean(account.favorite),
+        last_used: account.lastUsed || null,
+        is_active: account.id === activeId
+    })).filter(row => row.id && row.username);
     if (rows.length) {
-        cloud.from('mc_accounts').upsert(rows)
-            .then(({ error }) => { if (error) console.warn('[cloud] mc push:', error.message); });
+        cloud.from('mc_accounts').upsert(rows, { onConflict:'id' })
+            .then(({ error }) => { if (error) handleCloudError('Minecraft profile sync', error); })
+            .catch(error => handleCloudError('Minecraft profile sync', error));
     }
-    // Drop any cloud rows for this user that no longer exist locally (deletions).
-    const keepIds = arr.map(a => a.id);
-    let del = cloud.from('mc_accounts').delete().eq('user_id', uid);
-    if (keepIds.length) del = del.not('id', 'in', '(' + keepIds.join(',') + ')');
-    del.then(({ error }) => { if (error) console.warn('[cloud] mc delete:', error.message); });
+    const keepIds = rows.map(row => row.id);
+    let deletion = cloud.from('mc_accounts').delete().eq('user_id', cloudAuthUserId);
+    if (keepIds.length) deletion = deletion.not('id', 'in', `(${keepIds.join(',')})`);
+    deletion.then(({ error }) => { if (error) handleCloudError('Minecraft profile cleanup', error); })
+        .catch(error => handleCloudError('Minecraft profile cleanup', error));
 }
 function cloudPushFriends(list) {
-    if (!cloud || cloudSyncing || !Array.isArray(list)) return;
-    const rows = list.map(f => ({
-        id: f.id, requester_id: f.requester, addressee_id: f.addressee,
-        status: f.status || 'pending', created_at: f.createdAt || new Date().toISOString()
-    }));
-    if (rows.length) {
-        cloud.from('friendships').upsert(rows)
-            .then(({ error }) => { if (error) console.warn('[cloud] friends push:', error.message); });
-    }
-    // Remove any cloud rows that were deleted locally (declined / unfriended).
-    const keepIds = list.map(f => f.id);
-    let del = cloud.from('friendships').delete().neq('id', '');
-    if (keepIds.length) del = del.not('id', 'in', '(' + keepIds.join(',') + ')');
-    del.then(({ error }) => { if (error) console.warn('[cloud] friends delete:', error.message); });
+    if (!cloudReady() || !Array.isArray(list) || currentUserId !== cloudAuthUserId) return;
+    const currentUserRows = list.filter(friendship =>
+        friendship.requester === cloudAuthUserId || friendship.addressee === cloudAuthUserId);
+    const rows = currentUserRows.map(friendship => ({
+        id: safeIdentifier(friendship.id),
+        requester_id: safeIdentifier(friendship.requester),
+        addressee_id: safeIdentifier(friendship.addressee),
+        status: friendship.status === 'accepted' ? 'accepted' : 'pending',
+        created_at: friendship.createdAt || new Date().toISOString()
+    })).filter(row => row.id && row.requester_id && row.addressee_id && row.requester_id !== row.addressee_id);
+    // The requester may create a pending request, while only the addressee may
+    // accept it. Keeping those writes separate mirrors the database RLS rules
+    // and prevents an upsert from accidentally taking the insert-policy path.
+    rows.forEach(row => {
+        let request = null;
+        if (row.requester_id === cloudAuthUserId && row.status === 'pending') {
+            request = cloud.from('friendships').upsert(row, { onConflict:'id' });
+        } else if (row.addressee_id === cloudAuthUserId && row.status === 'accepted') {
+            request = cloud.from('friendships').update({ status:'accepted' })
+                .eq('id', row.id).eq('addressee_id', cloudAuthUserId);
+        }
+        if (request) request
+            .then(({ error }) => { if (error) handleCloudError('friendship sync', error); })
+            .catch(error => handleCloudError('friendship sync', error));
+    });
+    const keepIds = rows.map(row => row.id);
+    let deletion = cloud.from('friendships').delete()
+        .or(`requester_id.eq.${cloudAuthUserId},addressee_id.eq.${cloudAuthUserId}`);
+    if (keepIds.length) deletion = deletion.not('id', 'in', `(${keepIds.join(',')})`);
+    deletion.then(({ error }) => { if (error) handleCloudError('friendship cleanup', error); })
+        .catch(error => handleCloudError('friendship cleanup', error));
 }
 
-// ── Cloud sync: initial load ──────────────────────────────────
-// Pull everything from Supabase into local state, then re-render. If the cloud
-// is empty (first ever run) we seed it with whatever we have locally.
-async function cloudBootstrap() {
-    if (!cloud) return;
-    let hadUsers = false;
+function cloudProfileToUser(row, authEmail = '') {
+    return normalizeStoredUser({
+        id: row.id,
+        username: row.username,
+        email: row.id === cloudAuthUserId && !/@users\.spectral\.invalid$/i.test(authEmail) ? authEmail : '',
+        password: '',
+        role: row.role,
+        displayName: row.display_name,
+        bio: row.bio,
+        avatar: row.avatar,
+        registeredAt: row.registered_at,
+        totalTimeSec: row.total_time_sec,
+        visitCount: row.visit_count,
+        lastSeen: row.last_seen,
+        banned: row.banned,
+        status: row.status,
+        mcTimeSec: row.mc_time_sec
+    });
+}
+
+// RLS limits each result set. The profile query deliberately omits email and
+// password_hash, even if a deployment accidentally grants broader SELECT.
+async function cloudBootstrap(authUser = null) {
+    if (!cloud || !cloudAuthUserId) return;
+    const ownerId=cloudAuthUserId;
     cloudSyncing = true;
+    let successful=false;
     try {
-        const [usersRes, mcRes, frRes] = await Promise.all([
-            cloud.from('site_users').select('*'),
-            cloud.from('mc_accounts').select('*'),
-            cloud.from('friendships').select('*')
+        const [profilesRes, mcRes, friendsRes] = await Promise.all([
+            cloud.from('site_users').select('id,username,role,display_name,bio,avatar,registered_at,total_time_sec,visit_count,last_seen,banned,status,mc_time_sec'),
+            cloud.from('mc_accounts').select('id,user_id,username,display_name,type,uuid,added_at,playtime,favorite,last_used,is_active').eq('user_id', cloudAuthUserId).limit(100),
+            cloud.from('friendships').select('id,requester_id,addressee_id,status,created_at').limit(500)
         ]);
-        if (usersRes.error) throw usersRes.error;
-        if (mcRes.error)    throw mcRes.error;
-        // friendships is optional — if the table doesn't exist yet, keep local data
-        if (!frRes.error && Array.isArray(frRes.data)) {
-            friendships = frRes.data.map(r => ({
-                id: r.id, requester: r.requester_id, addressee: r.addressee_id,
-                status: r.status || 'pending', createdAt: r.created_at || ''
-            }));
-            try { localStorage.setItem(K_FRIENDS, JSON.stringify(friendships)); } catch {}
-        } else if (frRes.error) {
-            console.warn('[cloud] friendships load skipped:', frRes.error.message);
+        if (profilesRes.error) throw profilesRes.error;
+        if (mcRes.error) throw mcRes.error;
+        if (friendsRes.error) throw friendsRes.error;
+        if (!(profilesRes.data || []).some(row => row.id === ownerId)) {
+            throw new Error('The account profile is missing from Supabase. Apply the Auth profile migration.');
         }
 
-        const users = usersRes.data || [];
-        hadUsers = users.length > 0;
-        if (hadUsers) {
-            siteUsers = users.map(r => ({
-                id: r.id, username: r.username, email: r.email || '', password: r.password_hash,
-                role: r.role || 'USER', displayName: r.display_name || r.username,
-                bio: r.bio || '', avatar: r.avatar || '', registeredAt: r.registered_at || '',
-                totalTimeSec: r.total_time_sec || 0, visitCount: r.visit_count || 0,
-                lastSeen: r.last_seen || null, banned: !!r.banned,
-                status: r.status || '', mcTimeSec: r.mc_time_sec || 0
-            }));
-            try { localStorage.setItem(K_USERS, JSON.stringify(siteUsers)); } catch {}
-        }
-
-        const byUser = {};
-        (mcRes.data || []).forEach(r => { (byUser[r.user_id] = byUser[r.user_id] || []).push(r); });
-        Object.keys(byUser).forEach(uid => {
-            const arr = byUser[uid].map(r => ({
-                id: r.id, username: r.username, displayName: r.display_name || r.username,
-                type: r.type || 'offline', uuid: r.uuid || offlineUuid(r.username),
-                addedAt: r.added_at || '', playtime: r.playtime || '0h',
-                favorite: !!r.favorite, lastUsed: r.last_used, password: r.mc_password || ''
-            }));
-            try { localStorage.setItem(K_MC_PFX + uid, JSON.stringify(arr)); } catch {}
-            const act = byUser[uid].find(r => r.is_active);
-            try { if (act) localStorage.setItem(K_MC_ACT + uid, act.id); } catch {}
+        if(cloudAuthUserId!==ownerId)return false;
+        successful=true;
+        (profilesRes.data || []).map(row => cloudProfileToUser(row, authUser?.email || '')).filter(Boolean).forEach(profile => {
+            const index = siteUsers.findIndex(user => user.id === profile.id);
+            if (index >= 0) siteUsers[index] = profile;
+            else siteUsers.push(profile);
         });
+        friendships = (friendsRes.data || []).map(row => ({
+            id: safeIdentifier(row.id),
+            requester: safeIdentifier(row.requester_id),
+            addressee: safeIdentifier(row.addressee_id),
+            status: row.status === 'accepted' ? 'accepted' : 'pending',
+            createdAt: row.created_at || ''
+        })).filter(friendship => friendship.id && friendship.requester && friendship.addressee);
 
-        // Drop a stale session if that user no longer exists in the cloud.
-        if (currentUserId && !siteUsers.find(u => u.id === currentUserId)) {
-            currentUserId = null; saveSession(null);
-        }
-    } catch (e) {
-        console.warn('[cloud] load failed, using local data:', e.message || e);
+        const accounts = (mcRes.data || []).map(row => ({
+            id: safeIdentifier(row.id),
+            username: sanitizeField(row.username, 32),
+            displayName: sanitizeField(row.display_name || row.username, 32),
+            type: ['microsoft','elyby','offline'].includes(row.type) ? row.type : 'offline',
+            uuid: sanitizeField(row.uuid, 36) || offlineUuid(row.username),
+            addedAt: sanitizeField(row.added_at, 24),
+            playtime: sanitizeField(row.playtime, 24) || '0h',
+            favorite: Boolean(row.favorite),
+            lastUsed: row.last_used || null
+        })).filter(account => account.id && account.username);
+        try {
+            localStorage.setItem(K_USERS, JSON.stringify(siteUsers));
+            localStorage.setItem(K_FRIENDS, JSON.stringify(friendships));
+            localStorage.setItem(K_MC_PFX + cloudAuthUserId, JSON.stringify(accounts));
+            const active = (mcRes.data || []).find(row => row.is_active);
+            if (active?.id) localStorage.setItem(K_MC_ACT + cloudAuthUserId, active.id);
+        } catch {}
+    } catch (error) {
+        handleCloudError('authenticated sync', error);
+    } finally {
         cloudSyncing = false;
-        return; // keep local state untouched
-    }
-    cloudSyncing = false;
-
-    if (!hadUsers) {
-        // First run against an empty database — seed it with current local data.
-        cloudPushUsers(siteUsers);
-        siteUsers.forEach(u => cloudPushMc(u.id));
-        cloudPushFriends(friendships);
     }
     reloadMcAccounts();
     renderAll();
-    if (currentUserId) beginUserSession();
+    return successful;
 }
-function loadForum()   { try{const r=localStorage.getItem(K_FORUM);return r?JSON.parse(r):null;}catch{return null;} }
+function normalizeForumPost(post) {
+    if (!post || typeof post !== 'object') return null;
+    const id = safeIdentifier(post.id);
+    const authorId = safeIdentifier(post.authorId);
+    if (!id || !authorId) return null;
+    return {
+        id,
+        authorId,
+        authorName: sanitizeField(post.authorName, 24) || 'Player',
+        authorRole: ['USER','VETERAN','PRO','LEGEND','SPECTRAL','MODERATOR','ADMIN','DEV'].includes(post.authorRole) ? post.authorRole : 'USER',
+        title: sanitizeField(post.title, 80),
+        text: sanitizeField(post.text, 500),
+        date: sanitizeField(post.date, 24),
+        upvotes: Array.isArray(post.upvotes) ? [...new Set(post.upvotes.map(value=>safeIdentifier(value)).filter(Boolean))].slice(0, 500) : [],
+        voteCount: Number.isFinite(Number(post.voteCount)) ? Math.max(0, Number(post.voteCount)) : null,
+        viewerVoted: Boolean(post.viewerVoted),
+        createdAt: sanitizeField(post.createdAt,40),
+        approved: Boolean(post.approved),
+        rejected: Boolean(post.rejected)
+    };
+}
+function normalizeNewsItem(item) {
+    if (!item || typeof item !== 'object') return null;
+    const id = safeIdentifier(item.id);
+    if (!id) return null;
+    const changes = Array.isArray(item.items) ? item.items.slice(0, 50).map(change=>({
+        type: ['add','imp','fix','breaking','security'].includes(change?.type) ? change.type : 'imp',
+        text: sanitizeField(change?.text, 500)
+    })).filter(change=>change.text) : [];
+    return {
+        id,
+        date: sanitizeField(item.date, 32),
+        title: sanitizeField(item.title, 100),
+        version: sanitizeField(item.version, 32),
+        channel: ['stable','beta','dev','website'].includes(item.channel) ? item.channel : 'stable',
+        icon: sanitizeField(item.icon, 40),
+        summary: sanitizeField(item.summary, 220),
+        isCurrent: Boolean(item.isCurrent),
+        dimmed: Boolean(item.dimmed),
+        items: changes
+    };
+}
+function normalizeFriendship(friendship) {
+    if (!friendship || typeof friendship !== 'object') return null;
+    const id = safeIdentifier(friendship.id);
+    const requester = safeIdentifier(friendship.requester);
+    const addressee = safeIdentifier(friendship.addressee);
+    if (!id || !requester || !addressee || requester === addressee) return null;
+    return { id, requester, addressee, status:friendship.status==='accepted'?'accepted':'pending', createdAt:sanitizeField(friendship.createdAt,40) };
+}
+function loadForum()   { const posts=readJsonStorage(K_FORUM,null,Array.isArray);return posts?posts.map(normalizeForumPost).filter(Boolean).slice(0,250):null; }
 function saveForum(p)  { try{localStorage.setItem(K_FORUM,JSON.stringify(p));}catch{} }
-function loadNews()    { try{const r=localStorage.getItem(K_NEWS);return r?JSON.parse(r):null;}catch{return null;} }
+function loadNews()    { const news=readJsonStorage(K_NEWS,null,Array.isArray);return news?news.map(normalizeNewsItem).filter(Boolean).slice(0,100):null; }
 function saveNews(n)   { try{localStorage.setItem(K_NEWS,JSON.stringify(n));}catch{} }
-function loadFriends() { try{const r=localStorage.getItem(K_FRIENDS);return r?JSON.parse(r):null;}catch{return null;} }
+function loadFriends() { const friends=readJsonStorage(K_FRIENDS,null,Array.isArray);return friends?friends.map(normalizeFriendship).filter(Boolean).slice(0,500):null; }
 function saveFriends(f){ try{localStorage.setItem(K_FRIENDS,JSON.stringify(f));}catch{} cloudPushFriends(f); }
 
 // ── UUID generator ────────────────────────────────────────────
@@ -1113,11 +2025,11 @@ const NEWS_PRESENTATION_PRESETS = {
 })();
 
 // Validate session
-if (currentUserId && !siteUsers.find(u=>u.id===currentUserId)) { currentUserId=null; saveSession(null); }
+if (currentUserId && (validSupabaseConfig() || !siteUsers.find(u=>u.id===currentUserId&&!u.banned))) { currentUserId=null; saveSession(null); }
 
 // Init default MC accounts for default users
 DEFAULT_SITE_USERS.forEach(u => {
-    if (!loadMcAccounts(u.id) && DEFAULT_MC_ACCOUNTS[u.id]) {
+    if (siteUsers.some(user=>user.id===u.id) && !loadMcAccounts(u.id) && DEFAULT_MC_ACCOUNTS[u.id]) {
         saveMcAccounts(u.id, DEFAULT_MC_ACCOUNTS[u.id]);
     }
 });
@@ -1126,14 +2038,16 @@ DEFAULT_SITE_USERS.forEach(u => {
 function reloadMcAccounts() {
     if (!currentUserId) { mcAccounts=[]; activeMcId=null; return; }
     mcAccounts = loadMcAccounts(currentUserId) || [];
-    activeMcId = loadActiveMc(currentUserId) || (mcAccounts.length>0 ? mcAccounts[0].id : null);
-    if (activeMcId) saveActiveMc(currentUserId, activeMcId);
+    const storedActive=loadActiveMc(currentUserId);
+    activeMcId = mcAccounts.some(account=>account.id===storedActive)?storedActive:(mcAccounts[0]?.id||null);
+    if(activeMcId!==storedActive)saveActiveMc(currentUserId,activeMcId||'');
 }
 
 // ── Session time tracking ─────────────────────────────────────
 // Accumulates real time-on-site for the logged-in user (active tab only),
 // persisted to localStorage + Supabase so DEV analytics can show averages.
-let _timeTick = null, _lastTickTs = Date.now(), _pendingTime = 0, _visitBumpedFor = null;
+let _timeTick = null, _flushTimeTick = null, _timeListenersBound = false;
+let _lastTickTs = Date.now(), _pendingTime = 0, _visitBumpedFor = null;
 function beginUserSession() {
     const u = siteUsers.find(x => x.id === currentUserId);
     // Count one visit per logged-in user per page load (avoids double-counting
@@ -1157,9 +2071,12 @@ function startTimeTracking() {
         const u = siteUsers.find(x => x.id === currentUserId);
         if (u) u.totalTimeSec = (u.totalTimeSec || 0) + delta;
     }, 5000);
-    setInterval(flushSessionTime, 30000);
-    document.addEventListener('visibilitychange', () => { if (document.hidden) flushSessionTime(); _lastTickTs = Date.now(); });
-    window.addEventListener('beforeunload', flushSessionTime);
+    _flushTimeTick = setInterval(flushSessionTime, 30000);
+    if (!_timeListenersBound) {
+        _timeListenersBound = true;
+        document.addEventListener('visibilitychange', () => { if (document.hidden) flushSessionTime(); _lastTickTs = Date.now(); });
+        window.addEventListener('beforeunload', flushSessionTime);
+    }
 }
 function flushSessionTime() {
     if (!currentUserId || _pendingTime < 1) return;
@@ -1167,30 +2084,84 @@ function flushSessionTime() {
     if (u) { u.lastSeen = new Date().toISOString(); saveSiteUsers(siteUsers); }
     _pendingTime = 0;
 }
+function stopTimeTracking() {
+    flushSessionTime();
+    if (_timeTick) clearInterval(_timeTick);
+    if (_flushTimeTick) clearInterval(_flushTimeTick);
+    _timeTick = null;
+    _flushTimeTick = null;
+    _lastTickTs = Date.now();
+}
 
 // ── Avatar URL ────────────────────────────────────────────────
 function avatarUrl(username) { return `https://minotar.net/avatar/${encodeURIComponent(username)}/100`; }
-function siteAvatarUrl(user) { return user.avatar || avatarUrl(user.displayName||user.username); }
+function siteAvatarUrl(user) { return safeAvatarUrl(user?.avatar, 'assets/avatar-placeholder.svg'); }
 
 // ── Roles (data-driven hierarchy) ─────────────────────────────
 // rank drives permissions; higher rank = more power. Add a role here and it
 // automatically appears in badges, the admin role picker and the stats charts.
 const ROLES = {
-    USER:      { label:'Player',    rank:0, icon:'fas fa-user',          color:'#9ca3af', grad:'linear-gradient(135deg,#6b7280,#4b5563)' },
-    VETERAN:   { label:'Veteran',   rank:1, icon:'fas fa-shield-halved', color:'#2dd4bf', grad:'linear-gradient(135deg,#14b8a6,#0d9488)' },
-    PRO:       { label:'Pro',       rank:2, icon:'fas fa-star',          color:'#fbbf24', grad:'linear-gradient(135deg,#f59e0b,#d97706)' },
-    MODERATOR: { label:'Moderator', rank:3, icon:'fas fa-gavel',         color:'#60a5fa', grad:'linear-gradient(135deg,#3b82f6,#2563eb)' },
-    ADMIN:     { label:'Admin',     rank:4, icon:'fas fa-user-shield',   color:'#f87171', grad:'linear-gradient(135deg,#ef4444,#dc2626)' },
-    DEV:       { label:'Developer', rank:5, icon:'fas fa-code',          color:'#f472b6', grad:'linear-gradient(135deg,#ec4899,#f43f5e)' }
+    USER:      { label:'Player',    rank:0,  icon:'fas fa-user',          color:'#9ca3af', grad:'linear-gradient(135deg,#6b7280,#4b5563)', profileLimit:2,  favoriteLimit:1,  tagline:'The essential Spectral identity', perks:['2 launcher profiles','1 favorite profile','Nebula Drift animated header','Soft Signal menu entrance'] },
+    VETERAN:   { label:'Veteran',   rank:1,  icon:'fas fa-shield-halved', color:'#2dd4bf', grad:'linear-gradient(135deg,#14b8a6,#0f766e)', profileLimit:4,  favoriteLimit:3,  tagline:'Permanent founder status', perks:['4 launcher profiles and 3 favorites','Permanent founding-year badge','Veteran Archive animated header','Aurora menu entrance effect'] },
+    PRO:       { label:'Pro',       rank:2,  icon:'fas fa-star',          color:'#fbbf24', grad:'linear-gradient(135deg,#fbbf24,#d97706)', profileLimit:8,  favoriteLimit:8,  tagline:'Built for everyday players', perks:['8 launcher profiles and favorites','Golden nameplate and avatar frame','Solar Flux animated header','Solar profile identity effects'] },
+    LEGEND:    { label:'Legend',    rank:3,  icon:'fas fa-crown',         color:'#a78bfa', grad:'linear-gradient(135deg,#8b5cf6,#6d28d9)', profileLimit:16, favoriteLimit:16, tagline:'A rare community presence', perks:['16 launcher profiles and favorites','Violet Crown animated header','Stardust profile-menu entrance','Violet nameplate and avatar frame'] },
+    SPECTRAL:  { label:'Spectral',  rank:4,  icon:'fas fa-gem',           color:'#67e8f9', grad:'linear-gradient(135deg,#22d3ee,#8b5cf6 52%,#ec4899)', profileLimit:Infinity, favoriteLimit:Infinity, tagline:'The complete Spectral experience', perks:['Unlimited profiles and favorites','Prism Rift animated header','Prismatic nameplate and Rift entrance','All premium profile appearances'] },
+    MODERATOR: { label:'Moderator', rank:10, icon:'fas fa-gavel',         color:'#60a5fa', grad:'linear-gradient(135deg,#3b82f6,#2563eb)', profileLimit:Infinity, favoriteLimit:Infinity, tagline:'Community moderation access', perks:['Unlimited profiles and favorites','Guardian Grid staff header','Moderation queue and safety tools','Verified staff identity effects'] },
+    ADMIN:     { label:'Admin',     rank:20, icon:'fas fa-user-shield',   color:'#f87171', grad:'linear-gradient(135deg,#ef4444,#dc2626)', profileLimit:Infinity, favoriteLimit:Infinity, tagline:'Full community management', perks:['Unlimited profiles and favorites','Command Core animated header','User and role management suite','Live community analytics access'] },
+    DEV:       { label:'Developer', rank:30, icon:'fas fa-code',          color:'#f472b6', grad:'linear-gradient(135deg,#ec4899,#f43f5e)', profileLimit:Infinity, favoriteLimit:Infinity, tagline:'Spectral development team', perks:['Every animated header and entrance','Safe preview of every account role','Release publishing and experiments','Developer-only Code Matrix identity'] }
 };
 const ROLE_ORDER = Object.keys(ROLES);
 function roleInfo(role)  { return ROLES[role] || ROLES.USER; }
 function roleRank(role)  { return roleInfo(role).rank; }
+const VETERAN_CUTOFF = new Date(2027, 0, 1).getTime();
+const PREMIUM_ROLES = ['PRO','LEGEND','SPECTRAL'];
+function isVeteranEligible(user) {
+    const registered = parseRegDate(user && user.registeredAt);
+    return !!registered && registered < VETERAN_CUTOFF;
+}
+function roleForRegistration(date=new Date()) { return date.getTime() < VETERAN_CUTOFF ? 'VETERAN' : 'USER'; }
+function roleProfileLimit(role) { return roleInfo(role).profileLimit; }
+function roleFavoriteLimit(role) { return roleInfo(role).favoriteLimit; }
+function formatRoleLimit(value) { return Number.isFinite(value) ? String(value) : 'Unlimited'; }
+function applyAutomaticVeteran(users) {
+    let changed = false;
+    (users || []).forEach(user => {
+        if (!validSupabaseConfig() && !user.roleSource && (!user.role || user.role === 'USER') && isVeteranEligible(user)) {
+            user.role = 'VETERAN';
+            user.roleSource = 'founder-2026';
+            changed = true;
+        }
+    });
+    return changed;
+}
+function updateVeteranRegistrationNote(){
+    const note=document.getElementById('veteranRegistrationNote');if(!note)return;
+    note.hidden=validSupabaseConfig();
+    note.style.display=note.hidden?'none':'';
+    if(note.hidden)return;
+    const title=note.querySelector('b');const copy=note.querySelector('small');
+    const open=Date.now()<VETERAN_CUTOFF;
+    note.classList.toggle('closed',!open);
+    if(title)title.textContent=open?"Founder's window is open":"Veteran is now a legacy role";
+    if(copy)copy.textContent=open?'Accounts created before 2027 receive the permanent Veteran role automatically.':'The automatic Veteran reward closed on January 1, 2027.';
+}
 // Permission helpers — pass a user (or use the current viewer)
-function canAccessAdmin(u) { return !!u && roleRank(u.role) >= ROLES.MODERATOR.rank; }
-function canModerate(u)    { return !!u && roleRank(u.role) >= ROLES.MODERATOR.rank; }
-function canManageUsers(u) { return !!u && roleRank(u.role) >= ROLES.ADMIN.rank; }
-function isDev(u)          { return !!u && u.role === 'DEV'; }
+function canAccessAdmin(u) { return !!u && !u.banned && roleRank(u.role) >= ROLES.MODERATOR.rank; }
+function canModerate(u)    { return !!u && !u.banned && roleRank(u.role) >= ROLES.MODERATOR.rank; }
+function canManageUsers(u) { return !!u && !u.banned && roleRank(u.role) >= ROLES.ADMIN.rank; }
+function isDev(u)          { return !!u && !u.banned && u.role === 'DEV'; }
+function displayedRoleKey(user) {
+    if (!user) return 'USER';
+    if (!isDev(user)) return ROLE_ORDER.includes(user.role) ? user.role : 'USER';
+    const preview=loadDevRolePreviews()[user.id];
+    return ROLE_ORDER.includes(preview) ? preview : 'DEV';
+}
+function setDeveloperRolePreview(user,role) {
+    if(!isDev(user)||!ROLE_ORDER.includes(role))return false;
+    const previews=loadDevRolePreviews();previews[user.id]=role;saveDevRolePreviews(previews);
+    const styles=loadProfileStyles();styles[user.id]={header:ROLE_DEFAULT_HEADERS[role]||'code',entrance:ROLE_DEFAULT_ENTRANCES[role]||'terminal'};saveProfileStyles(styles);
+    return true;
+}
 
 // ── Role badge HTML ───────────────────────────────────────────
 function roleBadgeHtml(role) {
@@ -1200,10 +2171,13 @@ function roleBadgeHtml(role) {
     return `<span class="role-badge role-${role.toLowerCase()}"><i class="${r.icon}"></i> ${r.label}</span>`;
 }
 
+// Upgrade existing pre-2027 Player accounts without touching premium or staff roles.
+if (applyAutomaticVeteran(siteUsers)) saveSiteUsers(siteUsers);
+updateVeteranRegistrationNote();
+
 // ── Type helpers ──────────────────────────────────────────────
 function typeLabel(t){ return {microsoft:'Microsoft',elyby:'Ely.by',offline:'Offline'}[t]||t; }
 function typeIcon(t) { return {microsoft:'fab fa-microsoft',elyby:'fas fa-cloud',offline:'fas fa-user-shield'}[t]||'fas fa-user'; }
-
 // ══════════════════════════════════════════════════════════════
 // RENDER FUNCTIONS
 // ══════════════════════════════════════════════════════════════
@@ -1223,12 +2197,17 @@ function renderAll() {
 // ── Navbar ────────────────────────────────────────────────────
 function renderNavbar() {
     const user = siteUsers.find(u=>u.id===currentUserId);
+    if (document.body) document.body.dataset.accountRole = user ? displayedRoleKey(user) : 'GUEST';
     const accText = document.getElementById('accountText');
+    const accEyebrow = document.getElementById('accountEyebrow');
+    const accButton = document.getElementById('openDashboardBtn');
     const circle  = document.getElementById('navAvatarCircle');
     const launcherHead = document.getElementById('launcherSkinHead');
     if (user) {
         if (accText) accText.textContent = user.displayName||user.username;
-        if (circle) { circle.innerHTML=`<img src="${esc(siteAvatarUrl(user))}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'">`; }
+        if (accEyebrow) accEyebrow.textContent = 'SIGNED IN';
+        if (accButton) accButton.setAttribute('aria-label',`Open account panel for ${user.displayName||user.username}`);
+        if (circle) { circle.innerHTML=`<img src="${esc(siteAvatarUrl(user))}" alt="${esc(user.displayName||user.username)} profile" width="40" height="40" decoding="async" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" data-avatar-fallback>`; }
         const launcherAccount = mcAccounts.find(a=>a.id===activeMcId);
         const launcherName = (launcherAccount||{displayName:user.displayName}).displayName || user.username;
         document.getElementById('launcherUsername').textContent = launcherName;
@@ -1238,6 +2217,8 @@ function renderNavbar() {
         }
     } else {
         if (accText) accText.textContent = 'Sign In';
+        if (accEyebrow) accEyebrow.textContent = 'YOUR SPACE';
+        if (accButton) accButton.setAttribute('aria-label','Sign in or open account panel');
         if (circle) circle.innerHTML = '<i class="fas fa-user"></i>';
         document.getElementById('launcherUsername').textContent = 'Guest';
         if (launcherHead) launcherHead.src = avatarUrl('steve');
@@ -1248,11 +2229,13 @@ function renderNavbar() {
 function renderLauncherNotice() {
     const notice = document.getElementById('launcherNotice');
     if (notice) notice.style.display = currentUserId ? 'none' : 'flex';
+    const workspace = document.getElementById('accountsSignedInWorkspace');
+    if (workspace) workspace.style.display = currentUserId ? 'block' : 'none';
     // When logged out, hide the banner + two-column area so the notice stands alone
     const banner  = document.getElementById('activeAccountBanner');
     const columns = document.getElementById('accountsColumns');
-    if (banner)  banner.style.display = currentUserId ? 'flex' : 'none';
-    if (columns) columns.style.display = currentUserId ? 'grid' : 'none';
+    if (banner)  banner.style.display = currentUserId ? '' : 'none';
+    if (columns) columns.style.display = currentUserId ? '' : 'none';
 }
 
 // ── Active MC banner ──────────────────────────────────────────
@@ -1261,18 +2244,28 @@ function renderActiveMcBanner() {
     const leftSec   = banner&&banner.querySelector('.active-account-left');
     const statsSec  = banner&&banner.querySelector('.active-account-stats');
     const noMsg     = document.getElementById('noAccountsMsg');
+    const readyState = banner&&banner.querySelector('.account-ready-state');
+    const identityCode = banner&&banner.querySelector('.cockpit-identity-code');
+    const coreStatus = document.getElementById('cockpitCoreStatus');
     if (!banner) return;
 
     const active = mcAccounts.find(a=>a.id===activeMcId);
+    banner.classList.toggle('has-active',Boolean(active));
     if (!active) {
         if (leftSec)  leftSec.style.display='none';
         if (statsSec) statsSec.style.display='none';
         if (noMsg)    noMsg.style.display='flex';
+        if (readyState) readyState.style.display='none';
+        if (identityCode) identityCode.style.display='none';
+        if (coreStatus) coreStatus.innerHTML='<i></i> Waiting for identity';
         return;
     }
     if (leftSec)  leftSec.style.display='flex';
     if (statsSec) statsSec.style.display='flex';
     if (noMsg)    noMsg.style.display='none';
+    if (readyState) readyState.style.display='flex';
+    if (identityCode) identityCode.style.display='grid';
+    if (coreStatus) coreStatus.innerHTML='<i></i> Launcher identity online';
 
     const img = document.getElementById('activeAvatarImg');
     if (img){ img.src=avatarUrl(active.username); img.onerror=function(){this.onerror=null;this.src=avatarUrl('steve');}; }
@@ -1286,10 +2279,30 @@ function renderActiveMcBanner() {
     if (dateEl) dateEl.textContent = active.addedAt||'—';
     const uuidEl = document.getElementById('activeUuidText');
     if (uuidEl) uuidEl.textContent = active.uuid||offlineUuid(active.username);
+    banner.classList.remove('identity-switching');
+    void banner.offsetWidth;
+    requestAnimationFrame(()=>banner.classList.add('identity-switching'));
+    clearTimeout(banner._identitySwitchTimer);
+    banner._identitySwitchTimer=setTimeout(()=>banner.classList.remove('identity-switching'),620);
 }
 
 // ── MC Accounts grid ──────────────────────────────────────────
 let accFilter='all', accSearch='', accSort='recent';
+function updateAccountCockpitMetrics() {
+    const user=siteUsers.find(item=>item.id===currentUserId);
+    const limit=user?roleProfileLimit(user.role||'USER'):null;
+    const count=mcAccounts.length;
+    const profileCount=document.getElementById('cockpitProfileCount');if(profileCount)profileCount.textContent=String(count);
+    const slotLabel=user?formatRoleLimit(limit):'—';
+    const slotLimit=document.getElementById('cockpitSlotLimit');if(slotLimit)slotLimit.textContent=slotLabel;
+    const slotUsage=document.getElementById('cockpitSlotUsage');if(slotUsage)slotUsage.textContent=`${count} / ${slotLabel}`;
+    const meter=document.getElementById('cockpitSlotMeterBar');
+    if(meter){
+        const percent=!user?0:Number.isFinite(limit)&&limit>0?Math.min(100,(count/limit)*100):100;
+        meter.style.transform=`scaleX(${percent/100})`;
+        meter.parentElement?.classList.toggle('is-unlimited',Boolean(user)&&!Number.isFinite(limit));
+    }
+}
 function getFilteredMc() {
     let list = mcAccounts.slice();
     if (accSearch) { const q=accSearch.toLowerCase(); list=list.filter(a=>(a.displayName||a.username).toLowerCase().includes(q)||a.username.toLowerCase().includes(q)); }
@@ -1309,10 +2322,12 @@ function renderMcGrid() {
     const empty = document.getElementById('accountsEmpty');
     const emptyTxt = document.getElementById('accountsEmptyText');
     if (!grid) return;
+    updateAccountCockpitMetrics();
     grid.innerHTML='';
 
     if (!currentUserId) {
         if (empty) empty.style.display='block';
+        const emptyAdd=document.getElementById('accountsEmptyAddBtn');if(emptyAdd)emptyAdd.style.display='none';
         if (emptyTxt) emptyTxt.textContent='Sign in to your site account to see your Minecraft profiles';
         return;
     }
@@ -1320,6 +2335,7 @@ function renderMcGrid() {
     if (list.length===0) {
         if (empty) empty.style.display='block';
         if (emptyTxt) emptyTxt.textContent = mcAccounts.length===0 ? 'No Minecraft profiles yet' : 'No profiles match your filters';
+        const emptyAdd=document.getElementById('accountsEmptyAddBtn');if(emptyAdd)emptyAdd.style.display=mcAccounts.length===0?'inline-flex':'none';
         return;
     }
     if (empty) empty.style.display='none';
@@ -1336,11 +2352,11 @@ function renderMcGrid() {
         card.dataset.id=acc.id;
         card.style.setProperty('--i', idx);
         card.innerHTML=`
-            <button class="acc-fav${acc.favorite?' on':''}" data-id="${acc.id}" title="Favorite" type="button"><i class="fas fa-star"></i></button>
+            <button class="acc-fav${acc.favorite?' on':''}" data-id="${esc(acc.id)}" title="Favorite" type="button"><i class="fas fa-star"></i></button>
             ${isActive?'<span class="acc-active-tag"><span class="acc-active-dot"></span> Active</span>':''}
             <div class="acc-card-top">
                 <div class="acc-avatar">
-                    <img src="${avatarUrl(acc.username)}" alt="${esc(acc.username)}" loading="lazy" onerror="this.onerror=null;this.src='${avatarUrl('steve')}';">
+                    <img src="${avatarUrl(acc.username)}" alt="${esc(acc.username)}" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback>
                 </div>
                 <div class="acc-card-head">
                     <div class="acc-card-name">${esc(acc.displayName||acc.username)}</div>
@@ -1352,32 +2368,43 @@ function renderMcGrid() {
                 <span title="Date added"><i class="fas fa-calendar-alt"></i> ${acc.addedAt||'—'}</span>
             </div>
             <div class="acc-card-actions">
-                <button class="acc-btn-select${isActive?' selected':''}" data-id="${acc.id}" type="button">${isActive?'<i class="fas fa-check"></i> Active':'<i class="fas fa-play"></i> Select'}</button>
-                <button class="acc-btn-delete" data-id="${acc.id}" type="button" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                <button class="acc-btn-select${isActive?' selected':''}" data-id="${esc(acc.id)}" type="button">${isActive?'<i class="fas fa-check"></i> Active':'<i class="fas fa-play"></i> Select'}</button>
+                <button class="acc-btn-delete" data-id="${esc(acc.id)}" type="button" title="Delete"><i class="fas fa-trash-alt"></i></button>
             </div>`;
         grid.appendChild(card);
     });
 }
-function toggleMcFav(id){const a=mcAccounts.find(a=>a.id===id);if(!a)return;a.favorite=!a.favorite;saveMcAccounts(currentUserId,mcAccounts);renderMcGrid();}
-function selectMcAccount(id){if(activeMcId===id)return;const a=mcAccounts.find(a=>a.id===id);if(a)a.lastUsed=new Date().toISOString();activeMcId=id;saveActiveMc(currentUserId,id);saveMcAccounts(currentUserId,mcAccounts);renderAll();}
+function toggleMcFav(id){
+    const a=mcAccounts.find(account=>account.id===id);if(!a)return;
+    const user=currentRoleUser();
+    const limit=roleFavoriteLimit(user?.role||'USER');
+    if(!a.favorite&&Number.isFinite(limit)&&mcAccounts.filter(account=>account.favorite).length>=limit){
+        showToast(`${roleInfo(user?.role).label} supports ${limit} favorite ${limit===1?'profile':'profiles'}. Explore roles for more.`,'star');
+        return;
+    }
+    a.favorite=!a.favorite;saveMcAccounts(currentUserId,mcAccounts);renderMcGrid();
+}
+function selectMcAccount(id){if(!currentUserId||activeMcId===id)return;const a=mcAccounts.find(a=>a.id===id);if(!a)return;a.lastUsed=new Date().toISOString();activeMcId=id;saveActiveMc(currentUserId,id);saveMcAccounts(currentUserId,mcAccounts);renderAll();}
 function deleteMcAccount(id, cardEl) {
-    const a=mcAccounts.find(a=>a.id===id);if(!a)return;
+    const ownerId=currentUserId;const a=mcAccounts.find(a=>a.id===id);if(!a||!ownerId)return;
     showConfirm(`Delete Minecraft profile "${a.displayName||a.username}"?`,()=>{
         if(cardEl)cardEl.classList.add('removing');
-        setTimeout(()=>{mcAccounts=mcAccounts.filter(a=>a.id!==id);saveMcAccounts(currentUserId,mcAccounts);if(activeMcId===id){activeMcId=mcAccounts.length>0?mcAccounts[0].id:null;saveActiveMc(currentUserId,activeMcId||'');}renderAll();},300);
+        setTimeout(()=>{if(currentUserId!==ownerId)return;mcAccounts=mcAccounts.filter(a=>a.id!==id);saveMcAccounts(currentUserId,mcAccounts);if(activeMcId===id){activeMcId=mcAccounts.length>0?mcAccounts[0].id:null;saveActiveMc(currentUserId,activeMcId||'');}renderAll();},300);
     });
 }
-function addMcAccount(username, type, password='') {
+function addMcAccount(username, type) {
     if (!currentUserId) { openDashboard(); return; }
+    const user=currentRoleUser();
+    const limit=roleProfileLimit(user?.role||'USER');
+    if(Number.isFinite(limit)&&mcAccounts.length>=limit){showToast(`${roleInfo(user?.role).label} includes ${limit} launcher profile slots.`,'users-rectangle');openRoleStore();return;}
     const today=new Date();
     const dateStr=`${String(today.getDate()).padStart(2,'0')}.${String(today.getMonth()+1).padStart(2,'0')}.${today.getFullYear()}`;
-    const acc={id:'la_'+Date.now(),username:username.trim(),displayName:username.trim(),type,addedAt:dateStr,playtime:'0h',lastUsed:null,favorite:false,password:password.trim(),uuid:offlineUuid(username.trim())};
+    const acc={id:'la_'+Date.now(),username:username.trim(),displayName:username.trim(),type,addedAt:dateStr,playtime:'0h',lastUsed:null,favorite:false,uuid:offlineUuid(username.trim())};
     mcAccounts.unshift(acc);saveMcAccounts(currentUserId,mcAccounts);
     activeMcId=acc.id;saveActiveMc(currentUserId,activeMcId);renderAll();
 }
 
 // (Accounts toolbar removed — profiles now render as a simple list; default sort applies)
-
 // ══════════════════════════════════════════════════════════════
 // FRIENDS SYSTEM (between site users)
 // ══════════════════════════════════════════════════════════════
@@ -1414,13 +2441,28 @@ function showFriendMsg(text, ok) {
     el.className = 'friend-add-msg ' + (ok ? 'ok' : 'err');
 }
 
-function sendFriendRequest(rawName) {
+async function findSiteUserByName(name) {
+    if (cloudReady() && currentUserId === cloudAuthUserId) {
+        const { data, error } = await cloud.rpc('find_site_user_by_username', { search_username:name });
+        if (error) throw error;
+        const row = Array.isArray(data) ? data[0] : data;
+        const profile = row ? cloudProfileToUser(row) : null;
+        if (profile) {
+            const index = siteUsers.findIndex(user=>user.id===profile.id);
+            if (index >= 0) siteUsers[index]=profile;else siteUsers.push(profile);
+        }
+        return profile;
+    }
+    return siteUsers.find(user =>
+        user.username.toLowerCase() === name.toLowerCase()
+        || (user.displayName || '').toLowerCase() === name.toLowerCase()) || null;
+}
+async function sendFriendRequest(rawName) {
     if (!currentUserId) { openDashboard(); return; }
     const name = sanitizeField(rawName, 30);
     if (!name) { showFriendMsg('Enter a username to add.', false); return; }
-    const target = siteUsers.find(u =>
-        u.username.toLowerCase() === name.toLowerCase() ||
-        (u.displayName || '').toLowerCase() === name.toLowerCase());
+    let target=null;
+    try{target=await findSiteUserByName(name);}catch(error){handleCloudError('user lookup',error);showFriendMsg('Player search is temporarily unavailable.',false);return;}
     if (!target)                     { showFriendMsg(`No user named "${name}" found.`, false); return; }
     if (target.id === currentUserId) { showFriendMsg("You can't add yourself.", false); return; }
     const existing = findFriendship(currentUserId, target.id);
@@ -1470,14 +2512,15 @@ function friendCardHtml(user, kind, frId) {
     const sub  = user.status ? esc(user.status)
                : (kind === 'friend' ? pres.text : '@' + esc(user.username));
     let actions = '';
-    if (kind === 'friend')        actions = `<button class="friend-btn remove" data-fr-remove="${frId}" type="button" title="Remove friend"><i class="fas fa-user-minus"></i></button>`;
-    else if (kind === 'incoming') actions = `<button class="friend-btn accept" data-fr-accept="${frId}" type="button"><i class="fas fa-check"></i> Accept</button>
-                                             <button class="friend-btn decline" data-fr-decline="${frId}" type="button" title="Decline"><i class="fas fa-xmark"></i></button>`;
+    const safeFriendshipId = esc(safeIdentifier(frId));
+    if (kind === 'friend')        actions = `<button class="friend-btn remove" data-fr-remove="${safeFriendshipId}" type="button" title="Remove friend"><i class="fas fa-user-minus"></i></button>`;
+    else if (kind === 'incoming') actions = `<button class="friend-btn accept" data-fr-accept="${safeFriendshipId}" type="button"><i class="fas fa-check"></i> Accept</button>
+                                             <button class="friend-btn decline" data-fr-decline="${safeFriendshipId}" type="button" title="Decline"><i class="fas fa-xmark"></i></button>`;
     else                          actions = `<span class="friend-pending"><i class="fas fa-clock"></i> Pending</span>
-                                             <button class="friend-btn decline" data-fr-decline="${frId}" type="button" title="Cancel request"><i class="fas fa-xmark"></i></button>`;
-    return `<div class="friend-card glass" data-fr-user="${user.id}" title="View profile">
+                                             <button class="friend-btn decline" data-fr-decline="${safeFriendshipId}" type="button" title="Cancel request"><i class="fas fa-xmark"></i></button>`;
+    return `<div class="friend-card glass" data-fr-user="${esc(safeIdentifier(user.id))}" title="View profile">
         <div class="friend-av-wrap">
-            <img class="friend-avatar" src="${esc(siteAvatarUrl(user))}" alt="${name}" loading="lazy" onerror="this.onerror=null;this.src='${avatarUrl('steve')}';">
+            <img class="friend-avatar" src="${esc(siteAvatarUrl(user))}" alt="${name}" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback>
             <span class="friend-dot ${pres.cls}"></span>
         </div>
         <div class="friend-info">
@@ -1498,37 +2541,75 @@ function openFriendInfo(userId) {
     const fr = findFriendship(currentUserId, userId);
     const isFriend = fr && fr.status === 'accepted';
     const since = fr && fr.createdAt ? new Date(fr.createdAt).toLocaleDateString() : '—';
+    const roleKey = displayedRoleKey(u);
+    const role = roleInfo(roleKey);
+    const profileStyle = profileStyleFor(u);
+    const headerPreset = PROFILE_HEADERS[profileStyle.header] || PROFILE_HEADERS.nebula;
+    const entrancePreset = PROFILE_ENTRANCES[profileStyle.entrance] || PROFILE_ENTRANCES.signal;
+    const viewerFriendIds = new Set(getFriends(currentUserId).map(link=>friendOtherId(link,currentUserId)));
+    const mutualCount = getFriends(userId).map(link=>friendOtherId(link,userId)).filter(id=>viewerFriendIds.has(id)).length;
+    const relationship = isFriend ? `Friends since ${since}` : (fr?.status === 'pending' ? (fr.addressee === currentUserId ? 'Friend request received' : 'Friend request sent') : 'Community profile');
     const stat = (label, val, icon) =>
         `<div class="fi-stat"><i class="fas fa-${icon}"></i><div><span class="fi-stat-val">${val}</span><span class="fi-stat-lbl">${label}</span></div></div>`;
     body.innerHTML = `
-        <div class="fi-header">
-            <div class="friend-av-wrap fi-av">
-                <img src="${esc(siteAvatarUrl(u))}" alt="" onerror="this.onerror=null;this.src='${avatarUrl('steve')}';">
-                <span class="friend-dot ${pres.cls}"></span>
+        <article class="friend-profile-card" style="--friend-role:${role.color}">
+            <section class="friend-profile-cover profile-cover" data-header="${profileStyle.header}">
+                <div class="profile-cover-scene" aria-hidden="true"><i></i><i></i><i></i><span></span><b></b></div>
+                <div class="friend-profile-cover-top">
+                    <span><i class="${headerPreset.icon}"></i> ${esc(headerPreset.label)}</span>
+                    <em><i class="fas fa-earth-europe"></i> Public profile</em>
+                </div>
+                <div class="friend-profile-identity">
+                    <div class="friend-av-wrap fi-av">
+                        <img src="${esc(siteAvatarUrl(u))}" alt="${esc(u.displayName || u.username)}" width="100" height="100" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback>
+                        <span class="friend-dot ${pres.cls}"></span>
+                    </div>
+                    <div class="fi-head-text">
+                        <div class="fi-presence ${pres.cls}"><i></i>${pres.text}</div>
+                        <div class="fi-name">${esc(u.displayName || u.username)} ${roleBadgeHtml(roleKey)}</div>
+                        <div class="fi-handle">@${esc(u.username)}</div>
+                    </div>
+                    <div class="friend-profile-signal"><small>Profile signal</small><b>${esc(entrancePreset.label)}</b><em>${esc(relationship)}</em></div>
+                </div>
+            </section>
+            <div class="friend-profile-main">
+                <section class="friend-profile-about">
+                    <div class="friend-profile-section-title"><span><i class="fas fa-address-card"></i></span><div><small>Identity</small><h3>About this player</h3></div></div>
+                    ${u.status ? `<div class="fi-status"><i class="fas fa-quote-left"></i><span>${esc(u.status)}</span></div>` : ''}
+                    <div class="fi-bio">${esc(u.bio || 'This player has not added a biography yet.')}</div>
+                    <div class="friend-role-access">
+                        <span class="friend-role-access-icon" style="background:${role.grad}"><i class="${role.icon}"></i></span>
+                        <div><small>Role access</small><b>${esc(role.label)}</b><em>${esc(role.tagline)}</em></div>
+                        <strong>${formatRoleLimit(roleProfileLimit(roleKey))}<small>slots</small></strong>
+                    </div>
+                </section>
+                <section class="friend-profile-overview">
+                    <div class="friend-profile-section-title"><span><i class="fas fa-chart-simple"></i></span><div><small>Activity</small><h3>Player overview</h3></div></div>
+                    <div class="fi-stats">
+                        ${stat('In Minecraft', formatMcTime(u.mcTimeSec), 'gamepad')}
+                        ${stat('On site', formatDuration(u.totalTimeSec), 'clock')}
+                        ${stat('Member since', esc(u.registeredAt || '—'), 'calendar-alt')}
+                        ${stat('Last seen', timeAgo(u.lastSeen), 'eye')}
+                        ${stat('Friends', String(getFriends(userId).length), 'user-group')}
+                        ${stat('Mutual friends', String(mutualCount), 'people-arrows')}
+                    </div>
+                </section>
             </div>
-            <div class="fi-head-text">
-                <div class="fi-name">${esc(u.displayName || u.username)} ${roleBadgeHtml(u.role)}</div>
-                <div class="fi-handle">@${esc(u.username)}</div>
-                <div class="fi-presence ${pres.cls}">${pres.text}</div>
-            </div>
-        </div>
-        ${u.status ? `<div class="fi-status"><i class="fas fa-quote-left"></i> ${esc(u.status)}</div>` : ''}
-        ${u.bio ? `<div class="fi-bio">${esc(u.bio)}</div>` : ''}
-        <div class="fi-stats">
-            ${stat('In Minecraft', formatMcTime(u.mcTimeSec), 'gamepad')}
-            ${stat('On site',      formatDuration(u.totalTimeSec), 'clock')}
-            ${stat('Member since', esc(u.registeredAt || '—'), 'calendar-alt')}
-            ${stat('Last seen',    timeAgo(u.lastSeen), 'eye')}
-            ${isFriend ? stat('Friends since', since, 'user-friends') : ''}
-        </div>
-        ${isFriend ? `<button class="fi-remove-btn" data-fi-remove="${fr.id}"><i class="fas fa-user-minus"></i> Remove friend</button>` : ''}`;
+            <footer class="friend-profile-footer">
+                <span><i class="fas fa-link"></i>${esc(relationship)}</span>
+                ${isFriend ? `<button class="fi-remove-btn" data-fi-remove="${esc(safeIdentifier(fr.id))}"><i class="fas fa-user-minus"></i> Remove friend</button>` : ''}
+            </footer>
+        </article>`;
+    const modal = ov.querySelector('.friend-info-modal');
+    ov.dataset.entrance = profileStyle.entrance;
+    if (modal) modal.style.setProperty('--friend-role', role.color);
     ov.classList.add('open');
     document.body.style.overflow = 'hidden';
 }
 function closeFriendInfo() {
     const ov = document.getElementById('friendInfoOverlay');
     if (ov) ov.classList.remove('open');
-    document.body.style.overflow = '';
+    syncBodyScrollLock();
 }
 
 // Notification badge (incoming friend requests) on the account button.
@@ -1544,8 +2625,8 @@ function renderFriends() {
     const section = document.getElementById('friendsSection');
     if (!section) return;
     // Only meaningful when signed in
-    section.style.display = currentUserId ? 'block' : 'none';
-    if (!currentUserId) return;
+    section.style.display = currentUserId ? (section.classList.contains('cockpit-rail')?'flex':'block') : 'none';
+    if (!currentUserId) { const cockpitFriendCount=document.getElementById('cockpitFriendCount');if(cockpitFriendCount)cockpitFriendCount.textContent='0';return; }
 
     const incoming = getIncomingRequests(currentUserId);
     const outgoing = getOutgoingRequests(currentUserId);
@@ -1553,6 +2634,8 @@ function renderFriends() {
 
     const countEl = document.getElementById('friendsCount');
     if (countEl) countEl.textContent = friends.length;
+    const cockpitFriendCount = document.getElementById('cockpitFriendCount');
+    if (cockpitFriendCount) cockpitFriendCount.textContent = String(friends.length);
     updateRequestBadge();
 
     // Incoming / outgoing requests block
@@ -1568,7 +2651,7 @@ function renderFriends() {
             outgoing.forEach(f => { const u = siteUsers.find(x => x.id === f.addressee); if (u) html += friendCardHtml(u, 'outgoing', f.id); });
         }
         reqWrap.innerHTML = html;
-        reqWrap.style.display = html ? 'grid' : 'none';
+        reqWrap.style.display = html ? (reqWrap.closest('.cockpit-social-rail')?'flex':'grid') : 'none';
     }
 
     // Friends list
@@ -1583,10 +2666,11 @@ function renderFriends() {
 
 // Friends UI event wiring (delegated)
 const friendAddForm = document.getElementById('friendAddForm');
-if (friendAddForm) friendAddForm.addEventListener('submit', e => {
+if (friendAddForm) friendAddForm.addEventListener('submit', async e => {
     e.preventDefault();
     const input = document.getElementById('friendAddInput');
-    sendFriendRequest(input ? input.value : '');
+    const submit=friendAddForm.querySelector('button[type="submit"]');if(submit)submit.disabled=true;
+    try{await sendFriendRequest(input ? input.value : '');}finally{if(submit)submit.disabled=false;}
 });
 const friendsSectionEl = document.getElementById('friendsSection');
 if (friendsSectionEl) friendsSectionEl.addEventListener('click', e => {
@@ -1616,7 +2700,6 @@ if(uuidBtn)uuidBtn.addEventListener('click',()=>{const a=mcAccounts.find(a=>a.id
 // ── Launcher notice sign in button ────────────────────────────
 const noticeBtn=document.getElementById('noticeSignInBtn');
 if(noticeBtn)noticeBtn.addEventListener('click',()=>openDashboard());
-
 // ══════════════════════════════════════════════════════════════
 // SITE ACCOUNT DASHBOARD MODAL
 // ══════════════════════════════════════════════════════════════
@@ -1625,31 +2708,71 @@ const authView     = document.getElementById('authView');
 const registerView = document.getElementById('registerView');
 const profileView  = document.getElementById('profileView');
 const recoveryView = document.getElementById('recoveryView');
-function hideAllAuthViews(){ [authView,registerView,profileView,recoveryView].forEach(v=>{ if(v)v.style.display='none'; }); }
+const dashboardViews = [authView, registerView, profileView, recoveryView].filter(Boolean);
+let dashboardOpenFrame = 0;
+
+function showDashboardView(activeView) {
+    dashboardViews.forEach(view => {
+        const active = view === activeView;
+        view.hidden = !active;
+        view.style.removeProperty('display');
+        view.setAttribute('aria-hidden', String(!active));
+    });
+}
+
+function revealDashboard() {
+    if (!dashOverlay || dashOverlay.classList.contains('open') || dashboardOpenFrame) return;
+    document.body.style.overflow = 'hidden';
+    dashboardOpenFrame = requestAnimationFrame(() => {
+        dashboardOpenFrame = 0;
+        dashOverlay.classList.add('open');
+    });
+}
+
+function setProfileModalWide(wide) {
+    const modal = dashOverlay && dashOverlay.querySelector('.dashboard-modal');
+    if (modal) modal.classList.toggle('profile-wide', !!wide);
+}
 
 function openDashboard() {
     if (!dashOverlay) return;
-    dashOverlay.classList.add('open');
-    document.body.style.overflow='hidden';
     if (currentUserId) showProfileView();
     else showAuthView();
+    revealDashboard();
 }
 function closeDashboard() {
     if (!dashOverlay) return;
+    if (dashboardOpenFrame) {
+        cancelAnimationFrame(dashboardOpenFrame);
+        dashboardOpenFrame = 0;
+    }
     dashOverlay.classList.remove('open');
-    document.body.style.overflow='';
+    syncBodyScrollLock();
+    const modal = dashOverlay.querySelector('.dashboard-modal');
+    if (modal) modal.classList.remove('profile-replay', 'profile-opening', 'dashboard-morphing');
+    const studio=document.getElementById('profileIdentityStudio');
+    if(studio){
+        studio.classList.remove('open');
+        studio.hidden=true;
+    }
 }
-function showAuthView() { hideAllAuthViews(); if(authView)authView.style.display='block'; }
-function showRegisterView() { hideAllAuthViews(); if(registerView)registerView.style.display='block'; }
-function showRecoveryView() { hideAllAuthViews(); if(recoveryView)recoveryView.style.display='block'; if(dashOverlay){dashOverlay.classList.add('open');document.body.style.overflow='hidden';} }
+function showAuthView() { setProfileModalWide(false); showDashboardView(authView); }
+function showRegisterView() { setProfileModalWide(false); showDashboardView(registerView); }
+function showRecoveryView() { setProfileModalWide(false); showDashboardView(recoveryView); revealDashboard(); }
 function showProfileView() {
-    hideAllAuthViews(); if(profileView)profileView.style.display='block';
     const user = siteUsers.find(u=>u.id===currentUserId);
     if (!user) return;
+    setProfileModalWide(true);
+    showDashboardView(profileView);
     const canAdmin = canAccessAdmin(user);
     const adminTab = document.getElementById('adminPanelTab');
-    if (adminTab) adminTab.style.display = canAdmin?'':'none';
-    loadProfileViewData(user);
+    if (adminTab) {
+        adminTab.hidden = !canAdmin;
+        adminTab.style.removeProperty('display');
+    }
+    loadProfileViewData(user, { resetTab: true });
+    activateProfileTabV2('my-profile');
+    triggerProfileMenuEntrance(user, false);
 }
 
 document.getElementById('openDashboardBtn').addEventListener('click', openDashboard);
@@ -1661,7 +2784,7 @@ document.getElementById('switchToRegisterBtn')&&document.getElementById('switchT
 document.getElementById('switchToLoginBtn')&&document.getElementById('switchToLoginBtn').addEventListener('click',showAuthView);
 
 // ══════════════════════════════════════════════════════════════
-// SUPABASE AUTH  (email + Google + password recovery)
+// SUPABASE AUTH  (nickname, email, Google and password recovery)
 // Layered on top of the local system: when the Supabase client is
 // available, these provide real authentication; otherwise everything
 // falls back to the legacy username/password records on this device.
@@ -1669,25 +2792,60 @@ document.getElementById('switchToLoginBtn')&&document.getElementById('switchToLo
 const authAvailable = () => !!(cloud && cloud.auth);
 const isFileProtocol = location.protocol === 'file:'; // OAuth/email links need http(s)
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function updateAuthModeUi(){
+    const connected=authAvailable();
+    const configured=validSupabaseConfig();
+    const note=document.getElementById('authModeNote');
+    if(note){
+        note.classList.toggle('is-cloud',connected);
+        const icon=note.querySelector('i');if(icon)icon.className=connected?'fas fa-shield-halved':'fas fa-hard-drive';
+        const text=note.querySelector('span');if(text)text.textContent=connected
+            ? 'Authenticated mode: remote data is limited to your account by Row Level Security.'
+            : configured?'Connection unavailable. Reconnect to sign in to your cloud account.':'Local demo mode: account data stays in this browser. Do not reuse a password from another service.';
+    }
+    const email=document.getElementById('regEmail');if(email){email.required=false;email.placeholder=' ';}
+    const emailLabel=document.querySelector('label[for="regEmail"]');if(emailLabel)emailLabel.textContent=configured?'Email address (optional)':'Email saved only on this device (optional)';
+    const emailHint=document.getElementById('regEmailHintText');if(emailHint)emailHint.textContent=configured?'Leave this blank to create an account with only a username and password. Without email, password recovery is unavailable.':'Without configured cloud authentication, this creates a device-local demo account only.';
+    const loginLabel=document.querySelector('label[for="loginInput"]');if(loginLabel)loginLabel.textContent='Email or username';
+    const providerHint=document.getElementById('authProviderHint');if(providerHint)providerHint.hidden=!configured;
+    ['googleLoginBtn','googleRegisterBtn','forgotPasswordBtn'].forEach(id=>{const button=document.getElementById(id);if(button)button.hidden=!configured;});
+}
+updateAuthModeUi();
 function todayStr(){ const d=new Date(); return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`; }
 function authMsg(id,msg){ const el=document.getElementById(id); if(el){ el.textContent=msg; el.style.display='block'; } }
 function clearAuthMsgs(){ ['loginError','loginNote','registerError','registerNote','recoveryError','recoveryNote'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';}); }
 function authRedirectTo(){ return location.origin + location.pathname; }
+async function usernameAuth(action, username, password){
+    const response=await fetch(`${SUPABASE_URL}/functions/v1/username-auth`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json',apikey:SUPABASE_PUBLIC_KEY},
+        body:JSON.stringify({action,username,password})
+    });
+    let result={};
+    try{result=await response.json();}catch{}
+    if(!response.ok)throw new Error(result.error||'Account service unavailable. Try again.');
+    if(!result.access_token||!result.refresh_token)throw new Error('Account service returned an incomplete session.');
+    const {data,error}=await cloud.auth.setSession({access_token:result.access_token,refresh_token:result.refresh_token});
+    if(error||!data?.user)throw new Error('Sign-in could not be completed. Try again.');
+    await restoreVerifiedAccount(data.user);
+}
 
 // Find-or-create the local/cloud profile row for a Supabase Auth user.
+let freshAuthProfileId = null;
 function ensureProfileFor(authUser){
     let u = siteUsers.find(x=>x.id===authUser.id);
     if(!u){
         const meta = authUser.user_metadata || {};
         const uname = sanitizeField(meta.username || meta.full_name || (authUser.email||'player').split('@')[0], 20) || 'player';
-        u = { id:authUser.id, username:uname, email:authUser.email||'', password:'', role:'USER',
-              displayName: meta.full_name||uname, bio:'Minecraft player',
-              avatar: meta.avatar_url||meta.picture||'', registeredAt:todayStr(),
+        u = { id:authUser.id, username:uname, email:/@users\.spectral\.invalid$/i.test(authUser.email||'')?'':sanitizeField(authUser.email,254), password:'', role:'USER',
+              displayName: sanitizeField(meta.full_name||uname,24)||uname, bio:'Minecraft player',
+              avatar: safeAvatarUrl(meta.avatar_url||meta.picture), registeredAt:todayStr(),
               totalTimeSec:0, visitCount:0, lastSeen:new Date().toISOString(), banned:false,
               status:'', mcTimeSec:0 };
         siteUsers.push(u); saveSiteUsers(siteUsers);
         saveMcAccounts(u.id,[]); saveActiveMc(u.id,'');
-    } else if(authUser.email && u.email!==authUser.email){
+        freshAuthProfileId = u.id;
+    } else if(authUser.email && !/@users\.spectral\.invalid$/i.test(authUser.email) && u.email!==authUser.email){
         u.email = authUser.email; saveSiteUsers(siteUsers);
     }
     return u;
@@ -1696,23 +2854,60 @@ function ensureProfileFor(authUser){
 function applyAuthUser(authUser){
     if(!authUser) return false;
     const profile = ensureProfileFor(authUser);
-    if(profile.banned){ if(authAvailable())cloud.auth.signOut(); authMsg('loginError','This account has been banned'); return false; }
+    if(profile.banned){ if(authAvailable())cloud.auth.signOut().catch(error=>console.warn('[auth] sign out failed:',error.message||error)); authMsg('loginError','This account has been banned'); return false; }
     currentUserId = profile.id; saveSession(profile.id);
     clearAuthMsgs(); beginUserSession(); renderAll();
     if(dashOverlay && dashOverlay.classList.contains('open')) showProfileView();
+    if(freshAuthProfileId === profile.id) {
+        freshAuthProfileId = null;
+        showRegistrationWelcome(profile);
+    }
     return true;
 }
-async function initSupabaseAuth(){
-    if(!authAvailable()) return;
-    cloud.auth.onAuthStateChange((event, session)=>{
-        if(event==='PASSWORD_RECOVERY'){ showRecoveryView(); return; }
-        if((event==='SIGNED_IN'||event==='INITIAL_SESSION') && session && session.user){ applyAuthUser(session.user); }
-    });
+let authGeneration=0;
+let authRestorePromise=null;
+function clearAccountSession(){
+    authGeneration++;stopTimeTracking();_visitBumpedFor=null;
+    profileDrafts.clear();cloudAuthUserId=null;currentUserId=null;saveSession(null);
+    if(validSupabaseConfig())loadCommunityCloud();
+    closeRoleCheckout();adminSelectedUserIds.clear();cancelAdminAction();
+    renderAll();if(dashOverlay?.classList.contains('open'))showAuthView();
+}
+async function signOutAccount(){
+    const button=document.getElementById('logoutBtn');if(button.disabled)return;button.disabled=true;
+    const remote=currentUserId===cloudAuthUserId&&authAvailable();
     try{
-        const { data } = await cloud.auth.getSession();
-        if(data && data.session && data.session.user) applyAuthUser(data.session.user);
-    }catch(e){ console.warn('[auth] session restore failed:', e.message||e); }
-    if(/type=recovery/.test(location.hash)) showRecoveryView();
+        if(remote){const {error}=await cloud.auth.signOut();if(error)throw error;}
+        clearAccountSession();showAuthView();showToast('Signed out.','right-from-bracket');
+    }catch{showToast('Sign-out failed. Check your connection and try again.','triangle-exclamation');}
+    finally{button.disabled=false;}
+}
+async function restoreVerifiedAccount(authUser){
+    if(authRestorePromise)return authRestorePromise;
+    const generation=authGeneration;
+    authRestorePromise=(async()=>{
+        cloudAuthUserId=authUser.id;
+        const synced=await cloudBootstrap(authUser);
+        if(generation!==authGeneration)return false;
+        if(!synced){cloudAuthUserId=null;throw new Error('Account data could not be verified. Please retry.');}
+        await loadCommunityCloud();
+        return applyAuthUser(authUser);
+    })();
+    try{return await authRestorePromise;}finally{authRestorePromise=null;}
+}
+async function initSupabaseAuth(){
+    await initCloudClient();updateAuthModeUi();if(!authAvailable())return;
+    cloud.auth.onAuthStateChange((event,session)=>{
+        if(event==='SIGNED_OUT'){clearAccountSession();return;}
+        // Defer auth API work until outside the Supabase callback/lock.
+        if(event==='PASSWORD_RECOVERY'){cloudAuthUserId=session?.user?.id||null;showRecoveryView();return;}
+        if(event==='SIGNED_IN'&&session?.user)setTimeout(()=>{
+            if(currentUserId===session.user.id)return;
+            restoreVerifiedAccount(session.user).catch(error=>authMsg('loginError',error.message));
+        },0);
+    });
+    try{const {data,error}=await cloud.auth.getSession();if(error)throw error;if(data?.session?.user)await restoreVerifiedAccount(data.session.user);else await loadCommunityCloud();}catch(error){authMsg('loginError',error.message||'Session could not be restored.');}
+    if(/type=recovery/.test(location.hash))showRecoveryView();
 }
 
 // ── Login ─────────────────────────────────────────────────────
@@ -1722,114 +2917,81 @@ if (loginForm) {
         e.preventDefault();
         const login = document.getElementById('loginInput').value.trim();
         const pass  = document.getElementById('passwordInput').value;
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
         clearAuthMsgs();
         const fail  = msg => authMsg('loginError', msg||'Invalid email/username or password');
 
-        // Email + Supabase Auth path
-        if (authAvailable() && EMAIL_RE.test(login)) {
-            const { data, error } = await cloud.auth.signInWithPassword({ email:login, password:pass });
-            if (error) { fail(error.message); return; }
-            applyAuthUser(data.user);
-            return;
+        if(submitBtn?.disabled)return;
+        if(submitBtn)submitBtn.disabled=true;
+        try {
+            if(validSupabaseConfig()&&!authAvailable()){fail('Connection unavailable. Please reconnect.');return;}
+            if (authAvailable()) {
+                if(EMAIL_RE.test(login)){
+                    const { data, error } = await cloud.auth.signInWithPassword({ email:login, password:pass });
+                    if(error){fail();return;}
+                    await restoreVerifiedAccount(data.user);
+                }else{
+                    await usernameAuth('login',login,pass);
+                }
+                return;
+            }
+            // Legacy local path (username or email stored in our table)
+            const normalizedLogin=login.toLowerCase();
+            const user = siteUsers.find(u=>u.username.toLowerCase()===normalizedLogin || (u.email&&u.email.toLowerCase()===normalizedLogin));
+            let ok = false;
+            if (user && user.password) {
+                if (looksHashed(user.password)) ok = (await hashPassword(pass)) === user.password;
+                else { ok = (user.password === pass); if (ok){ user.password = await hashPassword(pass); saveSiteUsers(siteUsers); } }
+            }
+            if (!ok) { fail(); return; }
+            if (user.banned) { fail('This account has been banned'); return; }
+            currentUserId=user.id; saveSession(user.id);
+            beginUserSession(); renderAll(); showProfileView();
+        } catch (error) {
+            console.warn('[auth] sign in failed:', error.message||error);
+            const message=error?.message==='Incorrect username or password. If you used Google, choose Google sign-in.'
+                ? error.message:'Sign-in is temporarily unavailable. Please try again.';
+            fail(message);
+        } finally {
+            if(submitBtn)submitBtn.disabled=false;
         }
-        // Legacy local path (username or email stored in our table)
-        const user = siteUsers.find(u=>u.username===login || (u.email&&u.email===login));
-        let ok = false;
-        if (user && user.password) {
-            if (looksHashed(user.password)) ok = (await hashPassword(pass)) === user.password;
-            else { ok = (user.password === pass); if (ok){ user.password = await hashPassword(pass); saveSiteUsers(siteUsers); } }
-        }
-        if (!ok) { fail(); return; }
-        if (user.banned) { fail('This account has been banned'); return; }
-        currentUserId=user.id; saveSession(user.id);
-        beginUserSession(); renderAll(); showProfileView();
     });
 }
 
 // ── Register ──────────────────────────────────────────────────
 const registerForm = document.getElementById('registerForm');
-if (registerForm) {
-    // Создать запись аккаунта прямо в site_users (ник + SHA-256(pepper+пароль)
-    // [+ необязательная почта]) и войти. saveSiteUsers → cloudPushUsers пушит её в
-    // Supabase, поэтому вход по нику потом работает и на сайте, и в лаунчере
-    // (одинаковый pepper + SHA-256). Используется и для «без почты», и для оффлайн-фолбэка.
-    async function createLocalAccount(username, email, pass) {
-        const newUser = { id:'su_'+Date.now(), username, email:email||'', password:await hashPassword(pass),
-            role:'USER', displayName:username, bio:'Minecraft player', avatar:'', registeredAt:todayStr(),
-            totalTimeSec:0, visitCount:0, lastSeen:new Date().toISOString(), banned:false,
-            status:'', mcTimeSec:0 };
-        siteUsers.push(newUser); saveSiteUsers(siteUsers);
-        saveMcAccounts(newUser.id, []); saveActiveMc(newUser.id, '');
-        currentUserId = newUser.id; saveSession(newUser.id);
-        beginUserSession(); registerForm.reset();
-        renderAll(); showProfileView();
-    }
-
-    registerForm.addEventListener('submit', async e => {
-        e.preventDefault();
-        const username = sanitizeField(document.getElementById('regUsername').value, 20);
-        const email    = (document.getElementById('regEmail').value||'').trim();
-        const pass     = document.getElementById('regPassword').value;
-        const passC    = document.getElementById('regPasswordConfirm').value;
-        clearAuthMsgs();
-        const showErr  = msg => authMsg('registerError', msg);
-        if (!username||username.length<3) return showErr('Username must be 3–20 characters');
-        if (!/^[A-Za-z0-9 _.\-]+$/.test(username)) return showErr('Username may use letters, numbers, spaces and _ . - only');
-
-        // Почта теперь НЕОБЯЗАТЕЛЬНА: пустое поле → регистрация по одному нику.
-        const noEmail = email.length === 0;
-        if (!noEmail && !EMAIL_RE.test(email)) return showErr('Enter a valid email address');
-
-        if (siteUsers.find(u=>u.username.toLowerCase()===username.toLowerCase())) return showErr('Username already taken');
-        const minLen = (!noEmail && authAvailable()) ? 6 : 4;
-        if (!pass||pass.length<minLen) return showErr(`Password must be at least ${minLen} characters`);
-        if (pass.length>128) return showErr('Password is too long');
-        if (pass!==passC) return showErr('Passwords do not match');
-
-        // ── Регистрация БЕЗ почты — только ник + пароль ─────────────────────
-        // Пишем напрямую в site_users, без GoTrue и подтверждения почты. Это тот
-        // же способ входа по нику, что уже поддерживают login-форма и лаунчер.
-        if (noEmail) {
-            const submitBtn = registerForm.querySelector('button[type="submit"]');
-            if (submitBtn) submitBtn.disabled = true;
-            try {
-                // Проверяем занятость ника ещё и в облаке — дубли ломают вход по нику.
-                if (cloud) {
-                    const { data, error } = await cloud.from('site_users')
-                        .select('id').eq('username', username).limit(1);
-                    if (!error && data && data.length) return showErr('Username already taken');
-                }
-                await createLocalAccount(username, '', pass);
-            } finally {
-                if (submitBtn) submitBtn.disabled = false;
-            }
-            return;
-        }
-
-        // Real account via Supabase Auth (enables Google + password recovery)
-        if (authAvailable()) {
-            const submitBtn = registerForm.querySelector('button[type="submit"]');
-            if(submitBtn) submitBtn.disabled = true;
-            const { data, error } = await cloud.auth.signUp({
-                email, password:pass, options:{ data:{ username }, emailRedirectTo: authRedirectTo() }
-            });
-            if(submitBtn) submitBtn.disabled = false;
-            if (error) return showErr(error.message);
-            if (data.session && data.user) {            // email confirmation is OFF → straight in
-                const p = ensureProfileFor(data.user);
-                if(email) { p.email=email; saveSiteUsers(siteUsers); }
+if(registerForm){
+    registerForm.addEventListener('submit',async event=>{
+        event.preventDefault();const button=registerForm.querySelector('button[type="submit"]');if(button.disabled)return;
+        clearAuthMsgs();const showErr=message=>authMsg('registerError',message);
+        const username=sanitizeField(document.getElementById('regUsername').value,20);
+        const email=document.getElementById('regEmail').value.trim();
+        const pass=document.getElementById('regPassword').value,confirm=document.getElementById('regPasswordConfirm').value;
+        const minLen=10;
+        if(username.length<3||! /^[A-Za-z0-9 _.\-]+$/.test(username))return showErr('Use 3–20 letters, numbers, spaces or _ . - for your username.');
+        if(email&&!EMAIL_RE.test(email))return showErr('Enter a valid email address or leave the field empty.');
+        if(pass.length<minLen||pass.length>128)return showErr('Use a password with 10–128 characters.');
+        if(pass!==confirm)return showErr('Passwords do not match.');
+        if(validSupabaseConfig()&&!authAvailable())return showErr('Connection unavailable. Reconnect to create your account.');
+        if(!validSupabaseConfig()&&siteUsers.some(user=>user.username.toLowerCase()===username.toLowerCase()||(email&&user.email?.toLowerCase()===email.toLowerCase())))return showErr('This username or email is already used on this device.');
+        button.disabled=true;
+        try{
+            if(validSupabaseConfig()&&!email){
+                await usernameAuth('register',username,pass);
                 registerForm.reset();
-                currentUserId=p.id; saveSession(p.id);
-                beginUserSession(); renderAll(); showProfileView();
-            } else {                                    // email confirmation is ON
+            }else if(validSupabaseConfig()){
+                const {data,error}=await cloud.auth.signUp({email,password:pass,options:{data:{username},emailRedirectTo:authRedirectTo()}});
+                if(error)throw new Error('Account could not be created. Check your details and try again.');
                 registerForm.reset();
-                authMsg('registerNote','Almost done — check your inbox to confirm your email, then sign in.');
+                if(data.session&&data.user)await restoreVerifiedAccount(data.user);
+                else authMsg('registerNote','Check your inbox to confirm your email, then sign in.');
+            }else{
+                const user={id:'su_'+crypto.randomUUID().replace(/-/g,''),username,email,password:await hashPassword(pass),role:roleForRegistration(),roleSource:'registration',displayName:username,bio:'',avatar:'',registeredAt:todayStr(),totalTimeSec:0,visitCount:0,lastSeen:new Date().toISOString(),banned:false,status:'',mcTimeSec:0};
+                if(!saveSiteUsers([...siteUsers,user]))throw new Error('This browser cannot save your account. Free some storage and try again.');
+                siteUsers.push(user);saveMcAccounts(user.id,[]);currentUserId=user.id;saveSession(user.id);beginUserSession();registerForm.reset();renderAll();showProfileView();showRegistrationWelcome(user);
             }
-            return;
-        }
-
-        // Local fallback (offline / file://) — keeps the demo working
-        await createLocalAccount(username, email, pass);
+        }catch(error){showErr(error.message||'Account could not be created. Try again.');}
+        finally{button.disabled=false;}
     });
 }
 
@@ -1838,8 +3000,16 @@ async function startGoogleSignIn(){
     clearAuthMsgs();
     if(isFileProtocol){ authMsg('loginError','Google sign-in needs the site served over http(s) — use a local server or GitHub Pages, not a file:// page.'); return; }
     if(!authAvailable()){ authMsg('loginError','Google sign-in is unavailable (Supabase not connected).'); return; }
-    const { error } = await cloud.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: authRedirectTo() } });
-    if(error) authMsg('loginError', error.message);
+    try {
+        const { error } = await cloud.auth.signInWithOAuth({
+            provider:'google',
+            options:{ redirectTo: authRedirectTo(), queryParams:{ prompt:'select_account' } }
+        });
+        if(error) authMsg('loginError', error.message);
+    } catch (error) {
+        console.warn('[auth] Google sign in failed:', error.message||error);
+        authMsg('loginError','Google sign-in is temporarily unavailable. Please try again.');
+    }
 }
 ['googleLoginBtn','googleRegisterBtn'].forEach(id=>{ const b=document.getElementById(id); if(b)b.addEventListener('click',startGoogleSignIn); });
 
@@ -1849,12 +3019,17 @@ if(forgotBtn){
     forgotBtn.addEventListener('click', async ()=>{
         clearAuthMsgs();
         const email=(document.getElementById('loginInput').value||'').trim();
-        if(!EMAIL_RE.test(email)){ authMsg('loginError','Type your account email in the field above, then click “Forgot password?”.'); document.getElementById('loginInput').focus(); return; }
+        if(!EMAIL_RE.test(email)){ authMsg('loginError','Password recovery needs a real email. For a username-only account, keep your password safe; Google accounts should use Google sign-in.'); document.getElementById('loginInput').focus(); return; }
         if(isFileProtocol){ authMsg('loginError','Password recovery needs the site served over http(s), not a file:// page.'); return; }
         if(!authAvailable()){ authMsg('loginError','Password recovery is unavailable (Supabase not connected).'); return; }
-        const { error } = await cloud.auth.resetPasswordForEmail(email, { redirectTo: authRedirectTo() });
-        if(error){ authMsg('loginError', error.message); return; }
-        authMsg('loginNote','Recovery link sent! Check your email and follow the link to set a new password.');
+        try {
+            const { error } = await cloud.auth.resetPasswordForEmail(email, { redirectTo: authRedirectTo() });
+            if(error) console.warn('[auth] recovery request was not accepted:', error.message||error);
+            authMsg('loginNote','If an account exists for that email, a recovery link will arrive shortly.');
+        } catch (error) {
+            console.warn('[auth] password recovery failed:', error.message||error);
+            authMsg('loginNote','If an account exists for that email, a recovery link will arrive shortly.');
+        }
     });
 }
 
@@ -1866,95 +3041,703 @@ if(recoveryForm){
         clearAuthMsgs();
         const p1=document.getElementById('recoveryPassword').value;
         const p2=document.getElementById('recoveryPasswordConfirm').value;
-        if(!p1||p1.length<6) return authMsg('recoveryError','Password must be at least 6 characters');
+        if(!p1||p1.length<10||p1.length>128) return authMsg('recoveryError','Password must be at least 10 characters');
         if(p1!==p2) return authMsg('recoveryError','Passwords do not match');
         if(!authAvailable()) return authMsg('recoveryError','Recovery is unavailable (Supabase not connected).');
-        const { error } = await cloud.auth.updateUser({ password:p1 });
-        if(error) return authMsg('recoveryError', error.message);
-        recoveryForm.reset();
-        authMsg('recoveryNote','Password updated! Signing you in…');
-        const { data } = await cloud.auth.getSession();
-        if(data && data.session && data.session.user) setTimeout(()=>applyAuthUser(data.session.user), 600);
+        try {
+            const { error } = await cloud.auth.updateUser({ password:p1 });
+            if(error) return authMsg('recoveryError', error.message);
+            recoveryForm.reset();
+            authMsg('recoveryNote','Password updated! Signing you in…');
+            const { data } = await cloud.auth.getSession();
+            if(data?.session?.user)await restoreVerifiedAccount(data.session.user);
+        } catch (error) {
+            console.warn('[auth] password update failed:', error.message||error);
+            authMsg('recoveryError','Password update is temporarily unavailable. Please try again.');
+        }
     });
 }
-
 // ── Profile tabs ──────────────────────────────────────────────
 // Expand the dashboard window when the Admin panel is open (more room for data),
 // collapse back to the compact width for the regular profile view.
-function setDashboardWide(wide) {
+function setDashboardWide(mode) {
     const modal = dashOverlay && dashOverlay.querySelector('.dashboard-modal');
-    if (modal) modal.classList.toggle('admin-wide', !!wide);
+    if (!modal) return;
+    const adminMode = mode === 'admin' || mode === true;
+    const storeMode = mode === 'store';
+    const unchanged = modal.classList.contains('admin-wide') === adminMode && modal.classList.contains('store-wide') === storeMode;
+    if (unchanged) return;
+    modal.classList.remove('workspace-morphing');
+    modal.classList.toggle('admin-wide', adminMode);
+    modal.classList.toggle('store-wide', storeMode);
+    if (!REDUCED_MOTION && !liteOn()) {
+        requestAnimationFrame(() => {
+            modal.classList.add('workspace-morphing');
+            window.setTimeout(() => modal.classList.remove('workspace-morphing'), 640);
+        });
+    }
 }
-document.querySelectorAll('.profile-tab').forEach(tab=>{
-    tab.addEventListener('click',()=>{
-        const target=tab.getAttribute('data-ptab');
-        document.querySelectorAll('.profile-tab').forEach(t=>t.classList.remove('active'));
-        tab.classList.add('active');
-        document.querySelectorAll('.ptab-content').forEach(c=>{c.style.display=c.getAttribute('data-ptab-content')===target?'block':'none';});
-        setDashboardWide(target==='admin-panel');
-        if(target==='admin-panel') renderAdminPanel();
+
+const profileTabsRoot = document.getElementById('profileTabs');
+const profileTabButtons = profileTabsRoot ? [...profileTabsRoot.querySelectorAll('.profile-tab')] : [];
+const profileTabPanels = profileView ? [...profileView.querySelectorAll(':scope > .ptab-content')] : [];
+const profilePanelAnimationCleanup = new WeakMap();
+
+function syncProfileTabIndicator(activeTab) {
+    if (!profileTabsRoot) return;
+    const tabs = profileTabButtons.filter(tab=>!tab.hidden && getComputedStyle(tab).display !== 'none');
+    const selected = activeTab || tabs.find(tab=>tab.classList.contains('active'));
+    const index = Math.max(0, tabs.indexOf(selected));
+    profileTabsRoot.style.setProperty('--tab-count', String(Math.max(1, tabs.length)));
+    profileTabsRoot.style.setProperty('--tab-index', String(index));
+    profileTabsRoot.style.setProperty('--tab-offset', `${index * 100}%`);
+}
+
+function stopProfilePanelAnimation(panel) {
+    const cleanup = profilePanelAnimationCleanup.get(panel);
+    if (cleanup) cleanup();
+}
+
+function playProfilePanelEntrance(panel) {
+    if (!panel || REDUCED_MOTION || liteOn()) return;
+    stopProfilePanelAnimation(panel);
+    panel.classList.remove('ptab-enter');
+    const onEnd = event => {
+        if (event.target !== panel) return;
+        panel.removeEventListener('animationend', onEnd);
+        panel.classList.remove('ptab-enter');
+        profilePanelAnimationCleanup.delete(panel);
+    };
+    const cleanup = () => {
+        panel.removeEventListener('animationend', onEnd);
+        panel.classList.remove('ptab-enter');
+        profilePanelAnimationCleanup.delete(panel);
+    };
+    profilePanelAnimationCleanup.set(panel, cleanup);
+    requestAnimationFrame(() => {
+        if (panel.hidden) return cleanup();
+        panel.addEventListener('animationend', onEnd);
+        panel.classList.add('ptab-enter');
     });
+}
+
+function activateProfileTab(target, { animate = true, refresh = true } = {}) {
+    if(target==='admin-panel'&&!canAccessAdmin(currentRoleUser()))return;
+    const selectedTab = profileTabButtons.find(tab => tab.dataset.ptab === target && !tab.hidden);
+    if (!selectedTab) return;
+    const currentTab = profileTabButtons.find(tab => tab.classList.contains('active'));
+    const isSameTab = currentTab === selectedTab;
+
+    profileTabButtons.forEach(tab => {
+        const active = tab === selectedTab;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', String(active));
+        tab.setAttribute('tabindex', active ? '0' : '-1');
+    });
+
+    profileTabPanels.forEach(panel => {
+        const active = panel.dataset.ptabContent === target;
+        if (!active) stopProfilePanelAnimation(panel);
+        panel.hidden = !active;
+        panel.style.removeProperty('display');
+        panel.classList.toggle('active', active);
+        panel.setAttribute('aria-hidden', String(!active));
+        if (active && animate && !isSameTab) playProfilePanelEntrance(panel);
+    });
+
+    const mode = target === 'admin-panel' ? 'admin' : target === 'role-store' ? 'store' : false;
+    const modal = dashOverlay?.querySelector('.dashboard-modal');
+    if (modal) modal.dataset.workspace = target;
+    setDashboardWide(mode);
+    syncProfileTabIndicator(selectedTab);
+
+    if (!refresh || isSameTab) return;
+    if (target === 'admin-panel') renderAdminPanel();
+    if (target === 'role-store') renderRoleStore();
+    if (target === 'my-profile') {
+        const user = currentRoleUser();
+        if (user) loadProfileViewData(user, { resetTab: false });
+    }
+}
+
+const PROFILE_HEADERS = {
+    nebula:   { label:'Nebula Drift',      tier:'Core collection',      unlock:'USER',      icon:'fas fa-cloud-moon', description:'A calm indigo field with drifting stars.' },
+    archive:  { label:'Veteran Archive',   tier:'Founder collection',   unlock:'VETERAN',   icon:'fas fa-shield-halved', description:'A teal founder signal etched with legacy rings.' },
+    solar:    { label:'Solar Flux',         tier:'Pro collection',       unlock:'PRO',       icon:'fas fa-sun', description:'Warm gold energy waves for active players.' },
+    crown:    { label:'Violet Crown',       tier:'Legend collection',    unlock:'LEGEND',    icon:'fas fa-crown', description:'Royal violet beams with a rare starlight pulse.' },
+    prism:    { label:'Spectral Prism',     tier:'Signature identity',   unlock:'SPECTRAL',  icon:'fas fa-gem', description:'A dimensional prism with living chromatic light.' },
+    guardian: { label:'Guardian Grid',      tier:'Staff collection',     unlock:'MODERATOR', icon:'fas fa-gavel', description:'A verified blue security field for staff.' },
+    command:  { label:'Command Core',       tier:'Admin collection',     unlock:'ADMIN',     icon:'fas fa-user-shield', description:'A red command surface with scanning telemetry.' },
+    code:     { label:'Developer Protocol', tier:'Internal build',       unlock:'DEV',       icon:'fas fa-code', description:'A live engineering console wired into Spectral Core.' }
+};
+const PROFILE_ENTRANCES = {
+    signal:   { label:'Soft signal',   unlock:'USER',     icon:'fas fa-wave-square' },
+    aurora:   { label:'Aurora rise',   unlock:'VETERAN',  icon:'fas fa-water' },
+    portal:   { label:'Portal fold',   unlock:'PRO',      icon:'fas fa-circle-notch' },
+    stardust: { label:'Stardust',      unlock:'LEGEND',   icon:'fas fa-star' },
+    rift:     { label:'Prism rift',    unlock:'SPECTRAL', icon:'fas fa-wand-magic-sparkles' },
+    terminal: { label:'Terminal boot', unlock:'DEV',      icon:'fas fa-terminal' }
+};
+const ROLE_DEFAULT_HEADERS={USER:'nebula',VETERAN:'archive',PRO:'solar',LEGEND:'crown',SPECTRAL:'prism',MODERATOR:'guardian',ADMIN:'command',DEV:'code'};
+const ROLE_DEFAULT_ENTRANCES={USER:'signal',VETERAN:'aurora',PRO:'portal',LEGEND:'stardust',SPECTRAL:'rift',MODERATOR:'portal',ADMIN:'rift',DEV:'terminal'};
+function profilePresetUnlocked(user,preset){return !!user&&!!preset&&(isDev(user)||roleRank(user.role)>=roleRank(preset.unlock));}
+function profileStyleFor(user){
+    const styles=loadProfileStyles();const saved=styles[user.id]||{};const displayRole=displayedRoleKey(user);
+    let header=PROFILE_HEADERS[saved.header]&&profilePresetUnlocked(user,PROFILE_HEADERS[saved.header])?saved.header:ROLE_DEFAULT_HEADERS[displayRole]||'nebula';
+    let entrance=PROFILE_ENTRANCES[saved.entrance]&&profilePresetUnlocked(user,PROFILE_ENTRANCES[saved.entrance])?saved.entrance:ROLE_DEFAULT_ENTRANCES[displayRole]||'signal';
+    if(!profilePresetUnlocked(user,PROFILE_HEADERS[header]))header='nebula';
+    if(!profilePresetUnlocked(user,PROFILE_ENTRANCES[entrance]))entrance='signal';
+    return {header,entrance};
+}
+function saveProfileStyle(user,patch){
+    if(!user)return;const styles=loadProfileStyles();styles[user.id]={...profileStyleFor(user),...(styles[user.id]||{}),...patch};saveProfileStyles(styles);
+}
+function renderProfileIdentityStudio(user){
+    const style=profileStyleFor(user);
+    const studio=document.getElementById('profileIdentityStudio');
+    const renderKey=`${user.id}:${displayedRoleKey(user)}:${style.header}:${style.entrance}`;
+    if(studio?.dataset.renderKey===renderKey)return;
+    const options=document.getElementById('profileHeaderOptions');
+    if(options)options.innerHTML=Object.entries(PROFILE_HEADERS).map(([key,preset])=>{
+        const unlocked=profilePresetUnlocked(user,preset);const active=style.header===key;
+        return `<button type="button" class="profile-header-option ${active?'active':''} ${unlocked?'':'locked'}" data-header-choice="${key}" ${unlocked?'':`disabled title="Unlock with ${ROLES[preset.unlock].label}"`}><span class="profile-header-option-preview" data-preview-header="${key}"><i></i><b></b></span><span><small>${unlocked?'Animated header':`Requires ${ROLES[preset.unlock].label}`}</small><strong><i class="${preset.icon}"></i>${preset.label}</strong><em>${preset.description}</em></span>${unlocked?'<i class="fas fa-check"></i>':'<i class="fas fa-lock"></i>'}</button>`;
+    }).join('');
+    const entrances=document.getElementById('profileEntranceOptions');
+    if(entrances)entrances.innerHTML=Object.entries(PROFILE_ENTRANCES).map(([key,preset])=>{
+        const unlocked=profilePresetUnlocked(user,preset);return `<button type="button" class="${style.entrance===key?'active':''}" data-entrance-choice="${key}" ${unlocked?'':`disabled title="Requires ${ROLES[preset.unlock].label}"`}><i class="${unlocked?preset.icon:'fas fa-lock'}"></i><span>${preset.label}</span></button>`;
+    }).join('');
+    if(studio)studio.dataset.renderKey=renderKey;
+}
+
+function animateProfileHeader(cover){
+    if(!cover||REDUCED_MOTION||liteOn())return;
+    if(cover._headerAnimationEnd)cover.removeEventListener('animationend',cover._headerAnimationEnd);
+    if(cover._headerAnimationFrame)cancelAnimationFrame(cover._headerAnimationFrame);
+    cover.classList.remove('header-switching');
+    const finish=event=>{
+        if(event.target!==cover)return;
+        cover.removeEventListener('animationend',finish);
+        cover.classList.remove('header-switching');
+        cover._headerAnimationEnd=null;
+    };
+    cover._headerAnimationEnd=finish;
+    cover._headerAnimationFrame=requestAnimationFrame(()=>{
+        cover._headerAnimationFrame=0;
+        cover.addEventListener('animationend',finish);
+        cover.classList.add('header-switching');
+    });
+}
+
+function applyProfileStyle(user,{animateHeader=false,refreshStudio=false}={}){
+    if(!user)return;const style=profileStyleFor(user);const preset=PROFILE_HEADERS[style.header];const entrance=PROFILE_ENTRANCES[style.entrance];
+    const cover=document.getElementById('profileCover');
+    if(cover){
+        const headerChanged=cover.dataset.header!==style.header;
+        cover.dataset.header=style.header;
+        if(animateHeader&&headerChanged)animateProfileHeader(cover);
+    }
+    const title=document.getElementById('profileHeaderTitle');if(title)title.textContent=preset.label;
+    const icon=document.getElementById('profileHeaderIcon');if(icon)icon.className=preset.icon;
+    const tier=document.getElementById('profileHeaderTier');if(tier)tier.textContent=preset.tier||'Role collection';
+    const signal=document.getElementById('profileSignalName');if(signal)signal.textContent=entrance.label;
+    const entranceTitle=document.getElementById('profileEntranceTitle');if(entranceTitle)entranceTitle.textContent=entrance.label;
+    const unlockedCount=Object.values(PROFILE_HEADERS).filter(item=>profilePresetUnlocked(user,item)).length;
+    const access=document.getElementById('profileHeaderAccess');if(access)access.textContent=`${unlockedCount} animated ${unlockedCount===1?'header':'headers'} unlocked`;
+    const modal=dashOverlay?.querySelector('.dashboard-modal');if(modal)modal.dataset.entrance=style.entrance;
+    const studio=document.getElementById('profileIdentityStudio');
+    if(refreshStudio||(studio&&!studio.hidden))renderProfileIdentityStudio(user);
+}
+
+function triggerProfileMenuEntrance(user,replay=true){
+    const modal=dashOverlay?.querySelector('.dashboard-modal');if(!modal||!user)return;modal.dataset.entrance=profileStyleFor(user).entrance;
+    modal.classList.remove('profile-opening');
+    if(!replay||REDUCED_MOTION||liteOn())return;
+    if(modal._profileReplayEnd)modal.removeEventListener('animationend',modal._profileReplayEnd);
+    if(modal._profileReplayFrame)cancelAnimationFrame(modal._profileReplayFrame);
+    modal.classList.remove('profile-replay');
+    const finish=event=>{
+        if(event.target!==modal)return;
+        modal.removeEventListener('animationend',finish);
+        modal.classList.remove('profile-replay');
+        modal._profileReplayEnd=null;
+    };
+    modal._profileReplayEnd=finish;
+    modal._profileReplayFrame=requestAnimationFrame(()=>{
+        modal._profileReplayFrame=0;
+        modal.addEventListener('animationend',finish);
+        modal.classList.add('profile-replay');
+    });
+}
+function openProfileIdentityStudio(){
+    const studio=document.getElementById('profileIdentityStudio');const user=currentRoleUser();if(!studio||!user)return;
+    if(studio._finishClose){
+        studio.removeEventListener('transitionend',studio._finishClose);
+        studio._finishClose=null;
+    }
+    renderProfileIdentityStudio(user);
+    studio.hidden=false;
+    requestAnimationFrame(()=>{
+        studio.classList.add('open');
+        studio.scrollIntoView({behavior:'auto',block:'nearest'});
+    });
+}
+function closeProfileIdentityStudio(){
+    const studio=document.getElementById('profileIdentityStudio');if(!studio)return;
+    studio.classList.remove('open');
+    if(studio._finishClose)studio.removeEventListener('transitionend',studio._finishClose);
+    const finish=event=>{
+        if(event&&event.target!==studio)return;
+        if(event&&event.propertyName!=='opacity')return;
+        studio.removeEventListener('transitionend',finish);
+        studio._finishClose=null;
+        if(!studio.classList.contains('open'))studio.hidden=true;
+    };
+    studio._finishClose=finish;
+    if(REDUCED_MOTION||liteOn())finish();
+    else studio.addEventListener('transitionend',finish);
+}
+document.getElementById('openHeaderStudioBtn')?.addEventListener('click',openProfileIdentityStudio);
+document.getElementById('closeHeaderStudioBtn')?.addEventListener('click',closeProfileIdentityStudio);
+document.getElementById('profileHeaderOptions')?.addEventListener('click',event=>{
+    const button=event.target.closest('[data-header-choice]');const user=currentRoleUser();if(!button||button.disabled||!user)return;saveProfileStyle(user,{header:button.dataset.headerChoice});applyProfileStyle(user,{animateHeader:true,refreshStudio:true});showToast(`${PROFILE_HEADERS[button.dataset.headerChoice].label} header equipped.`,'wand-magic-sparkles');
+});
+document.getElementById('profileEntranceOptions')?.addEventListener('click',event=>{
+    const button=event.target.closest('[data-entrance-choice]');const user=currentRoleUser();if(!button||button.disabled||!user)return;saveProfileStyle(user,{entrance:button.dataset.entranceChoice});applyProfileStyle(user,{refreshStudio:true});triggerProfileMenuEntrance(user,true);showToast(`${PROFILE_ENTRANCES[button.dataset.entranceChoice].label} entrance selected.`,'wave-square');
 });
 
 // ── Load profile data ─────────────────────────────────────────
-function loadProfileViewData(user) {
+function loadProfileViewData(user,{resetTab=true}={}) {
+    const displayRole=displayedRoleKey(user);
+    const role = roleInfo(user.role);
+    const draft=profileDraftFor(user);
     const img = document.getElementById('profileAvatarImg');
-    if(img){img.src=siteAvatarUrl(user);img.onerror=function(){this.onerror=null;this.src=avatarUrl('steve');};}
-    const un = document.getElementById('profileUsername'); if(un)un.textContent=user.username;
-    const rb = document.getElementById('profileRoleBadge'); if(rb){const ri=roleInfo(user.role);rb.innerHTML=`<i class="${ri.icon}"></i> ${ri.label}`;rb.className='badge-pro';rb.style.background=ri.grad;rb.style.color='#fff';}
-    const dn = document.getElementById('profileDisplayName'); if(dn)dn.value=user.displayName||user.username;
-    const st = document.getElementById('profileStatus'); if(st)st.value=user.status||'';
-    const bio= document.getElementById('profileBio'); if(bio)bio.value=user.bio||'';
+    if(img){img.src=draft.avatar||siteAvatarUrl({...user,avatar:''});img.onerror=function(){this.onerror=null;this.src='assets/avatar-placeholder.svg';};}
+    const un = document.getElementById('profileUsername'); if(un)un.textContent=user.displayName||user.username;
+    const rb = document.getElementById('profileRoleBadge'); if(rb){rb.innerHTML=`<i class="${role.icon}"></i> ${role.label}${isDev(user)&&displayRole!=='DEV'?'<small>DEV PREVIEW</small>':''}`;rb.className=`badge-pro profile-role-${String(displayRole).toLowerCase()}`;rb.style.background=role.grad;rb.style.color='#fff';}
+    const dn = document.getElementById('profileDisplayName'); if(dn)dn.value=draft.displayName;
+    const st = document.getElementById('profileStatus'); if(st)st.value=draft.status;
+    const bio= document.getElementById('profileBio'); if(bio)bio.value=draft.bio;
     const chips = document.getElementById('profileStatChips');
     if (chips) chips.innerHTML =
         `<span class="p-stat-chip"><i class="fas fa-gamepad"></i> ${formatMcTime(user.mcTimeSec)} <small>in Minecraft</small></span>`
       + `<span class="p-stat-chip"><i class="fas fa-clock"></i> ${formatDuration(user.totalTimeSec)} <small>on site</small></span>`
-      + `<span class="p-stat-chip"><i class="fas fa-user-friends"></i> ${getFriends(user.id).length} <small>friends</small></span>`;
-    // switch to profile tab
-    document.querySelectorAll('.profile-tab').forEach(t=>t.classList.toggle('active',t.getAttribute('data-ptab')==='my-profile'));
-    document.querySelectorAll('.ptab-content').forEach(c=>{c.style.display=c.getAttribute('data-ptab-content')==='my-profile'?'block':'none';});
-    setDashboardWide(false);
+      + `<span class="p-stat-chip"><i class="fas fa-user-friends"></i> ${getFriends(user.id).length} <small>friends</small></span>`
+      + `<span class="p-stat-chip role-limit-chip"><i class="fas fa-users-rectangle"></i> ${formatRoleLimit(roleProfileLimit(user.role))} <small>profile slots</small></span>`;
+    const spotlight=document.getElementById('openRoleStoreBtn');
+    if(spotlight){spotlight.style.setProperty('--spotlight-role',role.color);spotlight.dataset.role=String(displayRole).toLowerCase();}
+    const spotlightIcon=document.getElementById('profileRoleSpotlightIcon');if(spotlightIcon){spotlightIcon.innerHTML=`<i class="${role.icon}"></i>`;spotlightIcon.style.background=role.grad;}
+    const spotlightTitle=document.getElementById('profileRoleSpotlightTitle');if(spotlightTitle)spotlightTitle.textContent=`${role.label} role`;
+    const spotlightText=document.getElementById('profileRoleSpotlightText');if(spotlightText)spotlightText.textContent=role.tagline;
+    applyProfileStyle(user);
+    updateProfileDraftState();
+    renderAccountSession(user);
+    if(resetTab)activateProfileTab('my-profile',{animate:false,refresh:false});
 }
 
-// ── Save profile ──────────────────────────────────────────────
-const saveProfileBtn=document.getElementById('saveProfileBtn');
-if(saveProfileBtn){saveProfileBtn.addEventListener('click',()=>{const user=siteUsers.find(u=>u.id===currentUserId);if(!user)return;const dn=document.getElementById('profileDisplayName');const st=document.getElementById('profileStatus');const bio=document.getElementById('profileBio');const img=document.getElementById('profileAvatarImg');user.displayName=sanitizeField(dn?dn.value:'',24)||user.username;user.status=sanitizeField(st?st.value:'',100);user.bio=sanitizeField(bio?bio.value:'',120);const src=img?img.src:'';user.avatar=/^(data:image\/|https?:\/\/)/.test(src)?src:'';saveSiteUsers(siteUsers);renderNavbar();renderFriends();saveProfileBtn.textContent='Saved!';setTimeout(()=>{saveProfileBtn.innerHTML='<i class="fas fa-save"></i> Save Changes';},1500);});}
+// ── Roles, purchase-ready store and registration celebration ────────────────
+const ROLE_STORE_PLANS = {
+    PRO:      { monthly:4.99, yearly:47.90, kicker:'Player favorite', description:'More room for profiles with a warm gold identity across Spectral.' },
+    LEGEND:   { monthly:8.99, yearly:86.30, kicker:'Most popular', description:'A rare violet presence, expanded capacity and earlier community visibility.' },
+    SPECTRAL: { monthly:13.99, yearly:134.30, kicker:'Everything unlocked', description:'Unlimited identities and the complete prismatic Spectral treatment.' }
+};
+let roleBillingCycle='yearly';
+let selectedCheckoutRole=null;
+let checkoutQuote=null;
+let checkoutCloseTimer=null;
+
+function currentRoleUser(){ return siteUsers.find(user=>user.id===currentUserId) || null; }
+function latestRoleOrder(userId,role){
+    return loadRoleOrders().slice().reverse().find(order=>order.userId===userId&&order.role===role&&order.status==='reserved');
+}
+function openRoleStore(){
+    if(!currentUserId){openDashboard();return;}
+    if(!dashOverlay?.classList.contains('open'))openDashboard();
+    document.querySelector('[data-ptab="role-store"]')?.click();
+}
+document.getElementById('openRoleStoreBtn')?.addEventListener('click',openRoleStore);
+
+function rolePriceMarkup(role,veteranEligible=true){
+    if(role==='VETERAN')return veteranEligible
+        ? '<div class="role-card-price earned"><b>Earned</b><small>Permanent founder reward</small></div>'
+        : '<div class="role-card-price"><b>Legacy</b><small>Founder window closed January 1, 2027</small></div>';
+    const plan=ROLE_STORE_PLANS[role];
+    if(!plan)return '';
+    const value=roleBillingCycle==='yearly'?plan.yearly:plan.monthly;
+    const suffix=roleBillingCycle==='yearly'?'/ year':'/ month';
+    const equivalent=roleBillingCycle==='yearly'?`$${(plan.yearly/12).toFixed(2)} monthly equivalent`:'Cancel whenever payments launch';
+    return `<div class="role-card-price"><b><sup>$</sup>${value.toFixed(2)}</b><small>${suffix} · ${equivalent}</small></div>`;
+}
+
+function renderRoleStore(){
+    const user=currentRoleUser();
+    const grid=document.getElementById('roleStoreGrid');
+    if(!user||!grid)return;
+    const displayRole=displayedRoleKey(user);
+    const current=roleInfo(displayRole);
+    const developerMode=isDev(user);
+    const hero=document.getElementById('roleStoreHero');if(hero)hero.dataset.role=String(displayRole).toLowerCase();
+    const icon=document.getElementById('currentRoleIcon');if(icon){icon.innerHTML=`<i class="${current.icon}"></i>`;icon.style.background=current.grad;}
+    const name=document.getElementById('currentRoleName');if(name)name.textContent=current.label;
+    const eyebrow=document.getElementById('currentRoleEyebrow');if(eyebrow)eyebrow.textContent=developerMode?'Developer is viewing':'Current role';
+    const since=document.getElementById('currentRoleSince');
+    if(since)since.textContent=developerMode&&displayRole!=='DEV'?'Preview only · Developer permissions stay active':displayRole==='VETERAN'?'Founder reward · permanent':`${current.tagline} · joined ${user.registeredAt||'recently'}`;
+    const lab=document.getElementById('developerRoleLab');
+    if(lab){
+        lab.hidden=!developerMode;
+        if(developerMode)lab.innerHTML=`<div class="developer-role-lab-icon"><i class="fas fa-flask-vial"></i><span></span></div><div><small>Developer Role Lab</small><h3>Inspect every role without losing developer access.</h3><p>The selected role changes badges, colors, limits and presentation for your account preview. Administration and developer permissions remain untouched.</p></div><div class="developer-role-lab-state"><small>Viewing now</small><b style="--lab-role:${current.color}"><i class="${current.icon}"></i>${current.label}</b><button type="button" data-reset-role-preview ${displayRole==='DEV'?'disabled':''}><i class="fas fa-rotate-left"></i> Reset to Developer</button></div>`;
+    }
+    const eligible=isVeteranEligible(user);
+    const roleKeys=developerMode?ROLE_ORDER:['VETERAN',...PREMIUM_ROLES];
+    grid.classList.toggle('developer-grid',developerMode);
+    renderRoleWorkspace(user);
+    grid.innerHTML=roleKeys.map((roleKey,index)=>{
+        const info=roleInfo(roleKey);
+        const isCurrent=displayRole===roleKey;
+        const reserved=latestRoleOrder(user.id,roleKey);
+        const lockedVeteran=!developerMode&&roleKey==='VETERAN'&&!isCurrent;
+        const plan=ROLE_STORE_PLANS[roleKey];
+        const state=isCurrent?'current':!developerMode&&reserved?'reserved':lockedVeteran?'locked':'';
+        const buttonLabel=developerMode?(isCurrent?'Viewing this role':`Preview as ${info.label}`):(isCurrent?'Current role':reserved?'Reserved for launch':lockedVeteran?(eligible?'Assigned automatically':'Founder window closed'):'Choose role');
+        const buttonIcon=isCurrent?'check':!developerMode&&reserved?'clock':lockedVeteran?'lock':developerMode?'eye':'arrow-right';
+        const collection=developerMode?(roleRank(roleKey)>=ROLES.MODERATOR.rank?'Staff access':'Account role'):(roleKey==='VETERAN'?'Legacy collection':'Premium collection');
+        const kicker=developerMode?'Developer preview':roleKey==='VETERAN'?'Never sold':esc(plan.kicker);
+        const description=developerMode?info.tagline:(roleKey==='VETERAN'?'For every account registered before January 1, 2027.':plan.description);
+        const price=developerMode?'<div class="role-card-price preview"><b>Live preview</b><small>Visual role only · permissions stay Developer</small></div>':rolePriceMarkup(roleKey,eligible);
+        return `<article class="role-store-card role-card-${roleKey.toLowerCase()} ${state}" style="--role-color:${info.color};--role-gradient:${info.grad};--card-index:${index}" data-store-role="${roleKey}">
+            <div class="role-card-shine"></div>
+            <div class="role-card-top"><span class="role-card-icon"><i class="${info.icon}"></i></span><span class="role-card-kicker">${kicker}</span></div>
+            <div class="role-card-title"><small>${collection}</small><h3>${esc(info.label)}</h3><p>${esc(description)}</p></div>
+            ${price}
+            <ul>${info.perks.map(perk=>`<li><i class="fas fa-check"></i>${esc(perk)}</li>`).join('')}</ul>
+            <button type="button" class="role-card-select" ${developerMode?`data-preview-role="${roleKey}"`:`data-select-role="${roleKey}"`} ${isCurrent||(!developerMode&&reserved)||lockedVeteran?'disabled':''}><span>${buttonLabel}</span><i class="fas fa-${buttonIcon}"></i></button>
+        </article>`;
+    }).join('');
+}
+
+document.querySelectorAll('[data-role-billing]').forEach(button=>button.addEventListener('click',()=>{
+    roleBillingCycle=button.dataset.roleBilling;
+    document.querySelectorAll('[data-role-billing]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+    if(selectedCheckoutRole)openRoleCheckout(selectedCheckoutRole);
+    document.querySelectorAll('[data-role-billing]').forEach(item=>item.classList.toggle('active',item===button));
+    renderRoleStore();
+}));
+
+function openRoleCheckout(role){
+    const user=currentRoleUser();
+    const plan=ROLE_STORE_PLANS[role];
+    const sheet=document.getElementById('roleCheckoutSheet');
+    if(!user||!plan||!sheet)return;
+    clearTimeout(checkoutCloseTimer);
+    selectedCheckoutRole=role;
+    checkoutQuote={role,billing:roleBillingCycle,price:plan[roleBillingCycle],userId:user.id};
+    const info=roleInfo(role);
+    sheet.hidden=false;
+    sheet.dataset.role=role.toLowerCase();
+    const icon=document.getElementById('roleCheckoutIcon');if(icon){icon.innerHTML=`<i class="${info.icon}"></i>`;icon.style.background=info.grad;}
+    const title=document.getElementById('roleCheckoutTitle');if(title)title.textContent=`Reserve ${info.label}`;
+    const description=document.getElementById('roleCheckoutDescription');if(description)description.textContent=`Save ${info.label} on this device. You can change or remove this choice anytime. Your active role stays the same.`;
+    const contact=document.getElementById('roleCheckoutContact');if(contact)contact.value=user.email||'';
+    const cycle=document.getElementById('roleCheckoutCycle');if(cycle)cycle.textContent=roleBillingCycle==='yearly'?'Yearly plan · indicative launch price':'Monthly plan';
+    const price=document.getElementById('roleCheckoutPrice');if(price)price.textContent=`$${plan[roleBillingCycle].toFixed(2)}`;
+    requestAnimationFrame(()=>sheet.classList.add('open'));
+    sheet.scrollIntoView({behavior:(liteOn()||REDUCED_MOTION)?'auto':'smooth',block:'nearest'});
+}
+function closeRoleCheckout(){
+    const sheet=document.getElementById('roleCheckoutSheet');if(!sheet)return;
+    sheet.classList.remove('open');selectedCheckoutRole=null;checkoutQuote=null;
+    checkoutCloseTimer=setTimeout(()=>{sheet.hidden=true;},220);
+}
+document.getElementById('roleStoreGrid')?.addEventListener('click',event=>{
+    const previewButton=event.target.closest('[data-preview-role]');
+    const user=currentRoleUser();
+    if(previewButton&&!previewButton.disabled&&user&&setDeveloperRolePreview(user,previewButton.dataset.previewRole)){
+        renderNavbar();renderRoleStore();showToast(`Developer preview switched to ${roleInfo(previewButton.dataset.previewRole).label}.`,'eye');return;
+    }
+    const button=event.target.closest('[data-select-role]');
+    if(button&&!button.disabled&&PREMIUM_ROLES.includes(button.dataset.selectRole))openRoleCheckout(button.dataset.selectRole);
+});
+document.getElementById('developerRoleLab')?.addEventListener('click',event=>{
+    const button=event.target.closest('[data-reset-role-preview]');const user=currentRoleUser();
+    if(button&&!button.disabled&&user&&setDeveloperRolePreview(user,'DEV')){renderNavbar();renderRoleStore();showToast('Developer role preview restored.','code');}
+});
+document.getElementById('roleCheckoutClose')?.addEventListener('click',closeRoleCheckout);
+document.getElementById('roleCheckoutSubmit')?.addEventListener('click',()=>{
+    const user=currentRoleUser();const quote=checkoutQuote;
+    if(!user||user.banned||!quote||quote.userId!==user.id)return;
+    const order={id:`role_${crypto.randomUUID()}`,userId:user.id,role:quote.role,billing:quote.billing,quotedPrice:quote.price,currency:'USD',status:'reserved',createdAt:new Date().toISOString()};
+    const orders=loadRoleOrders().filter(item=>item.userId!==user.id);orders.push(order);
+    if(!saveRoleOrders(orders)){showToast('Storage is full. Your choice was not saved.','triangle-exclamation');return;}
+    closeRoleCheckout();renderRoleStore();
+    showToast(`${roleInfo(order.role).label} choice saved on this device.`,'check');
+});
+
+function showRegistrationWelcome(user){
+    const overlay=document.getElementById('registrationWelcomeOverlay');
+    const card=document.getElementById('registrationWelcomeCard');
+    if(!overlay||!card||!user)return;
+    const info=roleInfo(user.role);
+    card.dataset.role=String(user.role||'USER').toLowerCase();
+    const username=document.getElementById('welcomeUsername');if(username)username.textContent=user.displayName||user.username;
+    const roleName=document.getElementById('welcomeRoleName');if(roleName)roleName.textContent=info.label;
+    const reason=document.getElementById('welcomeRoleReason');if(reason)reason.textContent=user.role==='VETERAN'?'Unlocked forever for joining before 2027':'Your starting Spectral identity';
+    const lead=document.getElementById('welcomeLead');if(lead)lead.textContent=user.role==='VETERAN'?'Your identity is ready — and your arrival date unlocked a permanent reward.':'Your identity is ready. Welcome to the Spectral community.';
+    const emblem=document.getElementById('welcomeRoleEmblem');if(emblem){emblem.innerHTML=`<span><i class="${info.icon}"></i></span>`;emblem.style.setProperty('--welcome-role',info.color);}
+    const perks=document.getElementById('welcomePerks');if(perks)perks.innerHTML=info.perks.map(perk=>`<span><i class="fas fa-check"></i>${esc(perk)}</span>`).join('');
+    overlay.classList.add('open');document.body.style.overflow='hidden';
+    setTimeout(()=>document.getElementById('welcomeContinueBtn')?.focus(),450);
+}
+function closeRegistrationWelcome(){
+    const overlay=document.getElementById('registrationWelcomeOverlay');if(!overlay)return;
+    overlay.classList.remove('open');
+    syncBodyScrollLock();
+}
+document.getElementById('registrationWelcomeClose')?.addEventListener('click',closeRegistrationWelcome);
+document.getElementById('welcomeContinueBtn')?.addEventListener('click',closeRegistrationWelcome);
+document.getElementById('welcomeExploreRolesBtn')?.addEventListener('click',()=>{closeRegistrationWelcome();setTimeout(openRoleStore,180);});
+document.getElementById('registrationWelcomeOverlay')?.addEventListener('click',event=>{if(event.target===event.currentTarget)closeRegistrationWelcome();});
 
 // ── Avatar upload ─────────────────────────────────────────────
 const avatarUpload=document.getElementById('avatarUpload');
-if(avatarUpload){avatarUpload.addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const img=document.getElementById('profileAvatarImg');if(img)img.src=ev.target.result;};r.readAsDataURL(f);});}
+const AVATAR_FILE_TYPES=new Set(['image/png','image/jpeg','image/webp']);
+function loadLocalImage(url){return new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>resolve(image);image.onerror=()=>reject(new Error('The selected file is not a valid image.'));image.src=url;});}
+async function prepareAvatarFile(file){
+    if(!file||!AVATAR_FILE_TYPES.has(file.type))throw new Error('Choose a PNG, JPEG or WebP image.');
+    if(file.size>1024*1024)throw new Error('Avatar images must be 1 MB or smaller.');
+    const objectUrl=URL.createObjectURL(file);
+    try{
+        const image=await loadLocalImage(objectUrl);
+        if(!image.naturalWidth||!image.naturalHeight||image.naturalWidth>4096||image.naturalHeight>4096)throw new Error('Avatar dimensions must be between 1 and 4096 pixels.');
+        const size=256;
+        const canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+        const context=canvas.getContext('2d',{alpha:false});
+        if(!context)throw new Error('This browser cannot process the image.');
+        const scale=Math.max(size/image.naturalWidth,size/image.naturalHeight);
+        const width=image.naturalWidth*scale,height=image.naturalHeight*scale;
+        context.drawImage(image,(size-width)/2,(size-height)/2,width,height);
+        const dataUrl=canvas.toDataURL('image/webp',.86);
+        if(!safeAvatarUrl(dataUrl))throw new Error('The processed avatar is too large.');
+        return dataUrl;
+    }finally{URL.revokeObjectURL(objectUrl);}
+}
+if(avatarUpload){avatarUpload.addEventListener('change',async event=>{const ownerId=currentUserId;const file=event.target.files?.[0];if(!file||!ownerId)return;avatarUpload.disabled=true;try{const dataUrl=await prepareAvatarFile(file);if(currentUserId!==ownerId)return;profileDraftFor(currentRoleUser()).avatar=dataUrl;updateProfileDraftState();const image=document.getElementById('profileAvatarImg');if(image)image.src=dataUrl;showToast('Avatar ready — save your profile to keep it.','image');}catch(error){showToast(error.message||'Avatar could not be processed.','triangle-exclamation');}finally{avatarUpload.disabled=false;avatarUpload.value='';}});}
 
 // ── Logout ────────────────────────────────────────────────────
 const logoutBtn=document.getElementById('logoutBtn');
-if(logoutBtn){logoutBtn.addEventListener('click',()=>{flushSessionTime();_visitBumpedFor=null;if(authAvailable())cloud.auth.signOut();currentUserId=null;saveSession(null);renderAll();showAuthView();});}
+if(logoutBtn)logoutBtn.addEventListener('click',signOutAccount);
 
 // ── Launcher info tab ─────────────────────────────────────────
-function renderLauncherInfoTab() {
-    const el=document.getElementById('launcherProfileCount');
-    if(el)el.textContent=mcAccounts.length;
-}
 const goAccBtn=document.getElementById('goToAccountsBtn');
 if(goAccBtn){goAccBtn.addEventListener('click',()=>{closeDashboard();document.querySelector('[data-target="accounts"]').click();});}
-
+document.getElementById('accountsViewRolesBtn')?.addEventListener('click',openRoleStore);
+// Drafts are kept in memory, scoped to the signed-in account, until saved/discarded.
+const profileDrafts=new Map();
+const PROFILE_FIELDS=['displayName','status','bio','avatar'];
+let profileSaving=false;
+let compareCategory='capacity';
+function profileDraftFor(user){
+    if(!profileDrafts.has(user.id))profileDrafts.set(user.id,{displayName:user.displayName||user.username,status:user.status||'',bio:user.bio||'',avatar:user.avatar||''});
+    return profileDrafts.get(user.id);
+}
+function profileIsDirty(user){return !!user&&PROFILE_FIELDS.some(key=>profileDraftFor(user)[key]!==String(user[key]||(key==='displayName'?user.username:'')));}
+function updateProfileDraftState(){
+    const user=currentRoleUser();if(!user)return;
+    const dirty=profileIsDirty(user);
+    for(const id of ['profileDisplayName','profileStatus','profileBio']){
+        const input=document.getElementById(id),count=document.getElementById(id+'Count');
+        if(input&&count)count.textContent=`${input.value.length} / ${input.maxLength}`;
+    }
+    document.getElementById('saveProfileBtn').disabled=!dirty||profileSaving;
+    document.getElementById('resetProfileBtn').disabled=!dirty||profileSaving;
+    const state=document.getElementById('profileSaveState');
+    state.textContent=profileSaving?'Saving your profile…':dirty?'Unsaved changes · kept while switching tabs':'All changes saved';
+    state.classList.toggle('is-dirty',dirty);
+    renderAccountStudio();
+}
+for(const [id,key] of [['profileDisplayName','displayName'],['profileStatus','status'],['profileBio','bio']]){
+    document.getElementById(id)?.addEventListener('input',event=>{const user=currentRoleUser();if(!user)return;profileDraftFor(user)[key]=event.target.value;updateProfileDraftState();});
+}
+document.getElementById('resetProfileBtn')?.addEventListener('click',()=>{const user=currentRoleUser();if(!user)return;profileDrafts.delete(user.id);loadProfileViewData(user,{resetTab:false});});
+document.getElementById('changeAvatarBtn')?.addEventListener('click',()=>document.getElementById('avatarUpload').click());
+document.getElementById('removeAvatarBtn')?.addEventListener('click',()=>{const user=currentRoleUser();if(!user)return;profileDraftFor(user).avatar='';document.getElementById('profileAvatarImg').src=siteAvatarUrl({...user,avatar:''});updateProfileDraftState();});
+document.getElementById('profileEditForm')?.addEventListener('submit',async event=>{
+    event.preventDefault();const user=currentRoleUser();if(!user||user.banned||profileSaving)return;
+    const draft={...profileDraftFor(user)};
+    const patch={displayName:sanitizeField(draft.displayName,24),status:sanitizeField(draft.status,100),bio:sanitizeField(draft.bio,120),avatar:safeAvatarUrl(draft.avatar)};
+    if(!patch.displayName){document.getElementById('profileDisplayName').focus();showToast('Enter a display name.','circle-info');return;}
+    profileSaving=true;updateProfileDraftState();
+    try{
+        if(validSupabaseConfig()){
+            if(!cloudReady()||cloudAuthUserId!==user.id)throw new Error('Reconnect to save your profile. Your draft is still here.');
+            const {error,data}=await cloud.from('site_users').update({display_name:patch.displayName,status:patch.status,bio:patch.bio,avatar:patch.avatar}).eq('id',user.id).select('id');
+            if(error||!data?.length)throw new Error('Profile could not be saved online. Please try again.');
+        }
+        if(currentUserId!==user.id)return;
+        const next=siteUsers.map(item=>item.id===user.id?{...item,...patch}:item);
+        try{localStorage.setItem(K_USERS,JSON.stringify(next));}catch{throw new Error(validSupabaseConfig()?'Saved online, but this browser could not update its cache.':'Storage is full. Free some space and try again.');}
+        siteUsers=next;
+        // Edits entered while the request ran remain a draft.
+        if(PROFILE_FIELDS.every(key=>profileDraftFor(user)[key]===draft[key]))profileDrafts.delete(user.id);
+        renderNavbar();renderFriends();loadProfileViewData(currentRoleUser(),{resetTab:false});showToast('Profile saved.','check');
+    }catch(error){showToast(error.message,'triangle-exclamation');document.getElementById('profileSaveState').textContent=error.message;}
+    finally{profileSaving=false;updateProfileDraftState();}
+});
+function renderAccountSession(user){
+    const online=validSupabaseConfig();
+    document.getElementById('accountSessionDetails').innerHTML=`<div class="account-session-summary"><span class="session-orb"><i class="fas fa-${online?'shield-halved':'laptop'}"></i></span><div><strong>${online?'Connected account':'Local demo account'}</strong><p>${online?'Your profile uses authenticated cloud access.':'This identity exists in this browser. It is separate from a Minecraft or Microsoft account.'}</p></div><span class="session-state">${online?'Authenticated':'This device'}</span></div><dl class="account-detail-grid"><div><dt><i class="fas fa-at"></i> Sign-in name</dt><dd>${esc(user.username)}</dd></div><div><dt><i class="fas fa-id-badge"></i> Actual role</dt><dd>${esc(roleInfo(user.role).label)}</dd></div><div><dt><i class="fas fa-calendar-check"></i> Joined</dt><dd>${esc(user.registeredAt||'Unknown')}</dd></div><div><dt><i class="fas fa-lock"></i> Password recovery</dt><dd>${online?'Email reset link':'Unavailable for local demos'}</dd></div></dl>`;
+    document.getElementById('accountRecoveryBtn').hidden=!online||!user.email;
+}
+document.getElementById('exportOwnAccount')?.addEventListener('click',()=>{
+    const user=currentRoleUser();if(!user)return;
+    downloadJson('spectral-my-account.json',{exportedAt:new Date().toISOString(),profile:safeUserExport(user),appearance:loadProfileStyles()[user.id]||{},launchChoice:loadRoleOrders().find(order=>order.userId===user.id)||null});
+    showToast('Your account export is ready.','download');
+});
+document.getElementById('accountRecoveryBtn')?.addEventListener('click',async event=>{
+    const user=currentRoleUser(),button=event.currentTarget;if(!authAvailable()||!user?.email)return;button.disabled=true;
+    try{const {error}=await cloud.auth.resetPasswordForEmail(user.email,{redirectTo:authRedirectTo()});if(error)throw error;showToast('Check your inbox for a password reset link.','envelope');}catch{showToast('Reset email could not be sent. Try again.','triangle-exclamation');}finally{button.disabled=false;}
+});
+function renderRoleWorkspace(user){
+    const role=roleInfo(user.role),accounts=loadMcAccounts(user.id)||[];
+    document.getElementById('accountEntitlements').innerHTML=[['cubes','Launcher profiles',accounts.length,role.profileLimit],['star','Favorite profiles',accounts.filter(account=>account.favorite).length,role.favoriteLimit]].map(([icon,label,count,limit])=>`<article><span><i class="fas fa-${icon}"></i>${label}</span><b>${count} <small>/ ${formatRoleLimit(limit)}</small></b><div class="entitlement-track"><i style="width:${Number.isFinite(limit)?Math.min(100,count/limit*100):Math.min(100,count*5)}%"></i></div><small>${count>limit?'Above your current limit · remove profiles before adding more':`Included with your ${esc(role.label)} role`}</small></article>`).join('')+`<article><span><i class="fas fa-shield-halved"></i> Account permissions</span><b>${canAccessAdmin(user)?'Staff':'Player'}</b><small>${canManageUsers(user)?'Manage lower roles and community access':canModerate(user)?'Review community ideas':'Personal profile, friends and launcher identities'}</small></article>`;
+    const reservation=loadRoleOrders().find(order=>order.userId===user.id),panel=document.getElementById('roleReservation');panel.hidden=!reservation;
+    if(reservation)panel.innerHTML=`<span><i class="fas fa-bookmark"></i></span><div><small>SAVED ON THIS DEVICE</small><strong>${esc(roleInfo(reservation.role).label)} · ${reservation.billing}</strong><p>$${reservation.quotedPrice.toFixed(2)} indicative price · no active subscription</p></div><button type="button" data-cancel-reservation><i class="fas fa-xmark"></i> Remove choice</button>`;
+    renderRoleComparison();
+}
+document.getElementById('roleReservation')?.addEventListener('click',event=>{if(!event.target.closest('[data-cancel-reservation]'))return;const user=currentRoleUser();if(!user)return;if(saveRoleOrders(loadRoleOrders().filter(order=>order.userId!==user.id))){renderRoleStore();showToast('Launch choice removed.','check');}else showToast('Could not remove your choice. Try again.','triangle-exclamation');});
+function renderRoleComparison(){
+    const user=currentRoleUser();if(!user)return;
+    const keys=compareCategory==='permissions'?['USER','PRO','SPECTRAL','MODERATOR','ADMIN','DEV']:['USER','VETERAN','PRO','LEGEND','SPECTRAL'];
+    const rows=compareCategory==='capacity'?[['Launcher profiles',key=>formatRoleLimit(roleProfileLimit(key))],['Favorite profiles',key=>formatRoleLimit(roleFavoriteLimit(key))],['Role source',key=>key==='VETERAN'?'Founder reward':PREMIUM_ROLES.includes(key)?'Planned premium':'Default']]:compareCategory==='appearance'?[['Signature header',key=>PROFILE_HEADERS[ROLE_DEFAULT_HEADERS[key]]?.label||'Included'],['Entrance',key=>PROFILE_ENTRANCES[ROLE_DEFAULT_ENTRANCES[key]]?.label||'Included'],['Community badge',key=>key==='USER'?'Standard identity':roleInfo(key).label]]:[['Manage own profile',()=>true],['Review ideas',key=>roleRank(key)>=10],['Manage lower roles',key=>roleRank(key)>=20],['Developer previews',key=>key==='DEV']];
+    document.getElementById('roleComparisonGrid').innerHTML=`<table><thead><tr><th scope="col">${compareCategory==='permissions'?'Access':'Feature'}</th>${keys.map(key=>`<th scope="col" class="${key===user.role?'is-current':''}"><i class="${roleInfo(key).icon}"></i> ${esc(roleInfo(key).label)}${key===user.role?'<small>Your role</small>':''}</th>`).join('')}</tr></thead><tbody>${rows.map(([label,read])=>`<tr><th scope="row">${label}</th>${keys.map(key=>{const value=read(key);return `<td>${typeof value==='boolean'?`<span class="permission-${value}"><i class="fas fa-${value?'check':'minus'}"></i><span class="sr-only">${value?'Included':'Not included'}</span></span>`:esc(value)}</td>`;}).join('')}</tr>`).join('')}</tbody></table>`;
+}
+document.querySelectorAll('[data-compare]').forEach(button=>button.addEventListener('click',()=>{compareCategory=button.dataset.compare;document.querySelectorAll('[data-compare]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));renderRoleComparison();}));
 // ── Admin Panel ───────────────────────────────────────────────
 let adminActiveTab='users';
+let adminPage=1;
+const ADMIN_PAGE_SIZE=12;
+let adminCloudConnected=false;
+let adminCloudError='';
+let adminCloudIds=new Set();
+let adminRemoteAudit=[];
 let adminForumFilter='all';
 let adminInspectedUserId=null;
 const adminSelectedUserIds=new Set();
+let adminPendingAction=null;
+let adminActionBusy=false;
+const K_ADMIN_AUDIT='spectral_admin_audit';
+
+function adminAuditEntries(){return validSupabaseConfig()?adminRemoteAudit:readJsonStorage(K_ADMIN_AUDIT,[],Array.isArray).filter(entry=>entry&&typeof entry==='object').slice(-200);}
+function renderAdminAudit(){
+    const list=document.getElementById('adminAuditList');if(!list||!canAccessAdmin(currentRoleUser()))return;
+    const entries=adminAuditEntries().slice().reverse();
+    list.innerHTML=entries.length?entries.map(entry=>`<article><span><i class="fas fa-${entry.action==='role'?'id-badge':entry.action==='ban'?'ban':entry.action==='delete'?'trash-can':'unlock'}"></i></span><div><header><strong>${esc(entry.actorName||entry.actorId||'Staff')} · ${esc(entry.action)}</strong><time>${esc(new Date(entry.createdAt).toLocaleString())}</time></header><p>${esc(entry.reason||'No reason recorded')}</p><small>${(Array.isArray(entry.changes)?entry.changes:[]).map(change=>`${esc(change.username||change.id)}: ${esc(change.before)} → ${esc(change.after)}`).join(' · ')}</small></div></article>`).join(''):'<div class="admin-empty-state"><i class="fas fa-clock-rotate-left"></i><h3>A clear starting point</h3><p>Reviewed account changes will appear here with their reason.</p></div>';
+}
+function cancelAdminAction(){adminPendingAction=null;const panel=document.getElementById('adminActionReview');if(panel)panel.hidden=true;}
+function reviewAdminAction(action,ids,role=null){
+    const actor=currentRoleUser();
+    const targets=[...new Set(ids)].map(id=>siteUsers.find(user=>user.id===id));
+    if(!['role','ban','unban','delete'].includes(action)||!targets.length)return showToast('Choose an account and an action first.','circle-info');
+    if(targets.some(target=>!canAdminManageTarget(actor,target)||!AccountPolicy.canManage(actor,target,action==='role'?role:null))||(action==='delete'&&(!isDev(actor)||validSupabaseConfig())))return showToast('Your account cannot make this change.','lock');
+    adminPendingAction={actorId:actor.id,action,role,targets:targets.map(user=>({id:user.id,username:user.username,role:user.role,banned:user.banned}))};
+    const panel=document.getElementById('adminActionReview');panel.hidden=false;
+    document.getElementById('adminReviewTitle').textContent=`${action==='role'?'Change role':action==='delete'?'Delete local account':action==='ban'?'Restrict sign-in':'Restore sign-in'} · ${targets.length} account${targets.length===1?'':'s'}`;
+    document.getElementById('adminReviewDiff').innerHTML=targets.map(user=>`<div class="admin-change-row"><strong>${esc(user.displayName||user.username)}</strong><span>${esc(action==='role'?roleInfo(user.role).label:user.banned?'Restricted':'Active')}</span><i class="fas fa-arrow-right"></i><b>${esc(action==='role'?roleInfo(role).label:action==='delete'?'Deleted with local data':action==='ban'?'Restricted':'Active')}</b></div>`).join('');
+    document.getElementById('adminActionReason').value='';document.getElementById('adminActionError').textContent='';
+    panel.scrollIntoView({behavior:REDUCED_MOTION||liteOn()?'auto':'smooth',block:'nearest'});document.getElementById('adminActionReason').focus({preventScroll:true});
+}
+// Roll back this bounded set of local records if storage rejects a write.
+function persistAdminRecords(records){
+    const previous=new Map([...records.keys()].map(key=>[key,localStorage.getItem(key)]));
+    try{for(const [key,value] of records)value===null?localStorage.removeItem(key):localStorage.setItem(key,JSON.stringify(value));}
+    catch(error){for(const [key,value] of previous){try{value===null?localStorage.removeItem(key):localStorage.setItem(key,value);}catch{}}throw error;}
+}
+async function applyReviewedAdminAction(){
+    if(adminActionBusy||!adminPendingAction)return;
+    const proposal=adminPendingAction,reason=sanitizeField(document.getElementById('adminActionReason').value,160);
+    if(reason.length<3){document.getElementById('adminActionError').textContent='Add a short reason (at least 3 characters).';document.getElementById('adminActionReason').focus();return;}
+    const button=document.getElementById('adminConfirmAction');adminActionBusy=true;button.disabled=true;
+    try{
+        const fresh=validSupabaseConfig()?siteUsers:loadSiteUsers();
+        const actor=fresh?.find(user=>user.id===currentUserId);
+        if(!actor||actor.id!==proposal.actorId)throw new Error('Your session changed. Review this action again.');
+        const targets=proposal.targets.map(before=>{
+            const target=fresh.find(user=>user.id===before.id);
+            if(!AccountPolicy.canManage(actor,target,proposal.action==='role'?proposal.role:null)||(proposal.action==='delete'&&!isDev(actor)))throw new Error('Permissions changed. Review the account again.');
+            if(target.role!==before.role||target.banned!==before.banned)throw new Error('An account changed after your review. Cancel and review the latest state.');
+            return target;
+        });
+        if(validSupabaseConfig()){
+            if(!adminCloudConnected||cloudAuthUserId!==actor.id)throw new Error('Reconnect to administration before applying changes.');
+            const {error}=await cloud.rpc('spectral_admin_apply',{p_targets:proposal.targets,p_action:proposal.action,p_role:proposal.role,p_reason:reason});
+            if(error)throw new Error('Server rejected the change. Refresh the directory and review your permissions.');
+            if(currentUserId!==actor.id)return;
+            await loadAdminCloud();
+        }else{
+            const ids=new Set(targets.map(user=>user.id));
+            const next=fresh.filter(user=>proposal.action!=='delete'||!ids.has(user.id)).map(user=>!ids.has(user.id)?user:proposal.action==='role'?{...user,role:proposal.role,roleSource:'admin'}:{...user,banned:proposal.action==='ban'});
+            const entry={id:crypto.randomUUID(),createdAt:new Date().toISOString(),actorId:actor.id,actorName:actor.username,action:proposal.action,reason,changes:targets.map(user=>({id:user.id,username:user.username,before:proposal.action==='role'?user.role:user.banned?'Restricted':'Active',after:proposal.action==='role'?proposal.role:proposal.action==='delete'?'Deleted':proposal.action==='ban'?'Restricted':'Active'}))};
+            const records=new Map([[K_USERS,next],[K_ADMIN_AUDIT,[...adminAuditEntries(),entry].slice(-200)]]);
+            if(proposal.action==='delete'){
+                const styles=loadProfileStyles(),previews=loadDevRolePreviews();
+                for(const id of ids){records.set(K_MC_PFX+id,null);records.set(K_MC_ACT+id,null);delete styles[id];delete previews[id];}
+                records.set(K_PROFILE_STYLES,styles);records.set(K_DEV_ROLE_PREVIEWS,previews);
+                records.set(K_ROLE_ORDERS,loadRoleOrders().filter(order=>!ids.has(order.userId)));
+                records.set(K_FRIENDS,friendships.filter(item=>!ids.has(item.requester)&&!ids.has(item.addressee)));
+                records.set(K_FORUM,forumPosts.filter(post=>!ids.has(post.authorId)).map(post=>({...post,upvotes:(post.upvotes||[]).filter(id=>!ids.has(id))})));
+            }
+            persistAdminRecords(records);siteUsers=next;
+            if(proposal.action==='delete'){friendships=records.get(K_FRIENDS);forumPosts=records.get(K_FORUM);}
+        }
+        if(currentUserId!==proposal.actorId)return;
+        cancelAdminAction();adminSelectedUserIds.clear();refreshAdmin();renderAdminAudit();renderAll();showToast('Reviewed changes saved.','check');
+    }catch(error){document.getElementById('adminActionError').textContent=error.message||'Could not save the change. Try again.';}
+    finally{adminActionBusy=false;button.disabled=false;}
+}
+async function loadAdminCloud(){
+    const actor=currentRoleUser();if(!canAccessAdmin(actor)||!authAvailable())return;
+    adminCloudConnected=false;
+    adminCloudError='';
+    try{
+        const {data,error}=await cloud.rpc('spectral_admin_snapshot');
+        if(error||!data)throw new Error('Server administration is unavailable. Install the administration migration to enable roles, bans and activity history.');
+        if(currentUserId!==actor.id)return;
+        const profiles=(data.users||[]).map(row=>cloudProfileToUser(row)).filter(Boolean);
+        adminCloudIds=new Set(profiles.map(user=>user.id));
+        profiles.forEach(user=>{const index=siteUsers.findIndex(item=>item.id===user.id);if(index<0)siteUsers.push(user);else siteUsers[index]={...siteUsers[index],...user};});
+        adminRemoteAudit=Array.isArray(data.audit)?data.audit:[];adminCloudConnected=true;adminCloudError='';
+        refreshAdmin();renderAdminAudit();
+    }catch(error){adminCloudIds.clear();adminCloudError=error.message;const legacy=document.getElementById('adminUsersList');if(legacy){legacy.innerHTML=`<div class="admin-empty-state"><i class="fas fa-plug-circle-exclamation"></i><h3>Administration needs a connection</h3><p>${esc(error.message)}</p><button type="button" id="retryAdminConnection">Retry</button></div>`;document.getElementById('retryAdminConnection')?.addEventListener('click',loadAdminCloud);}refreshAdmin();}
+}
+function renderAdminPagination(total){
+    const pages=Math.max(1,Math.ceil(total/ADMIN_PAGE_SIZE));
+    document.getElementById('adminPagination').innerHTML=`<span>${total} results · Page ${adminPage} of ${pages}</span><div><button type="button" data-admin-page="-1" ${adminPage===1?'disabled':''} aria-label="Previous page"><i class="fas fa-arrow-left"></i></button><button type="button" data-admin-page="1" ${adminPage===pages?'disabled':''} aria-label="Next page"><i class="fas fa-arrow-right"></i></button></div>`;
+}
+document.getElementById('adminPagination')?.addEventListener('click',event=>{const button=event.target.closest('[data-admin-page]');if(!button||button.disabled)return;adminPage+=Number(button.dataset.adminPage);adminSelectedUserIds.clear();renderAdminUsers();});
+document.getElementById('adminCancelAction')?.addEventListener('click',cancelAdminAction);
+document.getElementById('adminConfirmAction')?.addEventListener('click',applyReviewedAdminAction);
+document.getElementById('adminSubtabs')?.addEventListener('keydown',event=>{
+    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    const tabs=[...event.currentTarget.querySelectorAll('[data-stab]')],index=tabs.indexOf(document.activeElement);if(index<0)return;
+    event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;tabs[next].focus();openAdminSection(tabs[next].dataset.stab);
+});
 
 function openAdminSection(target){
+    if(!canAccessAdmin(currentRoleUser())||!['users','forum','activity','site-stats'].includes(target))return;
     adminActiveTab=target;
     document.querySelectorAll('.admin-stab').forEach(tab=>{
         const active=tab.getAttribute('data-stab')===target;
         tab.classList.toggle('active',active);
         tab.setAttribute('aria-selected',String(active));
+        tab.setAttribute('role','tab');tab.tabIndex=active?0:-1;
+        tab.id='adminTab-'+tab.dataset.stab;tab.setAttribute('aria-controls','adminSection-'+tab.dataset.stab);
     });
     document.querySelectorAll('.admin-stab-content').forEach(content=>{
-        content.style.display=content.getAttribute('data-stab-content')===target?'block':'none';
+        content.hidden=content.dataset.stabContent!==target;content.style.display=content.hidden?'none':'block';
+        content.id='adminSection-'+content.dataset.stabContent;content.setAttribute('role','tabpanel');content.setAttribute('aria-labelledby','adminTab-'+content.dataset.stabContent);
     });
     if(target==='users')renderAdminUsers();
     if(target==='forum')renderAdminForum();
     if(target==='site-stats')renderAdminStats();
+    if(target==='activity')renderAdminAudit();
 }
 document.querySelectorAll('.admin-stab').forEach(stab=>stab.addEventListener('click',()=>openAdminSection(stab.getAttribute('data-stab'))));
 
@@ -1963,7 +3746,7 @@ const adminRoleFilter=document.getElementById('adminRoleFilter');
 const adminStatusFilter=document.getElementById('adminStatusFilter');
 const adminUserSort=document.getElementById('adminUserSort');
 [adminSearchInput,adminRoleFilter,adminStatusFilter,adminUserSort].forEach(control=>{
-    if(control)control.addEventListener(control.tagName==='INPUT'?'input':'change',()=>renderAdminUsers());
+    if(control)control.addEventListener(control.tagName==='INPUT'?'input':'change',()=>{adminPage=1;adminSelectedUserIds.clear();renderAdminUsers();});
 });
 const adminResetUserFilters=document.getElementById('adminResetUserFilters');
 if(adminResetUserFilters)adminResetUserFilters.addEventListener('click',()=>{
@@ -1971,7 +3754,7 @@ if(adminResetUserFilters)adminResetUserFilters.addEventListener('click',()=>{
     if(adminRoleFilter)adminRoleFilter.value='';
     if(adminStatusFilter)adminStatusFilter.value='';
     if(adminUserSort)adminUserSort.value='role';
-    renderAdminUsers();
+    adminPage=1;adminSelectedUserIds.clear();renderAdminUsers();
 });
 const adminForumSearch=document.getElementById('adminForumSearch');
 if(adminForumSearch)adminForumSearch.addEventListener('input',renderAdminForum);
@@ -1987,7 +3770,7 @@ if(adminAnalyticsRefresh)adminAnalyticsRefresh.addEventListener('click',()=>{
     setTimeout(()=>adminAnalyticsRefresh.classList.remove('is-loading'),450);
 });
 document.addEventListener('keydown',event=>{
-    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&adminActiveTab==='users'&&dashOverlay?.classList.contains('open')){
+    if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'&&adminActiveTab==='users'&&document.getElementById('profilePanelAdmin')?.hidden===false&&canAccessAdmin(currentRoleUser())&&dashOverlay?.classList.contains('open')){
         event.preventDefault();
         adminSearchInput?.focus();
     }
@@ -2016,16 +3799,11 @@ function parseRegDate(s){
     if(m)return new Date(+m[3],+m[2]-1,+m[1]).getTime();
     const t=new Date(s).getTime(); return isNaN(t)?0:t;
 }
-function registeredWithinDays(s,days){ const t=parseRegDate(s); return !!t && (Date.now()-t)<=days*86400000; }
-function isRecentlyActive(iso,days){ if(!iso)return false; const t=new Date(iso).getTime(); return !isNaN(t)&&(Date.now()-t)<=days*86400000; }
-function isOnlineNow(iso){ if(!iso)return false;const t=new Date(iso).getTime();return !isNaN(t)&&(Date.now()-t)<=15*60000; }
-function canAdminManageTarget(viewer,target){
-    if(!viewer||!target||viewer.id===target.id||!canManageUsers(viewer))return false;
-    return isDev(viewer)||roleRank(target.role)<roleRank(viewer.role);
-}
-function adminAllowedRoles(viewer){
-    return isDev(viewer)?ROLE_ORDER:ROLE_ORDER.filter(role=>roleRank(role)<roleRank(viewer?.role));
-}
+function registeredWithinDays(s,days){return AccountPolicy.recent(parseRegDate(s),days*86400000);}
+function isRecentlyActive(iso,days){return AccountPolicy.recent(iso,days*86400000);}
+function isOnlineNow(iso){return AccountPolicy.recent(iso,15*60000);}
+function canAdminManageTarget(viewer,target){return (!validSupabaseConfig()||adminCloudConnected)&&AccountPolicy.canManage(viewer,target);}
+function adminAllowedRoles(viewer){return ROLE_ORDER.filter(role=>viewer&&!viewer.banned&&roleRank(viewer.role)>=20&&(isDev(viewer)||roleRank(role)<roleRank(viewer.role)));}
 function safeMcAccountExport(account){
     const copy={...account};delete copy.password;delete copy.accessToken;delete copy.refreshToken;
     return copy;
@@ -2041,13 +3819,6 @@ function downloadJson(filename,data){
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 
-function deleteUserAccount(uid){
-    siteUsers=siteUsers.filter(u=>u.id!==uid);
-    saveSiteUsers(siteUsers);
-    try{ localStorage.removeItem(K_MC_PFX+uid); localStorage.removeItem(K_MC_ACT+uid); }catch{}
-    if(cloud){ cloud.from('site_users').delete().eq('id',uid)
-        .then(({error})=>{ if(error)console.warn('[cloud] user delete:',error.message); }); }
-}
 function exportDatabase(){
     const data={ exportedAt:new Date().toISOString(), users:siteUsers.map(u=>{const c={...u};delete c.password;return c;}), mcAccounts:{}, forum:forumPosts, news:newsItems };
     siteUsers.forEach(u=>{ data.mcAccounts[u.id]=(loadMcAccounts(u.id)||[]).map(safeMcAccountExport); });
@@ -2066,33 +3837,36 @@ function refreshAdmin(){
 }
 
 function renderAdminPanel() {
-    adminActiveTab='users';
+    if(!canAccessAdmin(currentRoleUser()))return;
     adminSelectedUserIds.clear();
     updateAdminOverview();
     populateAdminBulkRoles();
-    openAdminSection('users');
+    openAdminSection(adminActiveTab);
+    if(validSupabaseConfig())loadAdminCloud();
 }
 function updateAdminOverview(){
     const viewer=siteUsers.find(user=>user.id===currentUserId);
     const pending=forumPosts.filter(post=>!post.approved&&!post.rejected).length;
-    const values={adminOverviewUsers:siteUsers.length,adminOverviewActive:siteUsers.filter(user=>isRecentlyActive(user.lastSeen,7)).length,adminOverviewPending:pending,adminOverviewBanned:siteUsers.filter(user=>user.banned).length,adminUsersTabCount:siteUsers.length,adminForumTabCount:pending};
+    const values={adminOverviewUsers:adminDataset().length,adminOverviewActive:adminDataset().filter(user=>isRecentlyActive(user.lastSeen,7)).length,adminOverviewPending:pending,adminOverviewBanned:adminDataset().filter(user=>user.banned).length,adminUsersTabCount:adminDataset().length,adminForumTabCount:pending};
     Object.entries(values).forEach(([id,value])=>{const element=document.getElementById(id);if(element)element.textContent=String(value);});
     const access=document.getElementById('adminAccessBadge');
     if(access&&viewer){const info=roleInfo(viewer.role);access.innerHTML=`<i class="${info.icon}"></i> ${esc(info.label)} access`;}
+    const note=document.getElementById('adminModeNote');if(note)note.textContent=validSupabaseConfig()?'Cloud accounts: roles and bans are checked and applied by the server. The directory shows up to 250 profiles.':'Local demo: changes affect accounts in this browser. Role checks here do not secure a remote service.';
     const cloudState=document.getElementById('adminCloudState');
-    if(cloudState){cloudState.classList.toggle('is-cloud',Boolean(cloud));cloudState.innerHTML=cloud?'<i></i> Cloud connected':'<i></i> Local mode';}
+    if(cloudState){cloudState.classList.toggle('is-cloud',Boolean(cloudAuthUserId));cloudState.innerHTML=validSupabaseConfig()?(adminCloudConnected?'<i></i> Server verified':'<i></i> Connecting to administration'):'<i></i> Local demo data';}
 }
 function populateAdminBulkRoles(){
     const select=document.getElementById('adminBulkRole');if(!select)return;
     const viewer=siteUsers.find(user=>user.id===currentUserId);
     select.innerHTML='<option value="">Choose role...</option>'+adminAllowedRoles(viewer).map(role=>`<option value="${role}">${ROLES[role].label}</option>`).join('');
 }
+function adminDataset(){return validSupabaseConfig()?siteUsers.filter(user=>adminCloudIds.has(user.id)):siteUsers;}
 function getAdminFilteredUsers(){
     const search=(adminSearchInput?.value||'').trim().toLowerCase();
     const role=adminRoleFilter?.value||'';
     const status=adminStatusFilter?.value||'';
     const sort=adminUserSort?.value||'role';
-    const users=siteUsers.filter(user=>{
+    const users=adminDataset().filter(user=>{
         const haystack=[user.username,user.displayName,user.bio,user.email].join(' ').toLowerCase();
         if(search&&!haystack.includes(search))return false;
         if(role&&user.role!==role)return false;
@@ -2133,7 +3907,7 @@ function renderAdminUserInspector(user){
     const profileRows=profiles.slice(0,4).map(account=>`<div class="admin-inspector-profile"><span><i class="${typeIcon(account.type)}"></i></span><div><b>${esc(account.username||'Unnamed')}</b><small>${esc(typeLabel(account.type))}</small></div></div>`).join('');
     panel.innerHTML=`
         <div class="admin-inspector-top"><span>Account details</span><button type="button" data-inspector-close aria-label="Close details"><i class="fas fa-times"></i></button></div>
-        <div class="admin-inspector-identity"><div class="admin-inspector-avatar"><img src="${esc(siteAvatarUrl(user))}" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'" alt=""><i class="${isOnlineNow(user.lastSeen)?'online':''}"></i></div><div><small>@${esc(user.username)}</small><h3>${esc(user.displayName||user.username)}</h3>${roleBadgeHtml(user.role)||'<span class="role-badge role-user"><i class="fas fa-user"></i> Player</span>'}</div></div>
+        <div class="admin-inspector-identity"><div class="admin-inspector-avatar"><img src="${esc(siteAvatarUrl(user))}" width="100" height="100" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback alt=""><i class="${isOnlineNow(user.lastSeen)?'online':''}"></i></div><div><small>@${esc(user.username)}</small><h3>${esc(user.displayName||user.username)}</h3>${roleBadgeHtml(user.role)||'<span class="role-badge role-user"><i class="fas fa-user"></i> Player</span>'}</div></div>
         <p class="admin-inspector-bio">${esc(user.bio||'No biography has been added yet.')}</p>
         <div class="admin-inspector-access"><span style="--role-color:${info.color}"><i class="${info.icon}"></i></span><div><small>Access level</small><b>${esc(info.label)}</b></div><em>${user.banned?'Banned':isOnlineNow(user.lastSeen)?'Online':timeAgo(user.lastSeen)}</em></div>
         <div class="admin-inspector-stats"><div><b>${formatDuration(user.totalTimeSec)}</b><small>Site time</small></div><div><b>${user.visitCount||0}</b><small>Visits</small></div><div><b>${profiles.length}</b><small>MC profiles</small></div><div><b>${getFriends(user.id).length}</b><small>Friends</small></div></div>
@@ -2148,13 +3922,16 @@ function renderAdminUsers() {
     const list=document.getElementById('adminUsersList');
     if(!list)return;
     const viewer=siteUsers.find(u=>u.id===currentUserId);
-    const users=getAdminFilteredUsers();
+    const allUsers=getAdminFilteredUsers();
+    adminPage=Math.min(adminPage,Math.max(1,Math.ceil(allUsers.length/ADMIN_PAGE_SIZE)));
+    const users=allUsers.slice((adminPage-1)*ADMIN_PAGE_SIZE,adminPage*ADMIN_PAGE_SIZE);
+    renderAdminPagination(allUsers.length);
     const resultCount=document.getElementById('adminUserResultCount');
     const selectAllWrap=document.getElementById('adminSelectAllWrap');
     const selectAll=document.getElementById('adminSelectAllUsers');
     const manageableUsers=users.filter(user=>canAdminManageTarget(viewer,user));
 
-    if(resultCount)resultCount.textContent=`${users.length} ${users.length===1?'user':'users'}`;
+    if(resultCount)resultCount.textContent=`${allUsers.length} ${allUsers.length===1?'user':'users'} · showing ${users.length}`;
     if(selectAllWrap)selectAllWrap.hidden=!manageableUsers.length;
     if(selectAll){
         const selectedVisible=manageableUsers.filter(user=>adminSelectedUserIds.has(user.id)).length;
@@ -2196,7 +3973,7 @@ function renderAdminUsers() {
                 ${manageable?`<input class="admin-user-check" type="checkbox" aria-label="Select ${esc(user.username)}" ${isSelected?'checked':''}>`:'<i class="fas fa-shield-halved" title="Protected account"></i>'}
             </div>
             <div class="admin-user-avatar-wrap">
-                <img class="admin-user-avatar" src="${esc(siteAvatarUrl(user))}" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'" alt="">
+                <img class="admin-user-avatar" src="${esc(siteAvatarUrl(user))}" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback alt="">
                 <span class="admin-presence ${online?'is-online':recent?'is-recent':''}" title="${online?'Online now':recent?'Recently active':'Offline'}"></span>
             </div>
             <div class="admin-user-main">
@@ -2218,7 +3995,7 @@ function renderAdminUsers() {
                 <div class="admin-user-actions">
                     <button class="admin-act-btn inspect" data-act="inspect" type="button" aria-label="Inspect user"><i class="fas fa-arrow-right"></i></button>
                     ${manageable?`<button class="admin-act-btn ${user.banned?'unban':'ban'}" data-act="ban" type="button"><i class="fas fa-${user.banned?'unlock':'ban'}"></i><span>${user.banned?'Unban':'Ban'}</span></button>`:''}
-                    ${isDev(viewer)&&!isSelf?'<button class="admin-act-btn del" data-act="del" type="button" aria-label="Delete user"><i class="fas fa-trash-alt"></i></button>':''}
+                    ${isDev(viewer)&&!isSelf&&!validSupabaseConfig()?'<button class="admin-act-btn del" data-act="del" type="button" aria-label="Delete user"><i class="fas fa-trash-alt"></i></button>':''}
                 </div>
             </div>`;
 
@@ -2238,10 +4015,8 @@ function renderAdminUsers() {
                 renderAdminUsers();
                 return;
             }
-            target.role=roleSelect.value;
-            saveSiteUsers(siteUsers);
-            showToast(`${target.username} is now ${ROLES[target.role].label}.`,'check');
-            refreshAdmin();
+            reviewAdminAction('role',[target.id],roleSelect.value);
+            roleSelect.value=target.role;
         });
         const inspect=()=>{
             adminInspectedUserId=user.id;
@@ -2258,28 +4033,12 @@ function renderAdminUsers() {
             const target=siteUsers.find(candidate=>candidate.id===user.id);
             const actor=siteUsers.find(candidate=>candidate.id===currentUserId);
             if(!target||!canAdminManageTarget(actor,target))return showToast('This account is protected.','triangle-exclamation');
-            if(target.banned){
-                target.banned=false;
-                saveSiteUsers(siteUsers);
-                showToast(`${target.username} can sign in again.`,'check');
-                refreshAdmin();
-                return;
-            }
-            showConfirm(`Ban "${target.username}"? They will no longer be able to sign in.`,()=>{
-                target.banned=true;
-                saveSiteUsers(siteUsers);
-                showToast(`${target.username} has been banned.`,'check');
-                refreshAdmin();
-            });
+            reviewAdminAction(target.banned?'unban':'ban',[target.id]);
         });
         const deleteButton=row.querySelector('[data-act="del"]');
         if(deleteButton)deleteButton.addEventListener('click',event=>{
             event.stopPropagation();
-            showConfirm(`Permanently delete "${user.username}" and all their local data?`,()=>{
-                adminSelectedUserIds.delete(user.id);
-                deleteUserAccount(user.id);
-                refreshAdmin();
-            });
+            reviewAdminAction('delete',[user.id]);
         });
         list.appendChild(row);
     });
@@ -2291,7 +4050,7 @@ function renderAdminUsers() {
 const adminSelectAllControl=document.getElementById('adminSelectAllUsers');
 adminSelectAllControl?.addEventListener('change',()=>{
     const viewer=siteUsers.find(user=>user.id===currentUserId);
-    getAdminFilteredUsers().filter(user=>canAdminManageTarget(viewer,user)).forEach(user=>{
+    getAdminFilteredUsers().slice((adminPage-1)*ADMIN_PAGE_SIZE,adminPage*ADMIN_PAGE_SIZE).filter(user=>canAdminManageTarget(viewer,user)).forEach(user=>{
         if(adminSelectAllControl.checked)adminSelectedUserIds.add(user.id);else adminSelectedUserIds.delete(user.id);
     });
     renderAdminUsers();
@@ -2300,40 +4059,9 @@ document.getElementById('adminBulkClear')?.addEventListener('click',()=>{
     adminSelectedUserIds.clear();
     renderAdminUsers();
 });
-document.getElementById('adminBulkApplyRole')?.addEventListener('click',()=>{
-    const viewer=siteUsers.find(user=>user.id===currentUserId);
-    const role=document.getElementById('adminBulkRole')?.value;
-    const targets=selectedAdminUsers().filter(user=>canAdminManageTarget(viewer,user));
-    if(!role||!adminAllowedRoles(viewer).includes(role))return showToast('Choose an allowed role first.','triangle-exclamation');
-    if(!targets.length)return showToast('Select at least one manageable user.','triangle-exclamation');
-    targets.forEach(user=>{user.role=role;});
-    saveSiteUsers(siteUsers);
-    showToast(`${targets.length} ${targets.length===1?'account':'accounts'} updated.`,'check');
-    adminSelectedUserIds.clear();
-    refreshAdmin();
-});
-document.getElementById('adminBulkBan')?.addEventListener('click',()=>{
-    const viewer=siteUsers.find(user=>user.id===currentUserId);
-    const targets=selectedAdminUsers().filter(user=>canAdminManageTarget(viewer,user)&&!user.banned);
-    if(!targets.length)return showToast('No selectable active accounts.','triangle-exclamation');
-    showConfirm(`Ban ${targets.length} selected ${targets.length===1?'account':'accounts'}?`,()=>{
-        targets.forEach(user=>{user.banned=true;});
-        saveSiteUsers(siteUsers);
-        showToast(`${targets.length} ${targets.length===1?'account':'accounts'} banned.`,'check');
-        adminSelectedUserIds.clear();
-        refreshAdmin();
-    });
-});
-document.getElementById('adminBulkUnban')?.addEventListener('click',()=>{
-    const viewer=siteUsers.find(user=>user.id===currentUserId);
-    const targets=selectedAdminUsers().filter(user=>canAdminManageTarget(viewer,user)&&user.banned);
-    if(!targets.length)return showToast('No selected banned accounts.','triangle-exclamation');
-    targets.forEach(user=>{user.banned=false;});
-    saveSiteUsers(siteUsers);
-    showToast(`${targets.length} ${targets.length===1?'account':'accounts'} restored.`,'check');
-    adminSelectedUserIds.clear();
-    refreshAdmin();
-});
+document.getElementById('adminBulkApplyRole')?.addEventListener('click',()=>reviewAdminAction('role',selectedAdminUsers().map(user=>user.id),document.getElementById('adminBulkRole').value));
+document.getElementById('adminBulkBan')?.addEventListener('click',()=>reviewAdminAction('ban',selectedAdminUsers().filter(user=>!user.banned).map(user=>user.id)));
+document.getElementById('adminBulkUnban')?.addEventListener('click',()=>reviewAdminAction('unban',selectedAdminUsers().filter(user=>user.banned).map(user=>user.id)));
 document.getElementById('adminBulkExport')?.addEventListener('click',()=>{
     const targets=selectedAdminUsers();
     if(!targets.length)return showToast('Select users to export.','triangle-exclamation');
@@ -2341,9 +4069,11 @@ document.getElementById('adminBulkExport')?.addEventListener('click',()=>{
 });
 
 function renderAdminForum() {
+    if(!canModerate(currentRoleUser()))return;
     const list=document.getElementById('adminForumList');
     if(!list)return;
     updateAdminOverview();
+    if(validSupabaseConfig()){list.innerHTML='<div class="admin-empty-state"><i class="fas fa-comments"></i><h3>Local community preview</h3><p>This project has no cloud forum service. Moderation is available in local demo mode.</p></div>';return;}
     const query=(document.getElementById('adminForumSearch')?.value||'').trim().toLowerCase();
     const statusOf=post=>post.rejected?'rejected':post.approved?'approved':'pending';
     const statusPriority={pending:0,approved:1,rejected:2};
@@ -2383,6 +4113,7 @@ function renderAdminForum() {
                 <button class="admin-forum-delete" data-action="delete" type="button"><i class="fas fa-trash-alt"></i> Delete</button>
             </div>`;
         item.querySelector('[data-action="approve"]')?.addEventListener('click',()=>{
+            if(!canModerate(currentRoleUser())||validSupabaseConfig())return;
             const target=forumPosts.find(candidate=>candidate.id===post.id);
             if(!target)return;
             target.approved=true;
@@ -2393,6 +4124,7 @@ function renderAdminForum() {
             showToast('Post approved.','check');
         });
         item.querySelector('[data-action="reject"]')?.addEventListener('click',()=>{
+            if(!canModerate(currentRoleUser())||validSupabaseConfig())return;
             const target=forumPosts.find(candidate=>candidate.id===post.id);
             if(!target)return;
             target.approved=false;
@@ -2404,6 +4136,7 @@ function renderAdminForum() {
         });
         item.querySelector('[data-action="delete"]')?.addEventListener('click',()=>{
             showConfirm('Delete this idea permanently?',()=>{
+                if(!canModerate(currentRoleUser())||validSupabaseConfig())return;
                 forumPosts=forumPosts.filter(candidate=>candidate.id!==post.id);
                 saveForum(forumPosts);
                 renderAdminForum();
@@ -2476,9 +4209,9 @@ function renderAdminStats() {
 
     // ── Leaderboards ──
     const top=siteUsers.slice().sort((a,b)=>(b.totalTimeSec||0)-(a.totalTimeSec||0)).slice(0,5);
-    const topRows=top.map((u,i)=>`<div class="lead-row"><span class="lead-rank">#${i+1}</span><img class="lead-av" src="${esc(siteAvatarUrl(u))}" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'"><span class="lead-name">${esc(u.displayName||u.username)} ${roleBadgeHtml(u.role)}</span><span class="lead-time">${formatDuration(u.totalTimeSec)}</span></div>`).join('');
+    const topRows=top.map((u,i)=>`<div class="lead-row"><span class="lead-rank">#${i+1}</span><img class="lead-av" src="${esc(siteAvatarUrl(u))}" alt="${esc(u.displayName||u.username)}" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback><span class="lead-name">${esc(u.displayName||u.username)} ${roleBadgeHtml(u.role)}</span><span class="lead-time">${formatDuration(u.totalTimeSec)}</span></div>`).join('');
     const recent=siteUsers.slice().sort((a,b)=>parseRegDate(b.registeredAt)-parseRegDate(a.registeredAt)).slice(0,5);
-    const recentRows=recent.map(u=>`<div class="lead-row"><img class="lead-av" src="${esc(siteAvatarUrl(u))}" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'"><span class="lead-name">${esc(u.displayName||u.username)} ${roleBadgeHtml(u.role)}</span><span class="lead-time">${esc(u.registeredAt||'?')}</span></div>`).join('');
+    const recentRows=recent.map(u=>`<div class="lead-row"><img class="lead-av" src="${esc(siteAvatarUrl(u))}" alt="${esc(u.displayName||u.username)}" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback><span class="lead-name">${esc(u.displayName||u.username)} ${roleBadgeHtml(u.role)}</span><span class="lead-time">${esc(u.registeredAt||'?')}</span></div>`).join('');
 
     extra.innerHTML=`
         <div class="admin-stats-grid secondary">${sec.map(s=>`<div class="admin-stat-box sm"><div class="admin-stat-val">${s.val}</div><div class="admin-stat-label">${s.label}</div></div>`).join('')}</div>
@@ -2492,26 +4225,472 @@ function renderAdminStats() {
             <h4><i class="fas fa-screwdriver-wrench"></i> Developer Tools</h4>
             <div class="dev-tools-row">
                 <button class="dev-tool-btn" id="devExportBtn"><i class="fas fa-file-export"></i> Export Database</button>
-                <button class="dev-tool-btn" id="devReloadBtn"><i class="fas fa-rotate"></i> Reload from Cloud</button>
+                <button class="dev-tool-btn" id="devReloadBtn" ${cloudAuthUserId?'':'disabled'}><i class="fas fa-rotate"></i> Reload My Account</button>
                 <button class="dev-tool-btn danger" id="devResetBtn"><i class="fas fa-triangle-exclamation"></i> Reset Local Data</button>
             </div>
-            <p class="dev-tools-note">Cloud database: <code>${cloud?'connected':'offline — local only'}</code></p>
+            <p class="dev-tools-note">Remote scope: <code>${cloudAuthUserId?'authenticated account only':'none — local demo only'}</code></p>
         </div>`;
 
     const ex=document.getElementById('devExportBtn'); if(ex)ex.addEventListener('click',exportDatabase);
-    const rl=document.getElementById('devReloadBtn'); if(rl)rl.addEventListener('click',()=>{ rl.disabled=true; rl.innerHTML='<i class="fas fa-rotate fa-spin"></i> Reloading...'; Promise.resolve(cloudBootstrap()).then(()=>{ if(dashOverlay&&dashOverlay.classList.contains('open')){updateAdminOverview();openAdminSection('site-stats');} }); });
-    const rs=document.getElementById('devResetBtn'); if(rs)rs.addEventListener('click',()=>{ showConfirm('Clear ALL local data on this device? Cloud data is kept and reloads on refresh.',()=>{ try{Object.keys(localStorage).filter(k=>k.startsWith('spectral_')).forEach(k=>localStorage.removeItem(k));}catch{} location.reload(); }); });
+    const rl=document.getElementById('devReloadBtn'); if(rl)rl.addEventListener('click',async()=>{if(!cloudAuthUserId)return;rl.disabled=true;rl.innerHTML='<i class="fas fa-rotate fa-spin"></i> Reloading...';try{const {data}=await cloud.auth.getSession();await cloudBootstrap(data?.session?.user||null);if(dashOverlay&&dashOverlay.classList.contains('open')){updateAdminOverview();openAdminSection('site-stats');}}catch(error){console.warn('[cloud] manual reload failed:',error.message||error);showToast('Account sync failed','triangle-exclamation');}finally{rl.disabled=false;rl.innerHTML='<i class="fas fa-rotate"></i> Reload My Account';}});
+    const rs=document.getElementById('devResetBtn'); if(rs)rs.addEventListener('click',()=>{ showConfirm('Clear ALL local demo data on this device? Authenticated remote data is not deleted.',()=>{ try{Object.keys(localStorage).filter(k=>k.startsWith('spectral_')).forEach(k=>localStorage.removeItem(k));}catch{} location.reload(); }); });
+}
+/*
+ * Account workspaces v2.
+ * The old role/admin views shared several renderers and event listeners. This
+ * file replaces those surfaces with two small state machines and one delegated
+ * listener per panel. It intentionally keeps authorization helpers and storage
+ * primitives from the core model, while owning all UI state itself.
+ */
+function replaceWorkspaceNode(selector){
+    const current=document.querySelector(selector);
+    if(!current)return null;
+    const fresh=current.cloneNode(selector==='#profileTabs');
+    fresh.removeAttribute('style');
+    if(current.hidden||current.getAttribute('aria-hidden')==='true')fresh.hidden=true;
+    current.replaceWith(fresh);
+    return fresh;
 }
 
-document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){
-        if(dashOverlay&&dashOverlay.classList.contains('open'))closeDashboard();
-        const co=document.getElementById('confirmOverlay');if(co&&co.classList.contains('open'))hideConfirm();
-        const neo=document.getElementById('newsEditorOverlay');if(neo&&neo.classList.contains('open'))closeNewsEditor();
-        const fpo=document.getElementById('forumPostOverlay');if(fpo&&fpo.classList.contains('open'))closeForumPost();
-    }
-});
+const rolesPanelV2=replaceWorkspaceNode('#profilePanelRoles');
+const adminPanelV2=replaceWorkspaceNode('#profilePanelAdmin');
+const profileTabsV2=replaceWorkspaceNode('#profileTabs');
 
+const rolesV2={cycle:'yearly',category:'capacity',quote:null,closeTimer:0};
+const adminV2={tab:'users',page:1,pageSize:10,query:'',role:'',status:'',sort:'role',forumFilter:'pending',forumQuery:'',selected:new Set(),inspect:null,pending:null,forumPending:null,busy:false,loading:false};
+const workspaceAnimations=new WeakMap();
+const workspaceMotionSnapshots=new WeakMap();
+let profileSwitchTimer=0;
+let adminSwitchTimer=0;
+
+function interruptWorkspaceMotion(element){
+    if(!element)return;
+    const animation=workspaceAnimations.get(element),fallback=element.classList.contains('workspace-reveal-fallback');
+    if(animation?.playState==='running'||fallback){
+        const style=getComputedStyle(element);
+        workspaceMotionSnapshots.set(element,{transform:style.transform,opacity:style.opacity,at:performance.now()});
+    }
+    animation?.cancel();
+    workspaceAnimations.delete(element);
+    element.classList.remove('workspace-reveal-fallback');
+}
+
+function revealWorkspaceContent(element,direction=1,{distance=16,duration=360,fade=true}={}){
+    if(!element)return;
+    interruptWorkspaceMotion(element);
+    const saved=workspaceMotionSnapshots.get(element);
+    const snapshot=saved&&performance.now()-saved.at<500?saved:null;
+    workspaceMotionSnapshots.delete(element);
+    if(REDUCED_MOTION||liteOn())return;
+    const startTransform=snapshot?.transform&&snapshot.transform!=='none'?snapshot.transform:`translate3d(${direction*distance}px,6px,0)`;
+    const startOpacity=fade?Number(snapshot?.opacity??.94):1;
+    if(typeof element.animate!=='function'){
+        element.style.setProperty('--workspace-reveal-start',startTransform);
+        element.style.setProperty('--workspace-reveal-opacity',String(startOpacity));
+        void element.offsetWidth;
+        element.classList.add('workspace-reveal-fallback');
+        return;
+    }
+    const animation=element.animate([
+        {opacity:startOpacity,transform:startTransform},
+        {opacity:1,transform:'translate3d(0,0,0)'}
+    ],{duration,easing:'cubic-bezier(.22,1,.36,1)'});
+    workspaceAnimations.set(element,animation);
+    animation.finished.catch(()=>{}).finally(()=>{if(workspaceAnimations.get(element)===animation)workspaceAnimations.delete(element);});
+}
+
+function workspaceIcon(icon){return `<i class="fas fa-${icon}" aria-hidden="true"></i>`;}
+function workspaceRoleKeys(user){return isDev(user)?ROLE_ORDER:['VETERAN',...PREMIUM_ROLES];}
+function workspaceRoleOrder(userId){return loadRoleOrders().find(order=>order.userId===userId&&order.status==='reserved')||null;}
+function workspaceUser(){return siteUsers.find(user=>user.id===currentUserId)||null;}
+
+function renderRolesShell(){
+    if(!rolesPanelV2)return;
+    rolesPanelV2.innerHTML=`<div class="roles-v2-shell">
+        <header class="roles-v2-hero">
+            <div class="workspace-signal-art" aria-hidden="true"><span class="signal-orbit"></span><span class="signal-core"></span><span class="signal-trace"></span></div>
+            <div class="roles-v2-hero-copy"><span class="roles-v2-eyebrow">${workspaceIcon('wand-magic-sparkles')} ACCOUNT ROLES</span><h2>Make your space <em>your own.</em></h2><p>Explore each role, compare the limits that matter, and keep a favorite plan for launch.</p><div class="roles-v2-hero-points"><span>${workspaceIcon('sliders')} Clear limits</span><span>${workspaceIcon('sparkles')} Profile style</span><span>${workspaceIcon('shield-halved')} Verified access</span></div></div>
+            <div class="roles-v2-current"><span id="rolesV2CurrentIcon">${workspaceIcon('user')}</span><div><small id="rolesV2CurrentLabel">Current role</small><strong id="rolesV2CurrentName">Player</strong><em id="rolesV2CurrentNote">Standard access</em></div></div>
+        </header>
+        <section id="rolesV2Entitlements" class="roles-v2-entitlements" aria-label="Current account limits"></section>
+        <section id="developerRoleLab" class="roles-v2-preview" hidden></section>
+        <section id="roleReservation" class="roles-v2-reservation" hidden aria-live="polite"></section>
+        <div class="roles-v2-toolbar"><div><small>ROLE COLLECTION</small><h3>Choose your next chapter</h3><p>See the price and your actual account limits side by side.</p></div><div class="roles-v2-cycle" role="group" aria-label="Billing period"><button type="button" data-role-v2-cycle="monthly" aria-pressed="false">Monthly</button><button type="button" class="active" data-role-v2-cycle="yearly" aria-pressed="true">Yearly <b>-20%</b></button></div></div>
+        <div id="roleStoreGrid" class="roles-v2-grid" aria-live="polite"></div>
+        <section class="roles-v2-compare"><header><span>${workspaceIcon('table-cells-large')}</span><div><small>ONE CLEAR VIEW</small><h3>What changes with each role?</h3><p>Permissions stay separate from visual previews.</p></div></header><div class="roles-v2-compare-tabs" role="tablist" aria-label="Role comparison"><button type="button" data-role-v2-category="capacity" aria-selected="true">${workspaceIcon('cubes')} Capacity</button><button type="button" data-role-v2-category="appearance" aria-selected="false">${workspaceIcon('palette')} Appearance</button><button type="button" data-role-v2-category="permissions" aria-selected="false">${workspaceIcon('shield-halved')} Permissions</button></div><div id="roleComparisonGrid" class="roles-v2-table-wrap" tabindex="0"></div><p class="roles-v2-note">${workspaceIcon('circle-info')} A launch choice is saved locally and never grants a role. Staff access is assigned by the server.</p></section>
+        <aside id="roleCheckoutSheet" class="roles-v2-checkout" hidden aria-live="polite"><button type="button" data-role-v2-close class="roles-v2-close" aria-label="Close role choice">×</button><span id="rolesV2CheckoutIcon">${workspaceIcon('star')}</span><div><small>PLAN PREVIEW · NO PAYMENT</small><h3 id="rolesV2CheckoutTitle">Choose Pro</h3><p id="rolesV2CheckoutText">Save a plan to revisit at launch. No charge or role activation happens here.</p></div><strong id="rolesV2CheckoutPrice">$0</strong><button type="button" data-role-v2-confirm class="roles-v2-confirm">Save plan ${workspaceIcon('arrow-right')}</button></aside>
+    </div>`;
+}
+
+function renderRolesEntitlements(user){
+    const el=document.getElementById('rolesV2Entitlements');if(!el)return;
+    const info=roleInfo(user.role),mc=loadMcAccounts(user.id)||[],fav=mc.filter(item=>item.favorite).length;
+    const metric=(icon,label,value,limit)=>`<article><span>${workspaceIcon(icon)} ${label}</span><strong>${value}<small> / ${formatRoleLimit(limit)}</small></strong><div><i style="width:${Number.isFinite(limit)?Math.min(100,(value/Math.max(1,limit))*100):Math.min(100,value*6)}%"></i></div><em>${esc(info.label)} access</em></article>`;
+    el.innerHTML=metric('cubes','Launcher profiles',mc.length,info.profileLimit)+metric('star','Favorites',fav,info.favoriteLimit)+`<article><span>${workspaceIcon('shield-halved')} Permissions</span><strong>${canManageUsers(user)?'Admin':canModerate(user)?'Moderator':'Player'}</strong><em>${canManageUsers(user)?'Manage lower roles and access':canModerate(user)?'Review community queue':'Manage your own identities'}</em></article>`;
+}
+
+function renderRolesPreview(user,displayRole){
+    const lab=document.getElementById('developerRoleLab');if(!lab)return;
+    if(!isDev(user)){lab.hidden=true;lab.innerHTML='';return;}
+    const role=roleInfo(displayRole);lab.hidden=false;lab.innerHTML=`<span>${workspaceIcon('flask-vial')}</span><div><small>DEVELOPER PREVIEW</small><strong>${esc(role.label)} appearance</strong><p>Only the visual preview changes. Your actual Developer permissions remain active.</p></div><button type="button" data-role-v2-reset ${displayRole==='DEV'?'disabled':''}>${workspaceIcon('rotate-left')} Reset</button>`;
+}
+
+function roleCard(user,key,index){
+    const info=roleInfo(key),display=displayedRoleKey(user),developer=isDev(user),current=display===key,chosen=workspaceRoleOrder(user.id),reserved=chosen?.role===key,eligible=key==='VETERAN'&&isVeteranEligible(user),plan=ROLE_STORE_PLANS[key];
+    const locked=!developer&&key==='VETERAN'&&!current;
+    const state=current?'current':reserved?'reserved':locked?'locked':'';
+    let label=current?'Current role':developer?`Preview ${info.label}`:reserved?'Saved plan':locked?(eligible?'Assigned automatically':'Legacy role'):'Review plan';
+    let action=developer?'preview':key==='VETERAN'?'none':'choose';
+    const price=developer?'Visual preview':key==='VETERAN'?(eligible?'Earned permanently':'Founder window closed'):`$${plan[rolesV2.cycle].toFixed(2)} / ${rolesV2.cycle==='yearly'?'year':'month'}`;
+    return `<article class="role-v2-card ${state} ${key==='PRO'?'featured':''}" style="--role-color:${info.color};--role-delay:${index*42}ms" data-role-v2-card="${key}"><div class="role-v2-card-top"><span>${workspaceIcon(info.icon.replace('fas fa-',''))}</span><small>${current?'YOUR ROLE':key==='PRO'?'POPULAR':developer?'PREVIEW':key==='VETERAN'?'FOUNDER':'ROLE'}</small></div><div class="role-v2-card-name"><h4>${esc(info.label)}</h4><p>${esc(info.tagline)}</p></div><div class="role-v2-price-wrap"><strong class="role-v2-price">${price}</strong>${!developer&&plan?`<small>${rolesV2.cycle==='yearly'?'Billed annually at launch':'Indicative monthly plan'}</small>`:''}</div><div class="role-v2-capacity"><span>${workspaceIcon('cubes')} ${formatRoleLimit(roleProfileLimit(key))} profiles</span><span>${workspaceIcon('star')} ${formatRoleLimit(roleFavoriteLimit(key))} favorites</span></div><ul>${info.perks.slice(0,3).map(perk=>`<li>${workspaceIcon('check')} ${esc(perk)}</li>`).join('')}</ul><button type="button" data-role-v2-action="${action}" data-role-v2-key="${key}" ${action==='none'||current||reserved?'disabled':''}>${label} ${workspaceIcon(developer?'eye':current?'check':reserved?'bookmark':'arrow-right')}</button></article>`;
+}
+
+function renderRolesCards(user){
+    const grid=document.getElementById('roleStoreGrid');if(!grid)return;
+    grid.innerHTML=workspaceRoleKeys(user).map((key,index)=>roleCard(user,key,index)).join('');
+}
+
+function renderRolesCompare(user){
+    const grid=document.getElementById('roleComparisonGrid');if(!grid)return;
+    const keys=rolesV2.category==='permissions'?['USER','PRO','SPECTRAL','MODERATOR','ADMIN','DEV']:['USER','VETERAN','PRO','LEGEND','SPECTRAL'];
+    const rows=rolesV2.category==='capacity'?[['Profiles',key=>formatRoleLimit(roleProfileLimit(key))],['Favorites',key=>formatRoleLimit(roleFavoriteLimit(key))],['Source',key=>key==='VETERAN'?'Founder':PREMIUM_ROLES.includes(key)?'Launch choice':'Included']]:rolesV2.category==='appearance'?[['Header',key=>PROFILE_HEADERS[ROLE_DEFAULT_HEADERS[key]]?.label||'Included'],['Entrance',key=>PROFILE_ENTRANCES[ROLE_DEFAULT_ENTRANCES[key]]?.label||'Included'],['Badge',key=>roleInfo(key).label]]:[['Own profile',()=>true],['Review ideas',key=>roleRank(key)>=10],['Manage roles',key=>roleRank(key)>=20],['Developer preview',key=>key==='DEV']];
+    grid.innerHTML=`<table><thead><tr><th>Feature</th>${keys.map(key=>`<th class="${key===user.role?'is-current':''}">${workspaceIcon(roleInfo(key).icon.replace('fas fa-',''))}<span>${esc(roleInfo(key).label)}</span>${key===user.role?'<small>YOU</small>':''}</th>`).join('')}</tr></thead><tbody>${rows.map(([label,read])=>`<tr><th>${label}</th>${keys.map(key=>{const value=read(key);return `<td>${typeof value==='boolean'?`<span class="role-v2-permission ${value?'yes':'no'}">${workspaceIcon(value?'check':'minus')}<b>${value?'Included':'—'}</b></span>`:esc(value)}</td>`;}).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+function renderRoleWorkspaceV2(){
+    const user=workspaceUser();if(!user||!rolesPanelV2)return;
+    const display=displayedRoleKey(user),info=roleInfo(display);
+    const icon=document.getElementById('rolesV2CurrentIcon');if(icon)icon.innerHTML=workspaceIcon(info.icon.replace('fas fa-',''));
+    const name=document.getElementById('rolesV2CurrentName');if(name)name.textContent=info.label;
+    const note=document.getElementById('rolesV2CurrentNote');if(note)note.textContent=isDev(user)&&display!=='DEV'?'Preview only · Developer access stays active':info.tagline;
+    renderRolesEntitlements(user);renderRolesPreview(user,display);renderRolesCards(user);renderRolesCompare(user);
+    const saved=workspaceRoleOrder(user.id),checkout=document.getElementById('roleReservation');
+    if(checkout){checkout.hidden=!saved;if(saved)checkout.innerHTML=`<span>${workspaceIcon('bookmark')}</span><div><small>SAVED PLAN · THIS DEVICE</small><strong>${esc(roleInfo(saved.role).label)} · ${saved.billing}</strong><p>$${Number(saved.quotedPrice).toFixed(2)} indicative price · no subscription</p></div><button type="button" data-role-v2-remove>${workspaceIcon('xmark')} Remove</button>`;}
+}
+
+function openRoleCheckoutV2(key){
+    const user=workspaceUser(),plan=ROLE_STORE_PLANS[key],sheet=document.getElementById('roleCheckoutSheet');if(!user||!plan||!sheet)return;
+    clearTimeout(rolesV2.closeTimer);
+    rolesV2.quote={userId:user.id,role:key,billing:rolesV2.cycle,price:plan[rolesV2.cycle]};
+    sheet.hidden=false;document.getElementById('rolesV2CheckoutIcon').innerHTML=workspaceIcon(roleInfo(key).icon.replace('fas fa-',''));document.getElementById('rolesV2CheckoutTitle').textContent=`Choose ${roleInfo(key).label}`;document.getElementById('rolesV2CheckoutPrice').textContent=`$${plan[rolesV2.cycle].toFixed(2)}`;requestAnimationFrame(()=>sheet.classList.add('is-open'));
+}
+function closeRoleCheckoutV2(){const sheet=document.getElementById('roleCheckoutSheet');if(!sheet)return;sheet.classList.remove('is-open');rolesV2.quote=null;clearTimeout(rolesV2.closeTimer);rolesV2.closeTimer=window.setTimeout(()=>{sheet.hidden=true;},180);}
+function saveRoleChoiceV2(){
+    const quote=rolesV2.quote,user=workspaceUser();if(!quote||!user||quote.userId!==user.id)return;
+    const orders=loadRoleOrders().filter(item=>item.userId!==user.id);orders.push({id:`role_${crypto.randomUUID()}`,userId:user.id,role:quote.role,billing:quote.billing,quotedPrice:quote.price,currency:'USD',status:'reserved',createdAt:new Date().toISOString()});
+    if(!saveRoleOrders(orders))return showToast('This browser could not save the choice.','triangle-exclamation');
+    closeRoleCheckoutV2();renderRoleWorkspaceV2();showToast(`${roleInfo(quote.role).label} launch choice saved.`,'check');
+}
+
+function bindRolesV2(){
+    if(!rolesPanelV2)return;
+    renderRolesShell();
+    rolesPanelV2.addEventListener('click',event=>{
+        const cycle=event.target.closest('[data-role-v2-cycle]');if(cycle){if(rolesV2.quote)closeRoleCheckoutV2();rolesV2.cycle=cycle.dataset.roleV2Cycle;rolesPanelV2.querySelectorAll('[data-role-v2-cycle]').forEach(button=>{button.classList.toggle('active',button===cycle);button.setAttribute('aria-pressed',String(button===cycle));});renderRoleWorkspaceV2();return;}
+        const category=event.target.closest('[data-role-v2-category]');if(category){const order=['capacity','appearance','permissions'],previous=rolesV2.category,next=category.dataset.roleV2Category;if(previous===next)return;rolesV2.category=next;rolesPanelV2.querySelectorAll('[data-role-v2-category]').forEach(button=>{button.classList.toggle('active',button===category);button.setAttribute('aria-selected',String(button===category));});renderRolesCompare(workspaceUser());revealWorkspaceContent(document.getElementById('roleComparisonGrid'),order.indexOf(next)>order.indexOf(previous)?1:-1,{distance:9,duration:280});return;}
+        const action=event.target.closest('[data-role-v2-action]');if(action&&!action.disabled){if(action.dataset.roleV2Action==='preview'){const user=workspaceUser();if(user&&setDeveloperRolePreview(user,action.dataset.roleV2Key)){renderNavbar();renderRoleWorkspaceV2();showToast(`Preview: ${roleInfo(action.dataset.roleV2Key).label}.`,'eye');}}else if(action.dataset.roleV2Action==='choose')openRoleCheckoutV2(action.dataset.roleV2Key);return;}
+        if(event.target.closest('[data-role-v2-reset]')){const user=workspaceUser();if(user&&setDeveloperRolePreview(user,'DEV')){renderNavbar();renderRoleWorkspaceV2();}return;}
+        if(event.target.closest('[data-role-v2-remove]')){const user=workspaceUser();if(user&&saveRoleOrders(loadRoleOrders().filter(item=>item.userId!==user.id))){renderRoleWorkspaceV2();showToast('Saved plan removed.','check');}return;}
+        if(event.target.closest('[data-role-v2-close]')){closeRoleCheckoutV2();return;}
+        if(event.target.closest('[data-role-v2-confirm]'))saveRoleChoiceV2();
+    });
+}
+
+function adminV2Template(){
+    if(!adminPanelV2)return;
+    adminPanelV2.innerHTML=`<div class="admin-v2-shell"><header class="admin-v2-header"><div><span class="admin-v2-kicker">${workspaceIcon('shield-halved')} ADMIN WORKSPACE</span><h2>Keep access understandable.</h2><p>Review people, changes, community posts and site health from one calm workspace.</p></div><div id="adminV2Connection" class="admin-v2-connection"></div></header><div id="adminV2Metrics" class="admin-v2-metrics"></div><nav id="adminV2Nav" class="admin-v2-nav" role="tablist" aria-label="Admin workspace sections"><button data-admin-v2-tab="users" role="tab">${workspaceIcon('users')}<strong>Users</strong><small>Accounts &amp; access</small><b></b></button><button data-admin-v2-tab="forum" role="tab">${workspaceIcon('comments')}<strong>Forum</strong><small>Community queue</small><b></b></button><button data-admin-v2-tab="activity" role="tab">${workspaceIcon('clock-rotate-left')}<strong>Activity</strong><small>Reviewed changes</small><b></b></button><button data-admin-v2-tab="analytics" role="tab">${workspaceIcon('chart-line')}<strong>Analytics</strong><small>Site overview</small><b></b></button></nav><section id="adminV2Review" class="admin-v2-review" hidden></section><div id="adminV2Views"><section data-admin-v2-view="users" role="tabpanel"><div class="admin-v2-toolbar"><label>${workspaceIcon('search')}<input data-admin-v2-search type="search" placeholder="Find a person…" autocomplete="off"><kbd>Ctrl K</kbd></label><select data-admin-v2-filter="role" aria-label="Role filter"><option value="">All roles</option>${ROLE_ORDER.map(key=>`<option value="${key}">${esc(roleInfo(key).label)}</option>`).join('')}</select><select data-admin-v2-filter="status" aria-label="Status filter"><option value="">All statuses</option><option value="online">Online now</option><option value="banned">Banned</option><option value="active">Active this week</option></select><select data-admin-v2-filter="sort" aria-label="Sort users"><option value="role">Highest role</option><option value="recent">Recently active</option><option value="name">Name A–Z</option><option value="time">Most time</option></select></div><div class="admin-v2-list-head"><label><input data-admin-v2-select-all type="checkbox"> Select visible</label><span data-admin-v2-count></span><button data-admin-v2-clear>Clear selection</button></div><div data-admin-v2-bulk class="admin-v2-bulk" hidden></div><div class="admin-v2-users"><div data-admin-v2-list class="admin-v2-list"></div><aside data-admin-v2-inspector class="admin-v2-inspector"></aside></div><nav data-admin-v2-pages class="admin-v2-pages" aria-label="User pages"></nav></section><section data-admin-v2-view="forum" role="tabpanel" hidden><div class="admin-v2-section-heading"><div><small>COMMUNITY QUEUE</small><h3>Review ideas with context.</h3></div><span data-admin-v2-forum-count></span></div><div data-admin-v2-forum class="admin-v2-forum"></div></section><section data-admin-v2-view="activity" role="tabpanel" hidden><div class="admin-v2-section-heading"><div><small>ACCOUNT HISTORY</small><h3>Every reviewed change has a reason.</h3></div></div><div data-admin-v2-audit class="admin-v2-audit"></div></section><section data-admin-v2-view="analytics" role="tabpanel" hidden><div class="admin-v2-section-heading"><div><small>SITE OVERVIEW</small><h3>What is happening right now?</h3></div></div><div data-admin-v2-analytics class="admin-v2-analytics"></div></section></div></div>`;
+    adminPanelV2.querySelector('[data-admin-v2-forum]').insertAdjacentHTML('beforebegin',`<div class="admin-v2-forum-tools"><label>${workspaceIcon('search')}<input data-admin-v2-forum-search type="search" placeholder="Search ideas or authors" aria-label="Search ideas or authors"></label><div role="group" aria-label="Idea status"><button type="button" data-admin-v2-forum-filter="pending">Pending</button><button type="button" data-admin-v2-forum-filter="all">All</button><button type="button" data-admin-v2-forum-filter="approved">Approved</button><button type="button" data-admin-v2-forum-filter="rejected">Rejected</button></div></div>`);
+    adminPanelV2.querySelector('#adminV2Connection').insertAdjacentHTML('afterend',`<button type="button" class="admin-v2-refresh" data-admin-v2-refresh>${workspaceIcon('rotate')} Refresh data</button>`);
+}
+
+function adminV2Users(){
+    const viewer=workspaceUser(),search=adminV2.query.toLowerCase();
+    const filtered=siteUsers.filter(user=>{if(validSupabaseConfig()&&!adminCloudIds.has(user.id))return false;const hay=`${user.username} ${user.displayName} ${user.bio} ${user.email}`.toLowerCase();if(search&&!hay.includes(search))return false;if(adminV2.role&&user.role!==adminV2.role)return false;if(adminV2.status==='online'&&!isOnlineNow(user.lastSeen))return false;if(adminV2.status==='banned'&&!user.banned)return false;if(adminV2.status==='active'&&!isRecentlyActive(user.lastSeen,7))return false;return true;}).sort((a,b)=>adminV2.sort==='name'?(a.displayName||a.username).localeCompare(b.displayName||b.username):adminV2.sort==='time'?(b.totalTimeSec||0)-(a.totalTimeSec||0):adminV2.sort==='recent'?new Date(b.lastSeen||0)-new Date(a.lastSeen||0):roleRank(b.role)-roleRank(a.role));
+    const pages=Math.max(1,Math.ceil(filtered.length/adminV2.pageSize));adminV2.page=Math.min(adminV2.page,pages);const visible=filtered.slice((adminV2.page-1)*adminV2.pageSize,adminV2.page*adminV2.pageSize);const manageable=user=>!!viewer&&!viewer.banned&&AccountPolicy.canManage(viewer,user);
+    return {viewer,filtered,visible,pages,manageable};
+}
+function adminV2UserCard(user,state){
+    const can=state.manageable(user),selected=adminV2.selected.has(user.id),inspected=adminV2.inspect===user.id;
+    return `<article class="admin-v2-user ${selected?'is-selected':''} ${inspected?'is-inspected':''} ${user.banned?'is-banned':''}" data-admin-v2-user="${esc(user.id)}"><div class="admin-v2-user-check">${can?`<input type="checkbox" data-admin-v2-select="${esc(user.id)}" ${selected?'checked':''} aria-label="Select ${esc(user.username)}">`:workspaceIcon('lock')}</div><div class="admin-v2-avatar"><img src="${esc(siteAvatarUrl(user))}" alt="" width="48" height="48" loading="lazy" data-avatar-fallback><i class="${isOnlineNow(user.lastSeen)?'online':''}"></i></div><div class="admin-v2-user-copy"><strong>${esc(user.displayName||user.username)}</strong><span>@${esc(user.username)} · ${esc(user.bio||'No bio yet')}</span><small>${workspaceIcon('clock')} ${formatDuration(user.totalTimeSec)} · ${workspaceIcon('cube')} ${(loadMcAccounts(user.id)||[]).length} profiles · ${user.banned?'Restricted':'Active'}</small></div><div class="admin-v2-user-action"><select data-admin-v2-role="${esc(user.id)}" aria-label="Role for ${esc(user.username)}" ${can?'':'disabled'}>${adminAllowedRoles(viewerForAdminV2(state.viewer)).map(key=>`<option value="${key}" ${key===user.role?'selected':''}>${esc(roleInfo(key).label)}</option>`).join('')}</select><button type="button" data-admin-v2-inspect="${esc(user.id)}">${workspaceIcon('arrow-right')}<span>Inspect</span></button></div></article>`;
+}
+function viewerForAdminV2(user){return user;}
+function renderAdminV2Users(){
+    const root=adminPanelV2,state=adminV2Users();if(!root)return;
+    root.querySelector('[data-admin-v2-count]').textContent=`${state.filtered.length} account${state.filtered.length===1?'':'s'} · page ${adminV2.page}/${state.pages}`;
+    root.querySelector('[data-admin-v2-list]').innerHTML=state.visible.length?state.visible.map(user=>adminV2UserCard(user,state)).join(''):`<div class="admin-v2-empty">${workspaceIcon(adminCloudError?'plug-circle-exclamation':'user-slash')}<strong>${esc(adminCloudError||'No accounts found')}</strong><span>${adminCloudError?'Use Refresh data after applying the administration migration.':'Clear a filter or try another name.'}</span></div>`;
+    const inspected=siteUsers.find(user=>user.id===adminV2.inspect)||state.visible[0];root.querySelector('[data-admin-v2-inspector]').innerHTML=inspected?`<div class="admin-v2-inspector-top"><small>ACCOUNT DETAILS</small><h3>${esc(inspected.displayName||inspected.username)}</h3><span>${esc(roleInfo(inspected.role).label)} · ${inspected.banned?'Restricted':'Active'}</span></div><dl><div><dt>Username</dt><dd>@${esc(inspected.username)}</dd></div><div><dt>Joined</dt><dd>${esc(inspected.registeredAt||'—')}</dd></div><div><dt>Site time</dt><dd>${formatDuration(inspected.totalTimeSec)}</dd></div><div><dt>Account id</dt><dd><code>${esc(inspected.id)}</code></dd></div></dl>${state.manageable(inspected)&&inspected.id!==state.viewer.id?`<div class="admin-v2-inspector-actions"><button type="button" data-admin-v2-inspect-action="${inspected.banned?'unban':'ban'}" data-admin-v2-inspect-id="${esc(inspected.id)}">${workspaceIcon(inspected.banned?'unlock':'ban')} ${inspected.banned?'Restore sign-in':'Restrict sign-in'}</button>${isDev(state.viewer)&&!validSupabaseConfig()?`<button type="button" data-admin-v2-inspect-action="delete" data-admin-v2-inspect-id="${esc(inspected.id)}" class="danger">${workspaceIcon('trash-can')} Delete local account</button>`:''}</div>`:''}`:`<div class="admin-v2-empty">${workspaceIcon('user-gear')}<strong>Select an account</strong><span>Inspect access and activity without leaving the list.</span></div>`;
+    root.querySelector('[data-admin-v2-pages]').innerHTML=`<button data-admin-v2-page="prev" ${adminV2.page===1?'disabled':''}>${workspaceIcon('arrow-left')} Previous</button><span>${adminV2.page} / ${state.pages}</span><button data-admin-v2-page="next" ${adminV2.page===state.pages?'disabled':''}>Next ${workspaceIcon('arrow-right')}</button>`;
+    const bulk=root.querySelector('[data-admin-v2-bulk]'),selected=[...adminV2.selected].filter(id=>state.filtered.some(user=>user.id===id));adminV2.selected=new Set(selected);bulk.hidden=!selected.length;bulk.innerHTML=selected.length?`<strong>${selected.length} selected</strong><select data-admin-v2-bulk-role aria-label="Bulk role">${adminAllowedRoles(state.viewer).map(key=>`<option value="${key}">${esc(roleInfo(key).label)}</option>`).join('')}</select><button data-admin-v2-bulk-action="role">Apply role</button><button data-admin-v2-bulk-action="ban">Restrict</button><button data-admin-v2-bulk-action="unban">Restore</button><button data-admin-v2-bulk-action="export">Export</button>`:'';
+}
+function adminV2Review(action,ids,role){
+    adminV2.forumPending=null;
+    const viewer=workspaceUser(),targets=ids.map(id=>siteUsers.find(user=>user.id===id)).filter(Boolean);if(!targets.length||targets.some(user=>!AccountPolicy.canManage(viewer,user,action==='role'?role:null)))return showToast('This account is protected by the role hierarchy.','lock');
+    adminV2.pending={action,role,actorId:viewer.id,targets:targets.map(user=>({id:user.id,username:user.username,role:user.role,banned:user.banned}))};
+    const review=adminPanelV2.querySelector('[data-admin-v2-review]')||document.getElementById('adminV2Review');if(!review)return;
+    review.hidden=false;review.innerHTML=`<div class="admin-v2-review-head"><span>${workspaceIcon('code-compare')}</span><div><small>REVIEW BEFORE APPLYING</small><h3>${action==='role'?'Change role':action==='ban'?'Restrict sign-in':action==='unban'?'Restore sign-in':'Delete local account'}</h3></div></div><div class="admin-v2-diff">${targets.map(user=>`<div><strong>${esc(user.username)}</strong><span>${esc(action==='role'?roleInfo(user.role).label:user.banned?'Restricted':'Active')}</span>${workspaceIcon('arrow-right')}<b>${esc(action==='role'?roleInfo(role).label:action==='ban'?'Restricted':action==='unban'?'Active':'Deleted')}</b></div>`).join('')}</div><label>Why is this change needed?<input data-admin-v2-reason maxlength="160" placeholder="Short reason for the activity log"></label><p data-admin-v2-error></p><footer><button data-admin-v2-cancel>Cancel</button><button data-admin-v2-apply>${workspaceIcon('check')} Apply reviewed change</button></footer>`;
+    review.scrollIntoView({behavior:REDUCED_MOTION?'auto':'smooth',block:'nearest'});
+}
+function adminV2CascadeDelete(ids){
+    const idSet=new Set(ids),styles=loadProfileStyles(),previews=loadDevRolePreviews(),records=new Map();
+    for(const id of idSet){records.set(K_MC_PFX+id,null);records.set(K_MC_ACT+id,null);delete styles[id];delete previews[id];}
+    const nextFriends=friendships.filter(item=>!idSet.has(item.requester)&&!idSet.has(item.addressee));
+    const nextForum=forumPosts.filter(post=>!idSet.has(post.authorId)).map(post=>({...post,upvotes:(post.upvotes||[]).filter(id=>!idSet.has(id))}));
+    records.set(K_PROFILE_STYLES,styles);records.set(K_DEV_ROLE_PREVIEWS,previews);records.set(K_ROLE_ORDERS,loadRoleOrders().filter(order=>!idSet.has(order.userId)));records.set(K_FRIENDS,nextFriends);records.set(K_FORUM,nextForum);persistAdminRecords(records);
+    friendships=nextFriends;forumPosts=nextForum;
+}
+async function adminV2Apply(){
+    if(adminV2.forumPending){
+        const pending=adminV2.forumPending,review=adminPanelV2.querySelector('#adminV2Review'),reason=review?.querySelector('[data-admin-v2-reason]')?.value.trim();
+        if(!reason||reason.length<3){review.querySelector('[data-admin-v2-error]').textContent='Add a short reason before applying.';return;}
+        if(adminV2.busy)return;adminV2.busy=true;
+        try{
+            if(validSupabaseConfig())await moderateCommunityIdea(pending.id,pending.action,reason);
+            else{const post=forumPosts.find(item=>item.id===pending.id);if(!post)throw new Error('The idea changed. Refresh the queue.');post.approved=pending.action==='approve';post.rejected=!post.approved;saveForum(forumPosts);renderForum();const actor=workspaceUser(),audit=readJsonStorage(K_ADMIN_AUDIT,[],Array.isArray);audit.push({id:crypto.randomUUID(),actorId:actor.id,actorName:actor.username,action:`idea_${pending.action}`,reason,createdAt:new Date().toISOString(),changes:[{id:post.id,username:post.title,before:'Idea',after:pending.action}]});try{localStorage.setItem(K_ADMIN_AUDIT,JSON.stringify(audit.slice(-200)));}catch{}}
+            adminV2.forumPending=null;review.hidden=true;renderAdminV2();showToast('Idea review saved.','check');
+        }catch(error){review.querySelector('[data-admin-v2-error]').textContent=error.message||'Could not save the review.';}
+        finally{adminV2.busy=false;}
+        return;
+    }
+    const pending=adminV2.pending,review=adminPanelV2.querySelector('#adminV2Review'),reason=review?.querySelector('[data-admin-v2-reason]')?.value.trim();if(!pending||!reason||reason.length<3)return review?.querySelector('[data-admin-v2-error]').replaceChildren(document.createTextNode('Add a short reason before applying.'));
+    if(adminV2.busy)return;adminV2.busy=true;
+    const actor=siteUsers.find(user=>user.id===pending.actorId),targets=pending.targets.map(before=>siteUsers.find(user=>user.id===before.id));
+    try{
+        if(!actor||targets.some((user,index)=>!user||!AccountPolicy.canManage(actor,user,pending.action==='role'?pending.role:null)||user.role!==pending.targets[index].role||user.banned!==pending.targets[index].banned))throw new Error('The account changed. Review the latest state.');
+        if(validSupabaseConfig()){
+            if(!authAvailable()||!cloudAuthUserId)throw new Error('Reconnect to administration before applying changes.');
+            const {error}=await cloud.rpc('spectral_admin_apply',{p_targets:pending.targets,p_action:pending.action,p_role:pending.role||null,p_reason:reason});
+            if(error)throw new Error('Server rejected the change. Refresh the directory and review your permissions.');
+            await loadAdminCloud();adminV2.pending=null;adminV2.selected.clear();renderAdminV2();showToast('Reviewed admin change saved.','check');return;
+        }
+        const ids=new Set(targets.map(user=>user.id)),next=siteUsers.filter(user=>pending.action!=='delete'||!ids.has(user.id)).map(user=>ids.has(user.id)&&pending.action==='role'?{...user,role:pending.role,roleSource:'admin'}:ids.has(user.id)?{...user,banned:pending.action==='ban'}:user);
+        if(!saveSiteUsers(next))throw new Error('Browser storage is full.');siteUsers=next;
+        if(pending.action==='delete')adminV2CascadeDelete(ids);
+        const audit=readJsonStorage(K_ADMIN_AUDIT,[],Array.isArray);audit.push({id:crypto.randomUUID(),actorId:actor.id,actorName:actor.username,action:pending.action,reason,createdAt:new Date().toISOString(),changes:targets.map(user=>({id:user.id,username:user.username,before:user.role,after:pending.action==='role'?pending.role:pending.action}))});try{localStorage.setItem(K_ADMIN_AUDIT,JSON.stringify(audit.slice(-200)));}catch{}
+        adminV2.pending=null;adminV2.selected.clear();renderAdminV2();showToast('Reviewed admin change saved.','check');
+    }catch(error){const message=review?.querySelector('[data-admin-v2-error]');if(message)message.textContent=error.message;}finally{adminV2.busy=false;}
+}
+function renderAdminV2(){
+    const user=workspaceUser();if(!user||!adminPanelV2)return;const accounts=validSupabaseConfig()?siteUsers.filter(item=>adminCloudIds.has(item.id)):siteUsers;const metrics=adminPanelV2.querySelector('[data-admin-v2-metrics]')||document.getElementById('adminV2Metrics');if(metrics)metrics.innerHTML=[['users',validSupabaseConfig()?'Loaded accounts':'Accounts',accounts.length],['bolt','Active 7d',accounts.filter(item=>isRecentlyActive(item.lastSeen,7)).length],['inbox','Pending',forumPosts.filter(item=>!item.approved&&!item.rejected).length],['user-slash','Restricted',accounts.filter(item=>item.banned).length]].map(([icon,label,value])=>`<div>${workspaceIcon(icon)}<span><b>${value}</b><small>${label}</small></span></div>`).join('');
+    const review=adminPanelV2.querySelector('#adminV2Review');if(review&&!adminV2.pending&&!adminV2.forumPending)review.hidden=true;
+    adminPanelV2.querySelectorAll('[data-admin-v2-tab]').forEach(tab=>{const active=tab.dataset.adminV2Tab===adminV2.tab;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;});
+    adminPanelV2.querySelectorAll('[data-admin-v2-view]').forEach(view=>{view.hidden=view.dataset.adminV2View!==adminV2.tab;});
+    const connection=adminPanelV2.querySelector('[data-admin-v2-connection]')||document.getElementById('adminV2Connection');if(connection)connection.innerHTML=`${workspaceIcon(validSupabaseConfig()?'cloud':'hard-drive')} ${validSupabaseConfig()?(adminV2.loading?'Syncing…':adminCloudConnected?'Database connected':esc(adminCloudError||'Database disconnected')):'Local demo mode'}`;
+    if(adminV2.tab==='users')renderAdminV2Users();
+    if(adminV2.tab==='activity'){const list=adminPanelV2.querySelector('[data-admin-v2-audit]');const rows=[...adminAuditEntries(),...(validSupabaseConfig()?communityRemoteAudit:[])].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));list.innerHTML=rows.length?rows.map(entry=>`<article>${workspaceIcon(entry.action==='role'?'id-badge':entry.action==='ban'?'ban':entry.action?.startsWith('idea_')?'comment-dots':'unlock')}<div><strong>${esc(entry.actorName||'Staff')} · ${esc(entry.action)}</strong><time>${esc(new Date(entry.createdAt).toLocaleString())}</time><p>${esc(entry.reason||'No reason recorded')}</p><small>${(entry.changes||[]).map(change=>`${esc(change.username||change.id)}: ${esc(change.before)} → ${esc(change.after)}`).join(' · ')}</small></div></article>`).join(''):`<div class="admin-v2-empty">${workspaceIcon('clock-rotate-left')}<strong>No reviewed changes yet</strong></div>`;}
+    if(adminV2.tab==='forum')renderAdminV2Forum();
+    if(adminV2.tab==='analytics'){const list=adminPanelV2.querySelector('[data-admin-v2-analytics]');const counts=ROLE_ORDER.map(key=>({key,count:accounts.filter(item=>item.role===key).length})).filter(item=>item.count);const totalTime=accounts.reduce((sum,item)=>sum+(item.totalTimeSec||0),0);list.innerHTML=`<div class="admin-v2-analytics-grid"><article><strong>${accounts.length}</strong><span>Accounts in directory</span></article><article><strong>${totalTime?formatDuration(totalTime):'0m'}</strong><span>Total site time</span></article><article><strong>${forumPosts.filter(item=>item.approved).length}</strong><span>Published ideas</span></article><article><strong>${forumPosts.filter(item=>!item.approved&&!item.rejected).length}</strong><span>Awaiting review</span></article></div><div class="admin-v2-role-bars">${counts.map(item=>`<div><span>${esc(roleInfo(item.key).label)}</span><b>${item.count}</b><i style="width:${Math.min(100,item.count/Math.max(1,accounts.length)*100)}%"></i></div>`).join('')}</div>`;}
+}
+
+function selectAdminWorkspaceTab(target){
+    const order=['users','forum','activity','analytics'];
+    if(!order.includes(target))return;
+    if(target===adminV2.tab)return;
+    const previous=adminV2.tab;
+    adminV2.tab=target;adminV2.page=1;adminV2.pending=null;adminV2.forumPending=null;
+    const outgoing=adminPanelV2?.querySelector(`[data-admin-v2-view="${previous}"]`);
+    interruptWorkspaceMotion(outgoing);
+    renderAdminV2();
+    revealWorkspaceContent(adminPanelV2?.querySelector(`[data-admin-v2-view="${target}"]`),order.indexOf(target)>order.indexOf(previous)?1:-1,{distance:12,duration:320,fade:false});
+}
+
+function requestAdminWorkspaceTab(target){
+    clearTimeout(adminSwitchTimer);
+    if(target===adminV2.tab)return;
+    const current=adminPanelV2?.querySelector(`[data-admin-v2-view="${adminV2.tab}"]`);
+    if(workspaceAnimations.get(current)?.playState==='running'||current?.classList.contains('workspace-reveal-fallback')){
+        adminSwitchTimer=window.setTimeout(()=>selectAdminWorkspaceTab(target),75);
+    }else selectAdminWorkspaceTab(target);
+}
+
+function renderAdminV2Forum(){
+    const list=adminPanelV2.querySelector('[data-admin-v2-forum]');if(!list)return;
+    const state=post=>post.rejected?'rejected':post.approved?'approved':'pending';
+    const query=adminV2.forumQuery.trim().toLowerCase();
+    const posts=forumPosts.filter(post=>(adminV2.forumFilter==='all'||state(post)===adminV2.forumFilter)&&(!query||`${post.title||''} ${post.text||''} ${post.authorName||''}`.toLowerCase().includes(query))).slice().sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+    adminPanelV2.querySelector('[data-admin-v2-forum-count]').textContent=`${posts.length} of ${forumPosts.length} ideas`;
+    adminPanelV2.querySelectorAll('[data-admin-v2-forum-filter]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.adminV2ForumFilter===adminV2.forumFilter)));
+    list.innerHTML=posts.length?posts.map(post=>`<article><span>${workspaceIcon(post.rejected?'xmark':post.approved?'check':'clock')}</span><div><strong>${esc(post.title||'Untitled idea')}</strong><small>${esc(post.authorName||'Unknown')} · ${esc(post.date||'')}</small><p>${esc(post.text||'')}</p><div class="admin-v2-forum-actions">${!post.approved?`<button type="button" data-admin-v2-forum-action="approve" data-post-id="${esc(post.id)}">${workspaceIcon('check')} Approve</button>`:''}${!post.rejected?`<button type="button" data-admin-v2-forum-action="reject" data-post-id="${esc(post.id)}">${workspaceIcon('xmark')} Reject</button>`:''}</div></div><em>${state(post)}</em></article>`).join(''):`<div class="admin-v2-empty">${workspaceIcon('inbox')}<strong>${esc(communityCloudError||'No matching ideas')}</strong><span>${communityCloudError?'Refresh after checking the community migration.':'Try another filter or search.'}</span></div>`;
+}
+
+async function refreshAdminV2Cloud(){
+    if(!validSupabaseConfig()){
+        siteUsers=loadSiteUsers()||siteUsers;
+        forumPosts=loadForum()||forumPosts;
+        renderAdminV2();showToast('Local data refreshed.','rotate');return;
+    }
+    if(adminV2.loading)return;
+    adminV2.loading=true;renderAdminV2();
+    try{await Promise.all([loadAdminCloud(),loadCommunityCloud(),loadCommunityAudit()]);}
+    finally{adminV2.loading=false;renderAdminV2();}
+}
+
+function bindAdminV2(){
+    if(!adminPanelV2)return;adminV2Template();
+    adminPanelV2.addEventListener('click',event=>{
+        if(event.target.closest('[data-admin-v2-refresh]')){refreshAdminV2Cloud();return;}
+        const tab=event.target.closest('[data-admin-v2-tab]');if(tab){requestAdminWorkspaceTab(tab.dataset.adminV2Tab);return;}
+        const forumFilter=event.target.closest('[data-admin-v2-forum-filter]');if(forumFilter){adminV2.forumFilter=forumFilter.dataset.adminV2ForumFilter;renderAdminV2Forum();return;}
+        const forumAction=event.target.closest('[data-admin-v2-forum-action]');if(forumAction){
+            const viewer=workspaceUser(),post=forumPosts.find(item=>String(item.id)===forumAction.dataset.postId);
+            if(!post||!canModerate(viewer))return;
+            adminV2.forumPending={id:post.id,action:forumAction.dataset.adminV2ForumAction};
+            const review=adminPanelV2.querySelector('#adminV2Review');review.hidden=false;
+            review.innerHTML=`<div class="admin-v2-review-head"><span>${workspaceIcon('comment-dots')}</span><div><small>COMMUNITY REVIEW</small><h3>${adminV2.forumPending.action==='approve'?'Approve':'Reject'} idea</h3></div></div><div class="admin-v2-diff"><div><strong>${esc(post.title)}</strong><span>${esc(post.authorName)}</span>${workspaceIcon('arrow-right')}<b>${adminV2.forumPending.action}</b></div></div><label>Reason for this decision<input data-admin-v2-reason maxlength="160" placeholder="Short reason for the activity log"></label><p data-admin-v2-error></p><footer><button data-admin-v2-cancel>Cancel</button><button data-admin-v2-apply>${workspaceIcon('check')} Save review</button></footer>`;
+            review.scrollIntoView({behavior:REDUCED_MOTION?'auto':'smooth',block:'nearest'});review.querySelector('input')?.focus({preventScroll:true});return;
+        }
+        const inspect=event.target.closest('[data-admin-v2-inspect]');if(inspect){adminV2.inspect=inspect.dataset.adminV2Inspect;renderAdminV2Users();return;}
+        const page=event.target.closest('[data-admin-v2-page]');if(page&&!page.disabled){adminV2.page+=page.dataset.adminV2Page==='next'?1:-1;renderAdminV2Users();return;}
+        const clear=event.target.closest('[data-admin-v2-clear]');if(clear){adminV2.selected.clear();renderAdminV2Users();return;}
+        const bulk=event.target.closest('[data-admin-v2-bulk-action]');if(bulk){const ids=[...adminV2.selected];if(bulk.dataset.adminV2BulkAction==='export')return exportAdminUsers(ids.map(id=>siteUsers.find(user=>user.id===id)).filter(Boolean),'selected-users');adminV2Review(bulk.dataset.adminV2BulkAction,ids,adminPanelV2.querySelector('[data-admin-v2-bulk-role]')?.value);return;}
+        const inspectAction=event.target.closest('[data-admin-v2-inspect-action]');if(inspectAction){adminV2Review(inspectAction.dataset.adminV2InspectAction,[inspectAction.dataset.adminV2InspectId]);return;}
+        if(event.target.closest('[data-admin-v2-cancel]')){adminV2.pending=null;adminV2.forumPending=null;adminPanelV2.querySelector('#adminV2Review').hidden=true;return;}
+        if(event.target.closest('[data-admin-v2-apply]'))adminV2Apply();
+    });
+    adminPanelV2.addEventListener('input',event=>{if(event.target.matches('[data-admin-v2-search]')){adminV2.query=event.target.value;adminV2.page=1;renderAdminV2Users();}if(event.target.matches('[data-admin-v2-forum-search]')){adminV2.forumQuery=event.target.value;renderAdminV2Forum();}});
+    adminPanelV2.addEventListener('change',event=>{
+        if(event.target.matches('[data-admin-v2-filter]')){adminV2[event.target.dataset.adminV2Filter]=event.target.value;adminV2.page=1;adminV2.selected.clear();renderAdminV2Users();return;}
+        if(event.target.matches('[data-admin-v2-select]')){event.target.checked?adminV2.selected.add(event.target.dataset.adminV2Select):adminV2.selected.delete(event.target.dataset.adminV2Select);renderAdminV2Users();return;}
+        if(event.target.matches('[data-admin-v2-select-all]')){const state=adminV2Users();state.visible.filter(state.manageable).forEach(user=>event.target.checked?adminV2.selected.add(user.id):adminV2.selected.delete(user.id));renderAdminV2Users();return;}
+        if(event.target.matches('[data-admin-v2-role]'))adminV2Review('role',[event.target.dataset.adminV2Role],event.target.value);
+    });
+    adminPanelV2.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='k'){event.preventDefault();adminPanelV2.querySelector('[data-admin-v2-search]')?.focus();}});
+}
+
+function activateProfileTabV2(target){
+    if(target==='admin-panel'&&!canAccessAdmin(workspaceUser()))return;
+    const selected=profileTabsV2?.querySelector(`[data-ptab="${target}"]:not([hidden])`);if(!selected)return;
+    const tabs=[...profileTabsV2.querySelectorAll('.profile-tab')],panels=[...document.querySelectorAll('#profileView > .ptab-content')],previousPanel=panels.find(panel=>!panel.hidden),nextPanel=panels.find(panel=>panel.dataset.ptabContent===target);
+    if(!nextPanel)return;
+    const previousIndex=tabs.findIndex(tab=>tab.dataset.ptab===previousPanel?.dataset.ptabContent),nextIndex=tabs.indexOf(selected),changed=previousPanel!==nextPanel;
+    if(!changed){renderAccountStudio();return;}
+    interruptWorkspaceMotion(previousPanel);
+    profileTabsV2.querySelectorAll('.profile-tab').forEach(tab=>{const active=tab===selected;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;});
+    const modal=dashOverlay?.querySelector('.dashboard-modal');
+    panels.forEach(panel=>{const active=panel===nextPanel;panel.hidden=!active;if(active)panel.style.removeProperty('display');else panel.style.display='none';panel.classList.remove('ptab-enter');panel.setAttribute('aria-hidden',String(!active));});
+    const mode=target==='admin-panel'?'admin':target==='role-store'?'store':false;setDashboardWide(mode);if(modal)modal.dataset.workspace=target;
+    renderAccountStudio();
+    profileTabsV2.style.setProperty('--tab-index',String(nextIndex));
+    if(target==='role-store'){renderRoleWorkspaceV2();}
+    if(target==='admin-panel'){renderAdminV2();if(validSupabaseConfig()&&!adminCloudConnected)refreshAdminV2Cloud();}
+    if(changed&&dashOverlay?.classList.contains('open')){
+        const direction=nextIndex>previousIndex?1:-1;
+        revealWorkspaceContent(nextPanel,direction,{distance:18,duration:390,fade:false});
+        revealWorkspaceContent(document.querySelector('.account-hub-title'),direction,{distance:7,duration:280});
+    }
+}
+function requestProfileTabV2(target){
+    clearTimeout(profileSwitchTimer);
+    const current=document.querySelector('#profileView > .ptab-content:not([hidden])');
+    if(current?.dataset.ptabContent===target)return;
+    if(workspaceAnimations.get(current)?.playState==='running'||current?.classList.contains('workspace-reveal-fallback')){
+        profileSwitchTimer=window.setTimeout(()=>{if(dashOverlay?.classList.contains('open'))activateProfileTabV2(target);},75);
+    }else activateProfileTabV2(target);
+}
+function openRoleStoreV2(){if(!currentUserId){openDashboard();return;}if(!dashOverlay?.classList.contains('open'))openDashboard();activateProfileTabV2('role-store');}
+globalThis.activateProfileTab=activateProfileTabV2;
+globalThis.openRoleStore=openRoleStoreV2;
+globalThis.renderRoleStore=renderRoleWorkspaceV2;
+globalThis.renderAdminPanel=renderAdminV2;
+globalThis.renderAdminUsers=renderAdminV2Users;
+globalThis.renderAdminStats=renderAdminV2;
+globalThis.renderAdminForum=renderAdminV2;
+globalThis.openAdminSection=target=>selectAdminWorkspaceTab(target==='site-stats'?'analytics':target);
+globalThis.refreshAdmin=renderAdminV2;
+globalThis.updateAdminOverview=renderAdminV2;
+
+bindRolesV2();bindAdminV2();
+profileTabsV2?.addEventListener('click',event=>{const tab=event.target.closest('[data-ptab]');if(tab)requestProfileTabV2(tab.dataset.ptab);});
+profileTabsV2?.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;const tabs=[...profileTabsV2.querySelectorAll('.profile-tab:not([hidden])')],index=tabs.indexOf(document.activeElement);if(index<0)return;event.preventDefault();const next=tabs[(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length];next.focus();requestProfileTabV2(next.dataset.ptab);});
+// Account hub is a view layer over the existing account and role model.
+const ACCOUNT_HUB_COPY={
+    'my-profile':['Your profile','Shape the identity other players see.'],
+    'role-store':['Roles & plans','Compare the collection and save a launch plan.'],
+    'admin-panel':['Admin center','Review people, community ideas and activity.']
+};
+
+function renderAccountStudio(){
+    const user=currentRoleUser();if(!user)return;
+    const draft=profileDraftFor(user);
+    const active=profileTabsV2?.querySelector('.profile-tab.active')?.dataset.ptab||'my-profile';
+    const [title,subtitle]=ACCOUNT_HUB_COPY[active]||ACCOUNT_HUB_COPY['my-profile'];
+    const text=(id,value)=>{const element=document.getElementById(id);if(element)element.textContent=value;};
+    text('accountHubTitle',title);
+    text('accountHubSubtitle',subtitle);
+    text('accountHubName',user.displayName||user.username);
+    text('accountHubRole',roleInfo(user.role).label);
+    text('accountHubMode',validSupabaseConfig()?'Connected account':'Local demo');
+    text('accountRailHint',profileIsDirty(user)?'Your profile has unsaved changes.':'Profile changes are saved when you press Save.');
+    text('accountPreviewName',draft.displayName.trim()||user.username);
+    text('accountPreviewStatus',draft.status.trim()||'Your status appears here');
+    const hubAvatar=document.getElementById('accountHubAvatar');
+    if(hubAvatar)hubAvatar.src=siteAvatarUrl(user);
+    const previewAvatar=document.getElementById('accountPreviewAvatar');
+    if(previewAvatar)previewAvatar.src=draft.avatar||siteAvatarUrl({...user,avatar:''});
+    document.querySelectorAll('[data-account-status]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.accountStatus===draft.status)));
+}
+
+document.querySelector('.account-status-presets')?.addEventListener('click',event=>{
+    const button=event.target.closest('[data-account-status]');
+    const user=currentRoleUser(),input=document.getElementById('profileStatus');
+    if(!button||!user||!input)return;
+    input.value=button.dataset.accountStatus;
+    profileDraftFor(user).status=input.value;
+    input.dispatchEvent(new Event('input',{bubbles:true}));
+    input.focus();
+});
+document.getElementById('closeAccountHubBtn')?.addEventListener('click',closeDashboard);
+/* Server-backed ideas. Local sample posts stay confined to demo mode. */
+let communityCloudError='';
+let communityRequest=0;
+if(validSupabaseConfig())forumPosts=[];
+async function loadCommunityCloud(){
+    if(!validSupabaseConfig()||!cloud)return false;
+    const request=++communityRequest;
+    try{
+        const {data,error}=await cloud.rpc('spectral_ideas_feed');
+        if(error)throw error;
+        if(request!==communityRequest)return false;
+        forumPosts=(Array.isArray(data)?data:[]).map(normalizeForumPost).filter(Boolean);
+        communityCloudError='';
+        renderForum();
+        if(typeof renderAdminV2==='function'&&adminV2.tab==='forum')renderAdminV2Forum();
+        return true;
+    }catch(error){
+        if(request!==communityRequest)return false;
+        forumPosts=[];
+        communityCloudError='Community data is unavailable. Apply the community administration migration or retry the connection.';
+        console.warn('[community] feed failed:',error.message||error);
+        renderForum();
+        return false;
+    }
+}
+async function submitCommunityIdea(title,body){
+    if(!authAvailable()||!cloudAuthUserId)throw new Error('Sign in to submit an idea.');
+    const {error}=await cloud.rpc('spectral_idea_submit',{p_title:title,p_body:body});
+    if(error)throw new Error(error.message||'Could not submit the idea.');
+    await loadCommunityCloud();
+}
+async function voteCommunityIdea(id){
+    if(!authAvailable()||!cloudAuthUserId)throw new Error('Sign in to vote.');
+    const {error}=await cloud.rpc('spectral_idea_vote',{p_idea_id:id});
+    if(error)throw new Error(error.message||'Could not save your vote.');
+    await loadCommunityCloud();
+}
+async function moderateCommunityIdea(id,action,reason){
+    if(!authAvailable()||!cloudAuthUserId)throw new Error('Reconnect to moderation.');
+    const {error}=await cloud.rpc('spectral_idea_moderate',{p_idea_id:id,p_action:action,p_reason:reason});
+    if(error)throw new Error(error.message||'The server rejected this review.');
+    await loadCommunityCloud();
+    await loadCommunityAudit();
+}
+let communityRemoteAudit=[];
+async function loadCommunityAudit(){
+    if(!validSupabaseConfig()||!authAvailable()||!canModerate(workspaceUser()))return;
+    const {data,error}=await cloud.rpc('spectral_idea_audit_feed');
+    if(error){console.warn('[community] audit failed:',error.message||error);return;}
+    communityRemoteAudit=Array.isArray(data)?data:[];
+    if(typeof renderAdminV2==='function'&&adminV2.tab==='activity')renderAdminV2();
+}
 // ══════════════════════════════════════════════════════════════
 // ADD MC ACCOUNT MODAL
 // ══════════════════════════════════════════════════════════════
@@ -2521,39 +4700,44 @@ const addAccOverlay = document.getElementById('addAccountOverlay');
 if (addAccOverlay && addAccOverlay.parentElement !== document.body) document.body.appendChild(addAccOverlay);
 const openAddBtn    = document.getElementById('openAddAccountBtn');
 const closeAddBtn   = document.getElementById('closeAddAccountBtn');
+let pendingAccountTimer = 0;
+function resetPendingAccountAction(){
+    if(pendingAccountTimer)clearTimeout(pendingAccountTimer);
+    pendingAccountTimer=0;
+    ['btnElybySubmit','btnOfflineSubmit'].forEach(id=>{const button=document.getElementById(id);if(!button)return;button.disabled=false;if(button.dataset.originalHtml){button.innerHTML=button.dataset.originalHtml;delete button.dataset.originalHtml;}});
+}
 
 function openAddAccount() {
     if (!currentUserId) { openDashboard(); return; }
+    const user=currentRoleUser();
+    const limit=roleProfileLimit(user?.role||'USER');
+    if(Number.isFinite(limit)&&mcAccounts.length>=limit){showToast(`All ${limit} ${roleInfo(user?.role).label} profile slots are in use.`,'users-rectangle');openRoleStore();return;}
     if (!addAccOverlay) return;
     addAccOverlay.classList.add('open'); document.body.style.overflow='hidden';
-    switchAccType('microsoft');
-    document.querySelectorAll('.acc-type-card').forEach(c=>c.classList.toggle('active',c.dataset.type==='microsoft'));
-    ['elybyLogin','elybyPassword','offlineUsername','offlinePassword'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-    const ml=document.getElementById('msLoading'),bml=document.getElementById('btnMsLogin');
-    if(ml)ml.style.display='none';if(bml)bml.style.display='flex';
+    switchAccType('elyby');
+    document.querySelectorAll('.acc-type-card').forEach(c=>c.classList.toggle('active',c.dataset.type==='elyby'));
+    ['elybyLogin','offlineUsername'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 }
 function closeAddAccount() {
     if (!addAccOverlay) return;
-    addAccOverlay.classList.remove('open'); document.body.style.overflow='';
+    resetPendingAccountAction();
+    addAccOverlay.classList.remove('open'); syncBodyScrollLock();
 }
 function switchAccType(type) {
-    ['microsoft','elyby','offline'].forEach(t=>{const el=document.getElementById('form'+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.style.display=t===type?'block':'none';});
+    ['elyby','offline'].forEach(t=>{const el=document.getElementById('form'+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.style.display=t===type?'block':'none';});
 }
 if(openAddBtn)openAddBtn.addEventListener('click',openAddAccount);
+document.getElementById('accountsEmptyAddBtn')?.addEventListener('click',openAddAccount);
 if(closeAddBtn)closeAddBtn.addEventListener('click',closeAddAccount);
 if(addAccOverlay)addAccOverlay.addEventListener('click',e=>{if(e.target===addAccOverlay)closeAddAccount();});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&addAccOverlay&&addAccOverlay.classList.contains('open'))closeAddAccount();});
 
 document.querySelectorAll('.acc-type-card').forEach(card=>{card.addEventListener('click',()=>{document.querySelectorAll('.acc-type-card').forEach(c=>c.classList.remove('active'));card.classList.add('active');switchAccType(card.dataset.type);});});
 
-const btnMs=document.getElementById('btnMsLogin'),msLoad=document.getElementById('msLoading');
-if(btnMs){btnMs.addEventListener('click',()=>{btnMs.style.display='none';if(msLoad)msLoad.style.display='flex';setTimeout(()=>{const names=['Notch_Legacy','DiamondMiner','CreeperKing','Enderman42','IronGolem'];addMcAccount(names[Math.floor(Math.random()*names.length)],'microsoft','ms_pass');closeAddAccount();},2500);});}
-
 const btnElyby=document.getElementById('btnElybySubmit');
-if(btnElyby){btnElyby.addEventListener('click',()=>{const l=document.getElementById('elybyLogin'),p=document.getElementById('elybyPassword');const login=l?l.value.trim():'';if(!login){if(l)l.focus();return;}const orig=btnElyby.innerHTML;btnElyby.disabled=true;btnElyby.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Authenticating...';setTimeout(()=>{btnElyby.disabled=false;btnElyby.innerHTML=orig;addMcAccount(login,'elyby',p?p.value.trim():'');closeAddAccount();},2000);});}
+if(btnElyby){btnElyby.addEventListener('click',()=>{if(pendingAccountTimer)return;const l=document.getElementById('elybyLogin');const login=sanitizeField(l?l.value:'',32);if(!login){if(l)l.focus();return;}btnElyby.dataset.originalHtml=btnElyby.innerHTML;btnElyby.disabled=true;btnElyby.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Adding profile...';pendingAccountTimer=setTimeout(()=>{pendingAccountTimer=0;addMcAccount(login,'elyby');closeAddAccount();},2000);});}
 
 const btnOffline=document.getElementById('btnOfflineSubmit');
-if(btnOffline){btnOffline.addEventListener('click',()=>{const u=document.getElementById('offlineUsername'),p=document.getElementById('offlinePassword');const user=u?u.value.trim():'';if(!user||user.length<3){if(u)u.focus();return;}const orig=btnOffline.innerHTML;btnOffline.disabled=true;btnOffline.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Creating...';setTimeout(()=>{btnOffline.disabled=false;btnOffline.innerHTML=orig;addMcAccount(user,'offline',p?p.value.trim():'');closeAddAccount();},800);});}
+if(btnOffline){btnOffline.addEventListener('click',()=>{if(pendingAccountTimer)return;const u=document.getElementById('offlineUsername');const user=sanitizeField(u?u.value:'',32);if(!user||user.length<3){if(u)u.focus();return;}btnOffline.dataset.originalHtml=btnOffline.innerHTML;btnOffline.disabled=true;btnOffline.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Creating...';pendingAccountTimer=setTimeout(()=>{pendingAccountTimer=0;addMcAccount(user,'offline');closeAddAccount();},800);});}
 
 // ══════════════════════════════════════════════════════════════
 // CONFIRM MODAL
@@ -2561,7 +4745,7 @@ if(btnOffline){btnOffline.addEventListener('click',()=>{const u=document.getElem
 const confirmOverlay=document.getElementById('confirmOverlay');
 let confirmCb=null;
 function showConfirm(text,cb){const el=document.getElementById('confirmText');if(el)el.textContent=text;confirmCb=cb;if(confirmOverlay){confirmOverlay.classList.add('open');document.body.style.overflow='hidden';}}
-function hideConfirm(){if(confirmOverlay){confirmOverlay.classList.remove('open');document.body.style.overflow='';}}
+function hideConfirm(){if(confirmOverlay){confirmOverlay.classList.remove('open');syncBodyScrollLock();}}
 document.getElementById('confirmCancel')&&document.getElementById('confirmCancel').addEventListener('click',()=>{hideConfirm();confirmCb=null;});
 const confirmDelBtn=document.getElementById('confirmDeleteBtn');
 if(confirmDelBtn){confirmDelBtn.addEventListener('click',()=>{if(confirmCb){const cb=confirmCb;confirmCb=null;hideConfirm();cb();}else hideConfirm();});}
@@ -2575,46 +4759,13 @@ function renderDevWriteBtn() {
     const user=siteUsers.find(u=>u.id===currentUserId);
     btn.style.display=(user&&user.role==='DEV')?'inline-flex':'none';
 }
-function renderNewsTimeline() {
-    const timeline=document.getElementById('updatesTimeline');if(!timeline)return;
-    timeline.innerHTML='<div class="timeline-line" aria-hidden="true"></div>';
-    const user=siteUsers.find(u=>u.id===currentUserId);
-    const isDev=user&&user.role==='DEV';
-    newsItems.forEach((item,idx)=>{
-        const article=document.createElement('article');
-        article.className=`timeline-item animate-on-scroll delay-${(idx%4)+1}`;
-        const delBtnHtml=isDev?`<button class="timeline-delete-btn" data-id="${item.id}" title="Delete"><i class="fas fa-trash-alt"></i></button>`:'';
-        const tagHtml=item.isCurrent?'<span class="tag new">CURRENT</span>':'';
-        const itemsHtml=item.items.map(i=>`<li class="${['add','imp','fix'].includes(i.type)?i.type:'add'}">${esc(i.text)}</li>`).join('');
-        article.innerHTML=`
-            <div class="date-badge">${esc(item.date)}</div>
-            <div class="timeline-card glass tilt-card-sm${item.dimmed?' dimmed':''}${item.isCurrent?' is-current':''}">
-                <div class="card-title" style="display:flex;align-items:center;gap:10px;">
-                    <h3>${esc(item.title)}</h3>${tagHtml}${delBtnHtml}
-                </div>
-                <ul class="changelog">${itemsHtml}</ul>
-            </div>`;
-        if(isDev){const db=article.querySelector('.timeline-delete-btn');if(db){db.addEventListener('click',e=>{e.stopPropagation();showConfirm(`Delete update "${item.title}"?`,()=>{newsItems=newsItems.filter(n=>n.id!==item.id);saveNews(newsItems);renderNewsTimeline();});});}}
-        timeline.appendChild(article);
-    });
-    reinitScrollAnimations();
-}
 
 // News editor modal
 const newsEditorOverlay=document.getElementById('newsEditorOverlay');
-function openNewsEditor(){if(!newsEditorOverlay)return;newsEditorOverlay.classList.add('open');document.body.style.overflow='hidden';const td=document.getElementById('newsDate');if(td){const now=new Date();td.value=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}const tt=document.getElementById('newsTitle');if(tt)tt.value='';const rows=document.getElementById('newsItemRows');if(rows){rows.innerHTML=`<div class="news-item-row"><select class="nie-type"><option value="add">+ Added</option><option value="imp">↑ Improved</option><option value="fix">✧ Fixed</option></select><input type="text" class="nie-text" placeholder="Describe the change..."><button type="button" class="nie-remove" title="Remove"><i class="fas fa-times"></i></button></div>`;bindNieRemove(rows.querySelector('.nie-remove'));}}
-function closeNewsEditor(){if(!newsEditorOverlay)return;newsEditorOverlay.classList.remove('open');document.body.style.overflow='';}
-function bindNieRemove(btn){if(!btn)return;btn.addEventListener('click',()=>{const row=btn.closest('.news-item-row');const rows=document.getElementById('newsItemRows');if(rows&&rows.children.length>1)row.remove();});}
 
 document.getElementById('devWriteNewsBtn')&&document.getElementById('devWriteNewsBtn').addEventListener('click',openNewsEditor);
 document.getElementById('closeNewsEditorBtn')&&document.getElementById('closeNewsEditorBtn').addEventListener('click',closeNewsEditor);
 if(newsEditorOverlay)newsEditorOverlay.addEventListener('click',e=>{if(e.target===newsEditorOverlay)closeNewsEditor();});
-
-document.getElementById('addNewsItemRowBtn')&&document.getElementById('addNewsItemRowBtn').addEventListener('click',()=>{const rows=document.getElementById('newsItemRows');if(!rows)return;const div=document.createElement('div');div.className='news-item-row';div.innerHTML=`<select class="nie-type"><option value="add">+ Added</option><option value="imp">↑ Improved</option><option value="fix">✧ Fixed</option></select><input type="text" class="nie-text" placeholder="Describe the change..."><button type="button" class="nie-remove" title="Remove"><i class="fas fa-times"></i></button>`;bindNieRemove(div.querySelector('.nie-remove'));rows.appendChild(div);div.querySelector('.nie-text').focus();});
-
-const newsEditorForm=document.getElementById('newsEditorForm');
-if(newsEditorForm){newsEditorForm.addEventListener('submit',e=>{e.preventDefault();const date=document.getElementById('newsDate').value.trim();const title=document.getElementById('newsTitle').value.trim();if(!date||!title)return;const rows=document.querySelectorAll('#newsItemRows .news-item-row');const items=[];rows.forEach(row=>{const type=row.querySelector('.nie-type');const text=row.querySelector('.nie-text');if(text&&text.value.trim())items.push({type:type?type.value:'add',text:text.value.trim()});});if(items.length===0)return;// Set previous 'current' to false
-newsItems.forEach(n=>n.isCurrent=false);const newItem={id:'news_'+Date.now(),date,title,isCurrent:true,dimmed:false,items};newsItems.unshift(newItem);saveNews(newsItems);closeNewsEditor();renderNewsTimeline();});}
 
 // ══════════════════════════════════════════════════════════════
 // FORUM
@@ -2632,6 +4783,7 @@ const NEWS_ICONS = new Set(['bolt','puzzle-piece','robot','gauge-high','language
 let newsViewState = { query:'', filter:'all' };
 let editingNewsId = null;
 let newsDraftTimer = 0;
+let newsTimelineObserver = null;
 
 function validNewsType(type) { return Object.prototype.hasOwnProperty.call(NEWS_TYPES,type) ? type : 'add'; }
 function validNewsIcon(icon) { return NEWS_ICONS.has(icon) ? icon : 'bolt'; }
@@ -2670,10 +4822,10 @@ function releaseCardMarkup(item, isDev, preview) {
     const list = items.map(change=>`<li class="${validNewsType(change.type)}">${formatNewsText(change.text)}</li>`).join('');
     const typeSummary = ['add','imp','fix'].filter(type=>counts[type]).map(type=>`<span><i class="fas fa-${NEWS_TYPES[type].icon} ${type}"></i>${counts[type]} ${NEWS_TYPES[type].label.toLowerCase()}</span>`).join('');
     const devActions = isDev && !preview ? `
-        <button class="release-action" data-release-action="pin" title="Mark as current"><i class="fas fa-thumbtack"></i></button>
-        <button class="release-action" data-release-action="edit" title="Edit update"><i class="fas fa-pen"></i></button>
-        <button class="release-action" data-release-action="duplicate" title="Duplicate update"><i class="fas fa-clone"></i></button>
-        <button class="release-action danger" data-release-action="delete" title="Delete update"><i class="fas fa-trash-alt"></i></button>` : '';
+        <button type="button" class="release-action" data-release-action="pin" title="Mark as current" aria-label="Mark as current release"><i class="fas fa-thumbtack"></i></button>
+        <button type="button" class="release-action" data-release-action="edit" title="Edit update" aria-label="Edit update"><i class="fas fa-pen"></i></button>
+        <button type="button" class="release-action" data-release-action="duplicate" title="Duplicate update" aria-label="Duplicate update"><i class="fas fa-clone"></i></button>
+        <button type="button" class="release-action danger" data-release-action="delete" title="Delete update" aria-label="Delete update"><i class="fas fa-trash-alt"></i></button>` : '';
     return `<div class="timeline-card glass${item.dimmed?' dimmed':''}${item.isCurrent?' is-current expanded':''}${preview?' expanded':''}" data-news-id="${esc(item.id||'preview')}">
         <div class="release-card-head">
             <div class="release-icon ${channel}"><i class="fas fa-${releaseIcon}"></i></div>
@@ -2681,7 +4833,7 @@ function releaseCardMarkup(item, isDev, preview) {
                 <div class="release-meta"><span class="release-version">${esc(version)}</span><span class="release-channel ${channel}">${esc(channel)}</span><span class="release-change-count">${items.length} change${items.length===1?'':'s'}</span>${item.isCurrent?'<span class="tag new">CURRENT</span>':''}</div>
                 <h3>${esc(item.title||'Untitled release')}</h3><p class="release-summary">${formatNewsText(summary)}</p>
             </div>
-            ${preview?'':`<div class="release-actions"><button class="release-action" data-release-action="copy" title="Copy as Markdown"><i class="fas fa-copy"></i></button>${devActions}</div>`}
+            ${preview?'':`<div class="release-actions"><button type="button" class="release-action" data-release-action="copy" title="Copy as Markdown" aria-label="Copy release as Markdown"><i class="fas fa-copy"></i></button>${devActions}</div>`}
         </div>
         <div class="release-details"><div class="release-details-inner"><div class="release-details-content"><ul class="changelog">${list||'<li class="imp">Add at least one changelog item.</li>'}</ul></div></div></div>
         ${preview?'':`<div class="release-card-foot"><div class="release-type-summary">${typeSummary||'<span>Release notes</span>'}</div><button class="release-expand" type="button" aria-expanded="${item.isCurrent?'true':'false'}"><span>${item.isCurrent?'Hide details':'View details'}</span><i class="fas fa-chevron-down"></i></button></div>`}
@@ -2689,6 +4841,7 @@ function releaseCardMarkup(item, isDev, preview) {
 }
 function renderNewsTimeline() {
     const timeline=document.getElementById('updatesTimeline');if(!timeline)return;
+    if(newsTimelineObserver){newsTimelineObserver.disconnect();newsTimelineObserver=null;}
     const user=siteUsers.find(u=>u.id===currentUserId);
     const isDev=Boolean(user&&user.role==='DEV');
     const query=newsViewState.query.trim().toLowerCase();
@@ -2717,7 +4870,21 @@ function renderNewsTimeline() {
         const card=article.querySelector('.timeline-card');
         const expand=article.querySelector('.release-expand');
         if(expand)expand.addEventListener('click',()=>{const open=card.classList.toggle('expanded');expand.setAttribute('aria-expanded',String(open));expand.querySelector('span').textContent=open?'Hide details':'View details';});
-        card.addEventListener('pointermove',e=>{if(liteOn())return;const r=card.getBoundingClientRect();card.style.setProperty('--card-x',`${e.clientX-r.left}px`);card.style.setProperty('--card-y',`${e.clientY-r.top}px`);});
+        if(!liteOn()&&!REDUCED_MOTION&&!IS_TOUCH){
+            let cardRect=null,cardPointer=null,cardMoveRaf=null;
+            card.addEventListener('pointerenter',()=>{cardRect=card.getBoundingClientRect();},{passive:true});
+            card.addEventListener('pointermove',event=>{
+                cardPointer=event;
+                if(cardMoveRaf)return;
+                cardMoveRaf=requestAnimationFrame(()=>{
+                    cardMoveRaf=null;
+                    if(!cardRect)cardRect=card.getBoundingClientRect();
+                    card.style.setProperty('--card-x',`${cardPointer.clientX-cardRect.left}px`);
+                    card.style.setProperty('--card-y',`${cardPointer.clientY-cardRect.top}px`);
+                });
+            },{passive:true});
+            card.addEventListener('pointerleave',()=>{cardRect=null;},{passive:true});
+        }
         article.querySelectorAll('[data-release-action]').forEach(button=>button.addEventListener('click',e=>{
             e.stopPropagation();const action=button.dataset.releaseAction;
             if(action==='copy')copyLocalText(releaseToMarkdown(item),'Release copied as Markdown');
@@ -2730,10 +4897,11 @@ function renderNewsTimeline() {
         }));
         timeline.appendChild(article);
     });
-    const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce=liteOn()||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if(reduce)timeline.querySelectorAll('.timeline-item').forEach(item=>item.classList.add('in-view'));
     else {
         const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('in-view');observer.unobserve(entry.target);}}),{threshold:.12,rootMargin:'0px 0px -35px'});
+        newsTimelineObserver=observer;
         timeline.querySelectorAll('.timeline-item').forEach(item=>observer.observe(item));
     }
 }
@@ -2750,13 +4918,13 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
 document.getElementById('updatesFeaturedOpen')?.addEventListener('click',()=>{
     const current=newsItems.find(item=>item.isCurrent)||newsItems[0];if(!current)return;
     if(newsViewState.query||newsViewState.filter!=='all'){newsViewState={query:'',filter:'all'};if(updatesSearchInput)updatesSearchInput.value='';document.querySelectorAll('[data-news-filter]').forEach(button=>button.classList.toggle('active',button.dataset.newsFilter==='all'));renderNewsTimeline();}
-    requestAnimationFrame(()=>{const article=[...document.querySelectorAll('.timeline-item')].find(item=>item.dataset.newsId===current.id);if(!article)return;article.querySelector('.timeline-card')?.classList.add('expanded');const expand=article.querySelector('.release-expand');if(expand){expand.setAttribute('aria-expanded','true');const label=expand.querySelector('span');if(label)label.textContent='Hide details';}article.scrollIntoView({behavior:'smooth',block:'center'});});
+    requestAnimationFrame(()=>{const article=[...document.querySelectorAll('.timeline-item')].find(item=>item.dataset.newsId===current.id);if(!article)return;article.querySelector('.timeline-card')?.classList.add('expanded');const expand=article.querySelector('.release-expand');if(expand){expand.setAttribute('aria-expanded','true');const label=expand.querySelector('span');if(label)label.textContent='Hide details';}article.scrollIntoView({behavior:(liteOn()||REDUCED_MOTION)?'auto':'smooth',block:'center'});});
 });
 
 function newsRowTemplate(type='add',text='') {
     const selected=validNewsType(type);
     const options=Object.entries(NEWS_TYPES).map(([key,meta])=>`<option value="${key}"${key===selected?' selected':''}>${meta.label}</option>`).join('');
-    return `<div class="news-item-row"><div class="nie-row-main"><select class="nie-type" aria-label="Change type">${options}</select><textarea class="nie-text" rows="2" placeholder="Describe the change…">${esc(text)}</textarea><div class="nie-row-actions"><button type="button" data-row-action="up" title="Move up"><i class="fas fa-arrow-up"></i></button><button type="button" data-row-action="down" title="Move down"><i class="fas fa-arrow-down"></i></button><button type="button" class="nie-remove" data-row-action="remove" title="Remove"><i class="fas fa-times"></i></button></div></div><div class="nie-format-bar"><button type="button" data-news-format="bold" title="Bold"><b>B</b></button><button type="button" data-news-format="code" title="Inline code">&lt;/&gt;</button><button type="button" data-news-format="link" title="Link"><i class="fas fa-link"></i></button></div></div>`;
+    return `<div class="news-item-row"><div class="nie-row-main"><select class="nie-type" aria-label="Change type">${options}</select><textarea class="nie-text" rows="2" placeholder="Describe the change…" aria-label="Changelog item">${esc(text)}</textarea><div class="nie-row-actions"><button type="button" data-row-action="up" title="Move up" aria-label="Move item up"><i class="fas fa-arrow-up"></i></button><button type="button" data-row-action="down" title="Move down" aria-label="Move item down"><i class="fas fa-arrow-down"></i></button><button type="button" class="nie-remove" data-row-action="remove" title="Remove" aria-label="Remove changelog item"><i class="fas fa-times"></i></button></div></div><div class="nie-format-bar"><button type="button" data-news-format="bold" title="Bold"><b>B</b></button><button type="button" data-news-format="code" title="Inline code">&lt;/&gt;</button><button type="button" data-news-format="link" title="Link"><i class="fas fa-link"></i></button></div></div>`;
 }
 function updateNewsItemCount() {
     const count=document.querySelectorAll('#newsItemRows .news-item-row').length;
@@ -2812,7 +4980,7 @@ function openNewsEditor(item=null,duplicate=false){
     document.getElementById('newsPublishLabel').textContent=editingNewsId?'Save Changes':'Publish Update';setNewsEditorData(data);
     newsEditorOverlay.classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>document.getElementById('newsTitle')?.focus(),80);
 }
-function closeNewsEditor(){if(!newsEditorOverlay)return;newsEditorOverlay.classList.remove('open');document.body.style.overflow='';}
+function closeNewsEditor(){if(!newsEditorOverlay)return;newsEditorOverlay.classList.remove('open');syncBodyScrollLock();}
 
 document.querySelectorAll('[data-add-news-type]').forEach(button=>button.addEventListener('click',()=>addNewsItemRow(button.dataset.addNewsType,'',true)));
 ['newsTitle','newsVersion','newsDate','newsChannel','newsIcon','newsSummary','newsIsCurrent'].forEach(id=>document.getElementById(id)?.addEventListener('input',()=>{markNewsEditorDirty();updateLiveNewsPreview();}));
@@ -2843,33 +5011,42 @@ function renderForum() {
     if(loginHint)loginHint.style.display=currentUserId?'none':'inline-flex';
 
     // Admins see pending posts (awaiting review) on top, then all approved posts
-    const visible=[...forumPosts.filter(p=>!p.approved&&!p.rejected&&isAdmin),...forumPosts.filter(p=>p.approved)];
+    const visible=[...forumPosts.filter(p=>!p.approved&&!p.rejected&&(isAdmin||p.authorId===currentUserId)),...forumPosts.filter(p=>p.approved)];
 
-    if(visible.length===0){if(empty)empty.style.display='block';return;}
+    if(visible.length===0){if(empty){empty.style.display='block';empty.textContent=validSupabaseConfig()&&communityCloudError?communityCloudError:'No ideas yet. Be the first to share one.';}return;}
     if(empty)empty.style.display='none';
 
     visible.forEach(p=>{
         const card=document.createElement('div');
-        card.className='forum-post-card'+(p.approved?'':' pending');
-        const hasVoted=currentUserId&&p.upvotes.includes(currentUserId);
+        const author=siteUsers.find(u=>u.id===p.authorId);
+        const authorRole=validSupabaseConfig()?p.authorRole||'USER':author?.role||'USER';
+        const featured=roleRank(authorRole)>=ROLES.LEGEND.rank;
+        card.className='forum-post-card'+(p.approved?'':' pending')+(featured?` role-featured role-featured-${authorRole.toLowerCase()}`:'');
+        if(featured)card.style.setProperty('--post-role-color',roleInfo(authorRole).color);
+        const hasVoted=currentUserId&&(validSupabaseConfig()?p.viewerVoted:p.upvotes.includes(currentUserId));
         const pendingBadge=!p.approved&&!p.rejected?'<span class="fp-status fp-pending">Pending review</span>':'';
         card.innerHTML=`
             <div class="fp-header">
-                <img class="fp-avatar" src="${avatarUrl(p.authorName)}" onerror="this.onerror=null;this.src='${avatarUrl('steve')}'" alt="">
+                <img class="fp-avatar" src="${avatarUrl(p.authorName)}" alt="${esc(p.authorName)}" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback>
                 <div class="fp-meta">
-                    <div class="fp-author">by ${esc(p.authorName)}${roleBadgeHtml(siteUsers.find(u=>u.id===p.authorId)?.role||'USER')}</div>
+                    <div class="fp-author">by ${esc(p.authorName)}${roleBadgeHtml(authorRole)}${featured?'<span class="fp-role-signal"><i class="fas fa-bolt"></i> boosted signal</span>':''}</div>
                     <div class="fp-title">${esc(p.title)}</div>
                 </div>
                 ${pendingBadge}
             </div>
             <div class="fp-text">${esc(p.text)}</div>
             <div class="fp-footer">
-                <button class="fp-upvote${hasVoted?' voted':''}" data-id="${p.id}"><i class="fas fa-arrow-up"></i> ${p.upvotes.length}</button>
+                <button class="fp-upvote${hasVoted?' voted':''}" data-id="${esc(safeIdentifier(p.id))}" ${!p.approved?'disabled':''}><i class="fas fa-arrow-up"></i> ${validSupabaseConfig()?p.voteCount||0:p.upvotes.length}</button>
                 <span class="fp-date">${p.date}</span>
             </div>`;
         const upvoteBtn=card.querySelector('.fp-upvote');
-        upvoteBtn.addEventListener('click',()=>{
+        upvoteBtn.addEventListener('click',async()=>{
             if(!currentUserId){openDashboard();return;}
+            if(validSupabaseConfig()){
+                upvoteBtn.disabled=true;
+                try{await voteCommunityIdea(p.id);}catch(error){showToast(error.message||'Could not save your vote.','triangle-exclamation');upvoteBtn.disabled=false;}
+                return;
+            }
             const post=forumPosts.find(x=>x.id===p.id);if(!post)return;
             const idx=post.upvotes.indexOf(currentUserId);
             if(idx>=0)post.upvotes.splice(idx,1);else post.upvotes.push(currentUserId);
@@ -2889,7 +5066,7 @@ function openForumPost(){
     const cc=document.getElementById('forumCharCount');if(cc)cc.textContent='0';
     const err=document.getElementById('forumPostError');if(err)err.style.display='none';
 }
-function closeForumPost(){if(!forumPostOverlay)return;forumPostOverlay.classList.remove('open');document.body.style.overflow='';}
+function closeForumPost(){if(!forumPostOverlay)return;forumPostOverlay.classList.remove('open');syncBodyScrollLock();}
 
 document.getElementById('forumWriteBtn')&&document.getElementById('forumWriteBtn').addEventListener('click',openForumPost);
 document.getElementById('forumLoginHint')&&document.getElementById('forumLoginHint').addEventListener('click',openDashboard);
@@ -2901,7 +5078,7 @@ if(forumTextarea){forumTextarea.addEventListener('input',()=>{const cc=document.
 
 const forumPostForm=document.getElementById('forumPostForm');
 if(forumPostForm){
-    forumPostForm.addEventListener('submit',e=>{
+    forumPostForm.addEventListener('submit',async e=>{
         e.preventDefault();
         const titleEl=document.getElementById('forumPostTitle');
         const textEl=document.getElementById('forumPostText');
@@ -2911,6 +5088,13 @@ if(forumPostForm){
         if(!title){if(errEl){errEl.textContent='Please enter a title';errEl.style.display='block';}return;}
         if(!text){if(errEl){errEl.textContent='Please describe your idea';errEl.style.display='block';}return;}
         if(errEl)errEl.style.display='none';
+        if(validSupabaseConfig()){
+            const submit=forumPostForm.querySelector('[type="submit"]');if(submit)submit.disabled=true;
+            try{await submitCommunityIdea(title,text);closeForumPost();showToast('Idea submitted for moderator review.','check');}
+            catch(error){if(errEl){errEl.textContent=error.message||'Could not submit the idea.';errEl.style.display='block';}}
+            finally{if(submit)submit.disabled=false;}
+            return;
+        }
         const user=siteUsers.find(u=>u.id===currentUserId);
         const today=new Date();
         const dateStr=`${String(today.getDate()).padStart(2,'0')}.${String(today.getMonth()+1).padStart(2,'0')}.${today.getFullYear()}`;
@@ -2918,21 +5102,17 @@ if(forumPostForm){
         forumPosts.unshift(post);saveForum(forumPosts);closeForumPost();
         renderForum();
         // notify user
-        setTimeout(()=>{alert('Your idea has been submitted and is pending review by moderators. Thank you!');},200);
+        showToast('Idea submitted for moderator review. Thank you!','check');
     });
 }
-
 // ══════════════════════════════════════════════════════════════
 // INITIAL RENDER
 // ══════════════════════════════════════════════════════════════
 renderAll();
 if (currentUserId) beginUserSession();
 
-// Pull the latest accounts from Supabase and re-render once they arrive,
-// then restore any active Supabase Auth session (email/Google login).
-cloudBootstrap().then(initSupabaseAuth);
-
-console.log('%c🚀 Spectral Launcher Website', 'color:#6366f1;font-size:20px;font-weight:bold;');
-console.log('%cTwo-tier accounts system active', 'color:#10b981;font-size:13px;');
+// Cloud auth is opt-in. When configured, initialization restores only the
+// authenticated user's owner-scoped data; otherwise the site stays local.
+initSupabaseAuth().catch(()=>console.warn('[startup] Optional authentication is unavailable; local mode remains active.'));
 
 }); // DOMContentLoaded

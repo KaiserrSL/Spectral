@@ -1,0 +1,4 @@
+allowBuilds:
+  lightningcss-cli: true
+minimumReleaseAgeExclude:
+  - globals@17.9.0
