@@ -128,8 +128,11 @@ are public client identifiers. To connect a different project:
    <meta name="spectral-supabase-publishable-key" content="YOUR_PUBLIC_PUBLISHABLE_KEY">
    ```
 
-3. Configure the allowed site URL and OAuth redirect URLs in Supabase Auth.
-   Update the function's `allowedOrigins` when the site moves from localhost.
+3. Configure `https://kaiserrsl.github.io/Spectral/` as a site and OAuth
+   redirect URL in Supabase Auth. The `username-auth` function's CORS allowlist
+   includes the GitHub Pages origin `https://kaiserrsl.github.io` (origins do
+   not include the `/Spectral/` path). Redeploy the function after changes:
+   `supabase functions deploy username-auth --project-ref iliokfdcwdcnyjfwmbie --no-verify-jwt`.
 4. Test with at least two accounts to verify row isolation, friendship
    participant policies, role hierarchy checks, reviewed admin actions,
    community approval and voting, and audit history before production.
