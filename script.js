@@ -1724,9 +1724,9 @@ function loadMcAccounts(uid) {
     }
     return sanitized;
 }
-function saveMcAccounts(uid,a) { try{localStorage.setItem(K_MC_PFX+uid,JSON.stringify(a));}catch{} cloudPushMc(uid); }
+function saveMcAccounts(uid,a) { try{localStorage.setItem(K_MC_PFX+uid,JSON.stringify(a));return true;}catch{return false;} }
 function loadActiveMc(uid)     { try{return localStorage.getItem(K_MC_ACT+uid)||null;}catch{return null;} }
-function saveActiveMc(uid,id)  { try{if(id)localStorage.setItem(K_MC_ACT+uid,id);else localStorage.removeItem(K_MC_ACT+uid);}catch{} cloudPushMc(uid); }
+function saveActiveMc(uid,id)  { try{if(id)localStorage.setItem(K_MC_ACT+uid,id);else localStorage.removeItem(K_MC_ACT+uid);return true;}catch{return false;} }
 function loadRoleOrders() { return AccountPolicy.reservations(readJsonStorage(K_ROLE_ORDERS, [], Array.isArray)); }
 function saveRoleOrders(orders) { try{localStorage.setItem(K_ROLE_ORDERS,JSON.stringify(AccountPolicy.reservations(orders)));return true;}catch{return false;} }
 function loadProfileStyles() { return readJsonStorage(K_PROFILE_STYLES, {}, value=>value&&typeof value==='object'&&!Array.isArray(value)); }
@@ -1757,13 +1757,17 @@ function cloudPushUsers(users) {
         .then(({ error }) => { if (error) handleCloudError('profile sync', error); })
         .catch(error => handleCloudError('profile sync', error));
 }
-function cloudPushMc(uid) {
-    if (!cloudReady() || uid !== cloudAuthUserId) return;
-    const arr = (loadMcAccounts(uid) || []).slice(0, 100);
-    const activeId = safeIdentifier(loadActiveMc(uid));
-    const rows = arr.map(account => ({
+let mcSaveInProgress = false;
+async function saveMinecraftProfiles(uid, accounts, activeId) {
+    if (mcSaveInProgress) throw new Error('Wait for the current Minecraft profile change to finish.');
+    if (uid !== currentUserId) throw new Error('Sign in again before changing Minecraft profiles.');
+    mcSaveInProgress = true;
+    try {
+        if (validSupabaseConfig()) {
+            if (!cloudReady() || uid !== cloudAuthUserId) throw new Error('Reconnect to save Minecraft profiles online.');
+            const rows = accounts.map(account => ({
         id: safeIdentifier(account.id),
-        user_id: cloudAuthUserId,
+        user_id: uid,
         username: sanitizeField(account.username, 32),
         display_name: sanitizeField(account.displayName || account.username, 32),
         type: ['microsoft','elyby','offline'].includes(account.type) ? account.type : 'offline',
@@ -1773,17 +1777,66 @@ function cloudPushMc(uid) {
         favorite: Boolean(account.favorite),
         last_used: account.lastUsed || null,
         is_active: account.id === activeId
-    })).filter(row => row.id && row.username);
-    if (rows.length) {
-        cloud.from('mc_accounts').upsert(rows, { onConflict:'id' })
-            .then(({ error }) => { if (error) handleCloudError('Minecraft profile sync', error); })
-            .catch(error => handleCloudError('Minecraft profile sync', error));
+            }));
+            if (rows.length > 100 || rows.some(row => !row.id || !row.username)) throw new Error('Invalid Minecraft profile data.');
+            const {data:stored,error:readError}=await cloud.from('mc_accounts')
+                .select('id,username,display_name,type,uuid,added_at,playtime,favorite,last_used,is_active')
+                .eq('user_id',uid).limit(100);
+            if (readError) throw readError;
+            const existing=new Map((stored||[]).map(row=>[row.id,row]));
+            for (const row of rows) {
+                const id=row.id;
+                const changes={...row};
+                delete changes.id;
+                delete changes.user_id;
+                const previous=existing.get(id);
+                if(previous && Object.entries(changes).every(([key,value])=>
+                    key==='last_used' ? (value ? Date.parse(previous[key])===Date.parse(value) : !previous[key])
+                        : (previous[key]??null)===(value??null)))continue;
+                const request=previous
+                    ? cloud.from('mc_accounts').update(changes).eq('id',id).eq('user_id',uid)
+                    : cloud.from('mc_accounts').insert(row);
+                const {data,error}=await request.select('id');
+                if (error) throw error;
+                if (!data?.some(saved=>saved.id===id)) throw new Error('The database did not confirm the Minecraft profile change.');
+            }
+            const keepIds=new Set(rows.map(row=>row.id));
+            const removed=[...existing.keys()].filter(id=>!keepIds.has(id));
+            if (removed.length) {
+                const {error}=await cloud.from('mc_accounts').delete().eq('user_id',uid).in('id',removed);
+                if (error) throw error;
+            }
+            const {data:verified,error:verifyError}=await cloud.from('mc_accounts')
+                .select('id,username,display_name,type,uuid,added_at,playtime,favorite,last_used,is_active')
+                .eq('user_id',uid).limit(100);
+            if (verifyError) throw verifyError;
+            if (verified?.length!==rows.length || rows.some(expected=>{
+                const actual=verified.find(row=>row.id===expected.id);
+                return !actual || Object.entries(expected).some(([key,value])=>{
+                    if(key==='user_id')return false;
+                    if(key==='last_used')return value ? Date.parse(actual[key])!==Date.parse(value) : Boolean(actual[key]);
+                    return (actual[key]??null)!==(value??null);
+                });
+            })) throw new Error('The database did not confirm the final Minecraft profile list.');
+        }
+        if (uid !== currentUserId) throw new Error('The account changed while saving Minecraft profiles.');
+        const cachedAccounts=saveMcAccounts(uid,accounts);
+        const cachedActive=saveActiveMc(uid,activeId);
+        if (!validSupabaseConfig() && (!cachedAccounts || !cachedActive)) {
+            throw new Error('Storage is full. Free some space and try again.');
+        }
+        mcAccounts=accounts;
+        activeMcId=activeId;
+        return true;
+    } catch (error) {
+        handleCloudError('Minecraft profile save',error);
+        if (validSupabaseConfig() && !/Reconnect|account changed|Wait for/.test(error.message||'')) {
+            throw new Error('Minecraft profiles could not be saved online. Please try again.',{cause:error});
+        }
+        throw error;
+    } finally {
+        mcSaveInProgress = false;
     }
-    const keepIds = rows.map(row => row.id);
-    let deletion = cloud.from('mc_accounts').delete().eq('user_id', cloudAuthUserId);
-    if (keepIds.length) deletion = deletion.not('id', 'in', `(${keepIds.join(',')})`);
-    deletion.then(({ error }) => { if (error) handleCloudError('Minecraft profile cleanup', error); })
-        .catch(error => handleCloudError('Minecraft profile cleanup', error));
 }
 function cloudPushFriends(list) {
     if (!cloudReady() || !Array.isArray(list) || currentUserId !== cloudAuthUserId) return;
@@ -2374,34 +2427,46 @@ function renderMcGrid() {
         grid.appendChild(card);
     });
 }
-function toggleMcFav(id){
-    const a=mcAccounts.find(account=>account.id===id);if(!a)return;
+async function toggleMcFav(id){
+    const a=mcAccounts.find(account=>account.id===id);if(!a||mcSaveInProgress)return;
     const user=currentRoleUser();
     const limit=roleFavoriteLimit(user?.role||'USER');
     if(!a.favorite&&Number.isFinite(limit)&&mcAccounts.filter(account=>account.favorite).length>=limit){
         showToast(`${roleInfo(user?.role).label} supports ${limit} favorite ${limit===1?'profile':'profiles'}. Explore roles for more.`,'star');
         return;
     }
-    a.favorite=!a.favorite;saveMcAccounts(currentUserId,mcAccounts);renderMcGrid();
+    const next=mcAccounts.map(account=>account.id===id?{...account,favorite:!account.favorite}:account);
+    try{await saveMinecraftProfiles(currentUserId,next,activeMcId);renderMcGrid();}
+    catch(error){showToast(error.message,'triangle-exclamation');}
 }
-function selectMcAccount(id){if(!currentUserId||activeMcId===id)return;const a=mcAccounts.find(a=>a.id===id);if(!a)return;a.lastUsed=new Date().toISOString();activeMcId=id;saveActiveMc(currentUserId,id);saveMcAccounts(currentUserId,mcAccounts);renderAll();}
+async function selectMcAccount(id){
+    if(!currentUserId||activeMcId===id||mcSaveInProgress)return;
+    if(!mcAccounts.some(account=>account.id===id))return;
+    const next=mcAccounts.map(account=>account.id===id?{...account,lastUsed:new Date().toISOString()}:account);
+    try{await saveMinecraftProfiles(currentUserId,next,id);renderAll();}
+    catch(error){showToast(error.message,'triangle-exclamation');}
+}
 function deleteMcAccount(id, cardEl) {
     const ownerId=currentUserId;const a=mcAccounts.find(a=>a.id===id);if(!a||!ownerId)return;
-    showConfirm(`Delete Minecraft profile "${a.displayName||a.username}"?`,()=>{
-        if(cardEl)cardEl.classList.add('removing');
-        setTimeout(()=>{if(currentUserId!==ownerId)return;mcAccounts=mcAccounts.filter(a=>a.id!==id);saveMcAccounts(currentUserId,mcAccounts);if(activeMcId===id){activeMcId=mcAccounts.length>0?mcAccounts[0].id:null;saveActiveMc(currentUserId,activeMcId||'');}renderAll();},300);
+    showConfirm(`Delete Minecraft profile "${a.displayName||a.username}"?`,async()=>{
+        if(mcSaveInProgress)return;
+        const next=mcAccounts.filter(account=>account.id!==id);
+        const nextActive=activeMcId===id?(next[0]?.id||null):activeMcId;
+        try{await saveMinecraftProfiles(ownerId,next,nextActive);if(cardEl)cardEl.classList.add('removing');renderAll();}
+        catch(error){showToast(error.message,'triangle-exclamation');}
     });
 }
-function addMcAccount(username, type) {
-    if (!currentUserId) { openDashboard(); return; }
+async function addMcAccount(username, type) {
+    if (!currentUserId) { openDashboard(); return false; }
+    if(mcSaveInProgress)return false;
     const user=currentRoleUser();
     const limit=roleProfileLimit(user?.role||'USER');
-    if(Number.isFinite(limit)&&mcAccounts.length>=limit){showToast(`${roleInfo(user?.role).label} includes ${limit} launcher profile slots.`,'users-rectangle');openRoleStore();return;}
+    if(Number.isFinite(limit)&&mcAccounts.length>=limit){showToast(`${roleInfo(user?.role).label} includes ${limit} launcher profile slots.`,'users-rectangle');openRoleStore();return false;}
     const today=new Date();
     const dateStr=`${String(today.getDate()).padStart(2,'0')}.${String(today.getMonth()+1).padStart(2,'0')}.${today.getFullYear()}`;
-    const acc={id:'la_'+Date.now(),username:username.trim(),displayName:username.trim(),type,addedAt:dateStr,playtime:'0h',lastUsed:null,favorite:false,uuid:offlineUuid(username.trim())};
-    mcAccounts.unshift(acc);saveMcAccounts(currentUserId,mcAccounts);
-    activeMcId=acc.id;saveActiveMc(currentUserId,activeMcId);renderAll();
+    const acc={id:'la_'+crypto.randomUUID().replace(/-/g,''),username:username.trim(),displayName:username.trim(),type,addedAt:dateStr,playtime:'0h',lastUsed:null,favorite:false,uuid:offlineUuid(username.trim())};
+    try{await saveMinecraftProfiles(currentUserId,[acc,...mcAccounts],acc.id);renderAll();return true;}
+    catch(error){showToast(error.message,'triangle-exclamation');return false;}
 }
 
 // (Accounts toolbar removed — profiles now render as a simple list; default sort applies)
@@ -3519,7 +3584,7 @@ async function prepareAvatarFile(file){
         return dataUrl;
     }finally{URL.revokeObjectURL(objectUrl);}
 }
-if(avatarUpload){avatarUpload.addEventListener('change',async event=>{const ownerId=currentUserId;const file=event.target.files?.[0];if(!file||!ownerId)return;avatarUpload.disabled=true;try{const dataUrl=await prepareAvatarFile(file);if(currentUserId!==ownerId)return;profileDraftFor(currentRoleUser()).avatar=dataUrl;updateProfileDraftState();const image=document.getElementById('profileAvatarImg');if(image)image.src=dataUrl;showToast('Avatar ready — save your profile to keep it.','image');}catch(error){showToast(error.message||'Avatar could not be processed.','triangle-exclamation');}finally{avatarUpload.disabled=false;avatarUpload.value='';}});}
+if(avatarUpload){avatarUpload.addEventListener('change',async event=>{const ownerId=currentUserId;const file=event.target.files?.[0];if(!file||!ownerId)return;avatarUpload.disabled=true;try{const dataUrl=await prepareAvatarFile(file);if(currentUserId!==ownerId)return;profileDraftFor(currentRoleUser()).avatar=dataUrl;updateProfileDraftState();const image=document.getElementById('profileAvatarImg');if(image)image.src=dataUrl;document.getElementById('profileEditForm')?.requestSubmit();}catch(error){showToast(error.message||'Avatar could not be processed.','triangle-exclamation');}finally{avatarUpload.disabled=false;avatarUpload.value='';}});}
 
 // ── Logout ────────────────────────────────────────────────────
 const logoutBtn=document.getElementById('logoutBtn');
@@ -3558,7 +3623,7 @@ for(const [id,key] of [['profileDisplayName','displayName'],['profileStatus','st
 }
 document.getElementById('resetProfileBtn')?.addEventListener('click',()=>{const user=currentRoleUser();if(!user)return;profileDrafts.delete(user.id);loadProfileViewData(user,{resetTab:false});});
 document.getElementById('changeAvatarBtn')?.addEventListener('click',()=>document.getElementById('avatarUpload').click());
-document.getElementById('removeAvatarBtn')?.addEventListener('click',()=>{const user=currentRoleUser();if(!user)return;profileDraftFor(user).avatar='';document.getElementById('profileAvatarImg').src=siteAvatarUrl({...user,avatar:''});updateProfileDraftState();});
+document.getElementById('removeAvatarBtn')?.addEventListener('click',()=>{const user=currentRoleUser();if(!user)return;profileDraftFor(user).avatar='';document.getElementById('profileAvatarImg').src=siteAvatarUrl({...user,avatar:''});updateProfileDraftState();document.getElementById('profileEditForm')?.requestSubmit();});
 document.getElementById('profileEditForm')?.addEventListener('submit',async event=>{
     event.preventDefault();const user=currentRoleUser();if(!user||user.banned||profileSaving)return;
     const draft={...profileDraftFor(user)};
@@ -3568,12 +3633,12 @@ document.getElementById('profileEditForm')?.addEventListener('submit',async even
     try{
         if(validSupabaseConfig()){
             if(!cloudReady()||cloudAuthUserId!==user.id)throw new Error('Reconnect to save your profile. Your draft is still here.');
-            const {error,data}=await cloud.from('site_users').update({display_name:patch.displayName,status:patch.status,bio:patch.bio,avatar:patch.avatar}).eq('id',user.id).select('id');
-            if(error||!data?.length)throw new Error('Profile could not be saved online. Please try again.');
+            const {error,data}=await cloud.from('site_users').update({display_name:patch.displayName,status:patch.status,bio:patch.bio,avatar:patch.avatar}).eq('id',user.id).select('id,avatar');
+            if(error||!data?.some(row=>row.id===user.id&&row.avatar===patch.avatar))throw new Error('Profile could not be saved online. Please try again.');
         }
         if(currentUserId!==user.id)return;
         const next=siteUsers.map(item=>item.id===user.id?{...item,...patch}:item);
-        try{localStorage.setItem(K_USERS,JSON.stringify(next));}catch{throw new Error(validSupabaseConfig()?'Saved online, but this browser could not update its cache.':'Storage is full. Free some space and try again.');}
+        try{localStorage.setItem(K_USERS,JSON.stringify(next));}catch{if(!validSupabaseConfig())throw new Error('Storage is full. Free some space and try again.');}
         siteUsers=next;
         // Edits entered while the request ran remain a draft.
         if(PROFILE_FIELDS.every(key=>profileDraftFor(user)[key]===draft[key]))profileDrafts.delete(user.id);
@@ -4734,10 +4799,10 @@ if(addAccOverlay)addAccOverlay.addEventListener('click',e=>{if(e.target===addAcc
 document.querySelectorAll('.acc-type-card').forEach(card=>{card.addEventListener('click',()=>{document.querySelectorAll('.acc-type-card').forEach(c=>c.classList.remove('active'));card.classList.add('active');switchAccType(card.dataset.type);});});
 
 const btnElyby=document.getElementById('btnElybySubmit');
-if(btnElyby){btnElyby.addEventListener('click',()=>{if(pendingAccountTimer)return;const l=document.getElementById('elybyLogin');const login=sanitizeField(l?l.value:'',32);if(!login){if(l)l.focus();return;}btnElyby.dataset.originalHtml=btnElyby.innerHTML;btnElyby.disabled=true;btnElyby.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Adding profile...';pendingAccountTimer=setTimeout(()=>{pendingAccountTimer=0;addMcAccount(login,'elyby');closeAddAccount();},2000);});}
+if(btnElyby){btnElyby.addEventListener('click',async()=>{if(pendingAccountTimer)return;const l=document.getElementById('elybyLogin');const login=sanitizeField(l?l.value:'',32);if(!login){if(l)l.focus();return;}btnElyby.dataset.originalHtml=btnElyby.innerHTML;btnElyby.disabled=true;btnElyby.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Saving profile...';pendingAccountTimer=-1;try{if(await addMcAccount(login,'elyby'))closeAddAccount();}finally{resetPendingAccountAction();}});}
 
 const btnOffline=document.getElementById('btnOfflineSubmit');
-if(btnOffline){btnOffline.addEventListener('click',()=>{if(pendingAccountTimer)return;const u=document.getElementById('offlineUsername');const user=sanitizeField(u?u.value:'',32);if(!user||user.length<3){if(u)u.focus();return;}btnOffline.dataset.originalHtml=btnOffline.innerHTML;btnOffline.disabled=true;btnOffline.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Creating...';pendingAccountTimer=setTimeout(()=>{pendingAccountTimer=0;addMcAccount(user,'offline');closeAddAccount();},800);});}
+if(btnOffline){btnOffline.addEventListener('click',async()=>{if(pendingAccountTimer)return;const u=document.getElementById('offlineUsername');const user=sanitizeField(u?u.value:'',32);if(!user||user.length<3){if(u)u.focus();return;}btnOffline.dataset.originalHtml=btnOffline.innerHTML;btnOffline.disabled=true;btnOffline.innerHTML='<i class="fas fa-circle-notch fa-spin"></i> Saving profile...';pendingAccountTimer=-1;try{if(await addMcAccount(user,'offline'))closeAddAccount();}finally{resetPendingAccountAction();}});}
 
 // ══════════════════════════════════════════════════════════════
 // CONFIRM MODAL

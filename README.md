@@ -91,6 +91,17 @@ An authenticated session loads that profile and the owner's related data.
 Existing browser-only accounts are separate legacy demo data; they are not
 automatically converted to Auth identities.
 
+Uploaded avatars are saved in the signed-in owner's `site_users.avatar` field.
+Minecraft profile metadata is saved in `mc_accounts`; adding, selecting,
+favoriting, and deleting profiles waits for Supabase to confirm the change.
+The account's Supabase Auth ID is `mc_accounts.user_id`, which the launcher can
+use when its own authenticated integration is added. These rows do not store
+Minecraft or Microsoft credentials.
+
+The live `friendships` table has historical rows whose users no longer exist.
+`supabase/friendships_integrity.sql` protects new rows with foreign keys and a
+distinct-user check. Reconcile the old rows before validating the constraints.
+
 The current Supabase project also has the account administration and community
 RPC migrations. Idea submissions wait for a moderator to approve them; assign
 staff roles only to a verified owner identity through a trusted database action.
