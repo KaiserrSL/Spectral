@@ -91,16 +91,20 @@ An authenticated session loads that profile and the owner's related data.
 Existing browser-only accounts are separate legacy demo data; they are not
 automatically converted to Auth identities.
 
-Uploaded avatars are saved in the signed-in owner's `site_users.avatar` field.
-Minecraft profile metadata is saved in `mc_accounts`; adding, selecting,
-favoriting, and deleting profiles waits for Supabase to confirm the change.
-The account's Supabase Auth ID is `mc_accounts.user_id`, which the launcher can
-use when its own authenticated integration is added. These rows do not store
-Minecraft or Microsoft credentials.
+The website saves uploaded avatars in the authenticated owner's `site_users.avatar`
+field and Minecraft profile metadata in `mc_accounts`. Adding, selecting,
+favoriting, or deleting a Minecraft profile now waits for Supabase to confirm
+the resulting rows before the browser cache is updated. The account's Supabase
+Auth ID is the `mc_accounts.user_id`; the launcher can read these same rows after
+its own authenticated integration is added. These rows contain profile names,
+types, UUIDs, favorites, and the selected profile, not Minecraft or Microsoft
+credentials. An Ely.by or Microsoft session must be authorized separately in
+the launcher before it can be used to start the game.
 
 The live `friendships` table has historical rows whose users no longer exist.
-`supabase/friendships_integrity.sql` protects new rows with foreign keys and a
-distinct-user check. Reconcile the old rows before validating the constraints.
+`supabase/friendships_integrity.sql` adds foreign keys and a distinct-user check
+for new rows without deleting that history. Reconcile the old rows before
+validating the constraints.
 
 The current Supabase project also has the account administration and community
 RPC migrations. Idea submissions wait for a moderator to approve them; assign
@@ -139,10 +143,12 @@ are public client identifiers. To connect a different project:
    <meta name="spectral-supabase-publishable-key" content="YOUR_PUBLIC_PUBLISHABLE_KEY">
    ```
 
-3. Configure `https://kaiserrsl.github.io/Spectral/` as a site and OAuth
-   redirect URL in Supabase Auth. The `username-auth` function's CORS allowlist
-   includes the GitHub Pages origin `https://kaiserrsl.github.io` (origins do
-   not include the `/Spectral/` path). Redeploy the function after changes:
+3. Set the Supabase Auth Site URL to `https://kaiserrsl.github.io/Spectral/`.
+   Add that URL and `https://spectral-eight.vercel.app/` as OAuth redirect URLs.
+   The `username-auth` CORS allowlist includes their exact origins and the
+   `null` origin used by a locally opened `file://` page. Google sign-in and
+   email recovery still require an HTTP(S) page. Origins do not include paths
+   such as `/Spectral/`. Redeploy the function after changes:
    `supabase functions deploy username-auth --project-ref iliokfdcwdcnyjfwmbie --no-verify-jwt`.
 4. Test with at least two accounts to verify row isolation, friendship
    participant policies, role hierarchy checks, reviewed admin actions,

@@ -17,9 +17,10 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preload" href="assets/fonts/Onest-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="style.min.css?v=48">
+    <link rel="stylesheet" href="style.min.css?v=53">
 </head>
 <body>
+    <script src="theme-init.js?v=1"></script>
     <canvas id="particles-canvas" aria-hidden="true"></canvas>
     <div class="bg-gradient-overlay" aria-hidden="true"></div>
     <div class="vignette" aria-hidden="true"></div>
@@ -37,7 +38,6 @@
         <span class="lbs lbs-6"></span>
     </div>
 
-    <div class="site-grid" aria-hidden="true"></div>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <!-- Navigation -->
     <nav class="navbar glass-nav" role="navigation" aria-label="Main navigation">
@@ -54,12 +54,18 @@
             <a href="#advanced-features" class="nav-btn" data-target="advanced-features"><i class="fas fa-tools" aria-hidden="true"></i> <span>Features</span></a>
             <a href="#support" class="nav-btn" data-target="support"><i class="fas fa-life-ring" aria-hidden="true"></i> <span>Support</span></a>
         </div>
-        <button type="button" class="btn-account" id="openDashboardBtn" aria-label="Open account panel">
-            <div class="avatar-circle" id="navAvatarCircle"><i class="fas fa-user" aria-hidden="true"></i></div>
-            <span class="req-badge" id="reqBadge" style="display:none;">0</span>
-            <span class="account-copy"><small id="accountEyebrow">YOUR SPACE</small><strong id="accountText">Sign In</strong></span>
-            <i class="fas fa-chevron-down account-chevron" aria-hidden="true"></i>
-        </button>
+        <div class="nav-actions">
+            <button type="button" class="btn-account" id="openDashboardBtn" aria-label="Open account panel">
+                <div class="avatar-circle" id="navAvatarCircle"><i class="fas fa-user" aria-hidden="true"></i></div>
+                <span class="req-badge" id="reqBadge" style="display:none;">0</span>
+                <span class="account-copy"><small id="accountEyebrow">YOUR SPACE</small><strong id="accountText">Sign In</strong></span>
+                <i class="fas fa-chevron-down account-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="nav-theme-toggle" id="navThemeToggle" aria-label="Switch to light theme" aria-pressed="false" title="Switch to light theme">
+                <i class="fas fa-sun theme-icon-sun" aria-hidden="true"></i>
+                <i class="fas fa-moon theme-icon-moon" aria-hidden="true"></i>
+            </button>
+        </div>
         <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="primaryNavigation">
             <span></span><span></span><span></span>
         </button>
@@ -71,59 +77,64 @@
         <section id="home" class="tab-content active-tab">
             <div class="hero-container">
                 <div class="hero-text-block animate-on-scroll">
-                    <div class="status-badge">
-                        <span class="pulse-dot" aria-hidden="true"></span>
-                        <span>Desktop Minecraft launcher</span>
-                    </div>
-                    <h1>Your Minecraft builds.<br><span class="text-gradient">Ready to launch.</span></h1>
+                    <h1>Your worlds.<br><span class="text-gradient">Ready to launch.</span></h1>
                     <p>Keep versions, mods and profiles in one place. If a game fails to start, follow the last error instead of guessing.</p>
                     <div class="cta-group">
                         <a href="https://github.com/KaiserrSL/spectral-downloads/releases/latest/download/SpectralSetup_Installer.exe" class="btn-primary ripple magnetic-btn" id="downloadBtn"><span>Download</span><i class="fas fa-download"></i></a>
                         <a href="#advanced-features" class="btn-secondary magnetic-btn"><span><i class="fas fa-layer-group"></i> Features</span></a>
                     </div>
+                    <div class="hero-quick-points" aria-label="Launcher highlights">
+                        <span><i class="fas fa-cubes" aria-hidden="true"></i> Your builds</span>
+                        <span><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> One click launch</span>
+                        <span><i class="fas fa-shield-halved" aria-hidden="true"></i> Clear diagnostics</span>
+                    </div>
                 </div>
                 <div class="hero-visual-block animate-on-scroll delay-1">
-                        <!-- Bottom dock: account · instance · launch -->
-                    <div class="launcher-ui tilt-card-lg">
-                        <div class="lu-winbar">
-                            <span class="lu-brand"><img src="Icon-256.webp" class="lu-win-logo" alt="" width="22" height="22" decoding="async"><b>SPECTRAL</b></span>
-                            <div class="lu-nav" aria-label="Launcher navigation">
-                                <span class="lu-nav-tab active"><i class="fas fa-play"></i> Play</span>
-                                <span class="lu-nav-tab"><i class="fas fa-terminal"></i> Console</span>
-                                <span class="lu-nav-tab"><i class="fas fa-layer-group"></i> Library</span>
-                                <span class="lu-nav-tab"><i class="fas fa-user"></i> Accounts</span>
-                            </div>
-                            <div class="lu-winctl" aria-hidden="true"><span class="wc min"></span><span class="wc max"></span><span class="wc close"></span></div>
-                        </div>
-                        <div class="lu-shell">
-                            <div class="lu-hero">
-                                <div class="lu-hero-bg" aria-hidden="true"></div>
-                                <div class="lu-nebula" aria-hidden="true"></div>
-                                <div class="lu-stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-                                <div class="lu-streaks" aria-hidden="true"><i></i><i></i><i></i></div>
-                                <div class="lu-orbit" aria-hidden="true"><span></span></div>
-                                <div class="lu-cube-cluster" aria-hidden="true">
-                                    <span class="lu-cube cube-main"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
-                                    <span class="lu-cube cube-left"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
-                                    <span class="lu-cube cube-top"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
-                                    <span class="lu-cube cube-right"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
-                                    <span class="lu-cube cube-small"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                    <div class="launcher-presentation">
+                        <div class="launcher-ui tilt-card-lg" role="img" aria-label="Spectral desktop launcher preview: Play screen, local build, account and friends panel">
+                            <div class="lu-winbar">
+                                <span class="lu-brand"><img src="Icon-256.webp" class="lu-win-logo" alt="" width="20" height="20" decoding="async"><b>SPECTRAL</b></span>
+                                <div class="lu-nav" aria-hidden="true">
+                                    <span class="lu-nav-tab active"><i class="fas fa-play"></i> Play</span>
+                                    <span class="lu-nav-tab"><i class="fas fa-terminal"></i> Console</span>
+                                    <span class="lu-nav-tab"><i class="fas fa-bars"></i> Library</span>
+                                    <span class="lu-nav-tab"><i class="fas fa-user"></i> Accounts</span>
+                                    <span class="lu-nav-tab"><i class="fas fa-gear"></i> Settings</span>
                                 </div>
-                                <div class="lu-game-copy">
-                                    <span class="lu-eyebrow">Continue playing</span><strong>1.21.11</strong>
-                                    <span class="lu-meta">Fabric · 2048–4096 MB · Ready</span>
-                                    <div class="lu-actions"><button type="button" class="lu-play"><i class="fas fa-play"></i> Play now</button><button type="button" class="lu-version" aria-label="Select version"><i class="fas fa-cube"></i> 1.21.11 <i class="fas fa-chevron-down"></i></button></div>
-                                </div>
-                                <div class="lu-profile"><span><small>Your account</small><b id="launcherUsername">Guest</b><em><i class="lu-dot"></i> Online</em></span><div class="lu-profile-avatar"><img id="launcherSkinHead" src="https://minotar.net/avatar/steve/100" alt="Minecraft skin head" width="100" height="100" decoding="async" fetchpriority="low" referrerpolicy="no-referrer"></div></div>
+                                <span class="lu-winctl" aria-hidden="true"><i class="fas fa-minus"></i><i class="far fa-square"></i><i class="fas fa-xmark"></i></span>
                             </div>
-                            <aside class="lu-friends">
-                                <div class="lu-friends-head"><b>Friends</b><span>Demo</span></div>
-                                <div class="lu-search"><i class="fas fa-search"></i><span>Find player…</span></div>
-                                <div class="lu-friend"><div class="lu-friend-avatar one"><i class="fas fa-user"></i></div><span><b>Player One</b><small>In game</small></span><i class="online"></i></div>
-                                <div class="lu-friend"><div class="lu-friend-avatar two"><i class="fas fa-user"></i></div><span><b>Player Two</b><small>Offline</small></span><i></i></div>
-                                <div class="lu-friends-empty"><i class="fas fa-user-plus"></i><span>Invite friends</span></div>
-                            </aside>
+                            <div class="lu-shell">
+                                <div class="lu-hero">
+                                    <div class="lu-hero-bg" aria-hidden="true"></div>
+                                    <div class="lu-nebula" aria-hidden="true"></div>
+                                    <div class="lu-stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                                    <div class="lu-streaks" aria-hidden="true"><i></i><i></i><i></i></div>
+                                    <span class="lu-build-tag"><i></i> Fabric</span>
+                                    <div class="lu-orbit" aria-hidden="true"><span></span></div>
+                                    <div class="lu-cube-cluster" aria-hidden="true">
+                                        <span class="lu-cube cube-main"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                        <span class="lu-cube cube-left"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                        <span class="lu-cube cube-top"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                        <span class="lu-cube cube-right"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                        <span class="lu-cube cube-small"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                    </div>
+                                    <div class="lu-game-copy">
+                                        <span class="lu-eyebrow">Continue playing</span>
+                                        <strong>Survival Realm</strong>
+                                        <span class="lu-meta">Minecraft 1.21.11 <i></i> Fabric <i></i> Ready to launch</span>
+                                        <div class="lu-actions"><span class="lu-play"><i class="fas fa-play"></i> Play</span><span class="lu-version"><i class="fas fa-cube"></i> Survival Realm <i class="fas fa-chevron-down"></i></span></div>
+                                    </div>
+                                    <div class="lu-profile"><span><small>Player profile</small><b id="launcherUsername">Guest</b><em><i class="lu-dot"></i> Ready</em></span><div class="lu-profile-avatar"><img id="launcherSkinHead" src="https://minotar.net/avatar/steve/100" alt="" width="100" height="100" decoding="async" fetchpriority="low" referrerpolicy="no-referrer"></div></div>
+                                </div>
+                                <aside class="lu-friends">
+                                    <span class="lu-social-kicker">Spectral social</span>
+                                    <div class="lu-friends-head"><b>Friends</b><span>0</span></div>
+                                    <div class="lu-friends-wait"><i class="fas fa-user-group" aria-hidden="true"></i><p>Sign in to see<br>your friends here.</p></div>
+                                    <div class="lu-friends-foot"><i class="fas fa-circle" aria-hidden="true"></i> Network ready</div>
+                                </aside>
+                            </div>
                         </div>
+                        <div class="launcher-presentation-note"><span><i></i> Desktop experience</span><span>Designed around the real Spectral launcher</span></div>
                     </div>
                 </div>
                 <nav class="home-wayfinder" aria-label="Explore Spectral">
@@ -836,28 +847,6 @@
                 <div class="ptab-content active" id="profilePanelMain" role="tabpanel" aria-labelledby="profileTabMain" data-ptab-content="my-profile">
                     <section class="profile-cover" id="profileCover" data-header="nebula">
                         <div class="profile-cover-scene" aria-hidden="true"><i></i><i></i><i></i><span></span><b></b></div>
-                        <div class="profile-special-art profile-prism-art" aria-hidden="true">
-                            <span class="profile-prism-orbit profile-prism-orbit-a"></span>
-                            <span class="profile-prism-orbit profile-prism-orbit-b"></span>
-                            <span class="profile-prism-beam"></span>
-                            <span class="profile-prism-core"><i></i><b></b></span>
-                            <span class="profile-prism-shard profile-prism-shard-a"></span>
-                            <span class="profile-prism-shard profile-prism-shard-b"></span>
-                            <span class="profile-prism-shard profile-prism-shard-c"></span>
-                            <em>SPECTRAL // SIGNATURE</em>
-                        </div>
-                        <div class="profile-special-art profile-code-art" aria-hidden="true">
-                            <span class="profile-code-reticle"></span>
-                            <div class="profile-code-window">
-                                <span class="profile-code-window-bar"><i></i><i></i><i></i><b>spectral://core</b></span>
-                                <span class="profile-code-command"><i>›</i><b>build.profile</b><em>developer</em></span>
-                                <span class="profile-code-line profile-code-line-a"><i></i><b></b></span>
-                                <span class="profile-code-line profile-code-line-b"><i></i><b></b></span>
-                                <span class="profile-code-line profile-code-line-c"><i></i><b></b></span>
-                                <span class="profile-code-status"><i></i> SYSTEM ONLINE <b>v0.9.4</b></span>
-                            </div>
-                            <span class="profile-code-index">01<br>11<br>07</span>
-                        </div>
                         <div class="profile-cover-top">
                             <span class="profile-cover-label"><i class="fas fa-wave-square" id="profileHeaderIcon"></i> <span id="profileHeaderTitle">Nebula Drift</span><em id="profileHeaderTier">Core collection</em></span>
                             <button type="button" class="profile-cover-customize" id="openHeaderStudioBtn"><i class="fas fa-wand-magic-sparkles"></i> Customize</button>
@@ -1213,6 +1202,6 @@
     </div>
 
     <button type="button" id="scrollToTop" class="scroll-to-top" aria-label="Scroll to top"><i class="fas fa-arrow-up"></i></button>
-    <script defer src="script.min.js?v=47"></script>
+    <script defer src="script.min.js?v=50"></script>
 </body>
 </html>

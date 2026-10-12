@@ -114,46 +114,6 @@ function initParticles() {
             1.5+Math.random()*3.5, (Math.random()-.5)*.6, (Math.random()-.5)*.6, 210+Math.random()*120));
     }
 }
-function drawLines() {
-    const maxDist = 130;
-    let connections = 0;
-    ctx.beginPath();
-    for (let i = 0; i < particles.length; i++)
-        for (let j = i+1; j < particles.length; j++) {
-            const dx = particles[i].x-particles[j].x, dy = particles[i].y-particles[j].y;
-            const dist = dx*dx+dy*dy;
-            if (dist < maxDist*maxDist) {
-                connections++;
-                ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);
-            }
-        }
-    if (connections) {
-        ctx.globalAlpha = SPECTRAL_LIGHT ? .16 : .11;
-        ctx.strokeStyle = SPECTRAL_LIGHT ? 'rgb(99,102,241)' : 'rgb(214,220,255)';
-        ctx.lineWidth = .55;
-        ctx.stroke();
-    }
-    if (mouse.active) {
-        const mmd = 180;
-        let mouseConnections = 0;
-        ctx.beginPath();
-        for (const p of particles) {
-            const dx = p.x-mouse.x, dy = p.y-mouse.y, dist = dx*dx+dy*dy;
-            if (dist < mmd*mmd) {
-                mouseConnections++;
-                ctx.moveTo(mouse.x,mouse.y); ctx.lineTo(p.x,p.y);
-            }
-        }
-        if (mouseConnections) {
-            ctx.globalAlpha = .13;
-            ctx.strokeStyle = 'rgb(99,102,241)';
-            ctx.lineWidth = .6;
-            ctx.stroke();
-        }
-    }
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-}
 // ── Runtime FPS watchdog ─────────────────────────────────────
 // Some devices report plenty of cores yet still chug. If the canvas
 // can't hold a decent frame rate during the first couple of seconds
@@ -183,7 +143,6 @@ function animate(ts) {
     const frameStep = Math.min(2, elapsed / 16.67);
     ctx.clearRect(0,0,canvasWidth,canvasHeight);
     particles.forEach(p => { p.update(canvasWidth,canvasHeight,mouse,frameStep); p.draw(ctx,IS_TOUCH); });
-    drawLines();
     animationId = requestAnimationFrame(animate);
 }
 window.addEventListener('resize', () => {
@@ -481,7 +440,7 @@ function revealUpdatedPanel(element) {
     }).catch(() => {});
 }
 
-// Home feature deck: hover, click and keyboard selection share one state.
+// Home feature deck: deliberate click and keyboard selection avoid hover resize loops.
 const homeFeatureCards = [...document.querySelectorAll('[data-home-feature]')];
 function activateHomeFeature(card) {
     if (!card || card.classList.contains('is-active')) return;
@@ -494,9 +453,6 @@ function activateHomeFeature(card) {
     });
 }
 homeFeatureCards.forEach((card, index) => {
-    card.addEventListener('pointerenter', () => {
-        if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) activateHomeFeature(card);
-    });
     card.addEventListener('click', () => activateHomeFeature(card));
     card.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -606,7 +562,7 @@ if (!liteOn() && !IS_TOUCH && !REDUCED_MOTION) tiltEls.forEach(el=>{
         moveRaf=requestAnimationFrame(()=>{
             moveRaf=null;
             if(!rect) rect=el.getBoundingClientRect();
-            const d=tiltData.get(el), intensity=el.classList.contains('tilt-card-lg')?34:28;
+            const d=tiltData.get(el), intensity=el.classList.contains('launcher-ui')?95:el.classList.contains('tilt-card-lg')?34:28;
             d.tx=((latestEvent.clientY-rect.top-rect.height/2)/intensity)*-1;
             d.ty=(latestEvent.clientX-rect.left-rect.width/2)/intensity;
             activeTilts.add(el); queue();
@@ -623,11 +579,8 @@ const THEME_KEY = 'spectral_theme';
 const profileThemeToggle = document.getElementById('profileThemeToggle');
 const profileThemeIcon = document.getElementById('profileThemeIcon');
 const profileThemeState = document.getElementById('profileThemeState');
-function applyTheme(theme, animate) {
-    if (animate) {
-        document.body.classList.add('theme-switching');
-        setTimeout(() => document.body.classList.remove('theme-switching'), 500);
-    }
+const navThemeToggle = document.getElementById('navThemeToggle');
+function commitTheme(theme) {
     SPECTRAL_LIGHT = (theme === 'light');
     if (theme === 'light') {
         document.body.classList.add('light-theme');
@@ -639,17 +592,57 @@ function applyTheme(theme, animate) {
         if (profileThemeState) profileThemeState.textContent = 'Dark palette is active';
     }
     if (profileThemeToggle) profileThemeToggle.checked = (theme === 'light');
+    if (navThemeToggle) {
+        const nextLabel = theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme';
+        navThemeToggle.setAttribute('aria-label', nextLabel);
+        navThemeToggle.setAttribute('title', nextLabel);
+        navThemeToggle.setAttribute('aria-pressed', String(theme === 'light'));
+    }
     const themeColor = document.querySelector('meta[name="theme-color"]');
     if (themeColor) themeColor.content = theme === 'light' ? '#f4f6ff' : '#080a18';
+}
+function applyTheme(theme, animate, source) {
+    if (!animate || REDUCED_MOTION || liteOn()) {
+        commitTheme(theme);
+        return;
+    }
+    if (typeof document.startViewTransition === 'function' && !document.getElementById('dashboardOverlay')?.classList.contains('open')) {
+        const rect = source?.getBoundingClientRect();
+        const x = rect ? rect.left + rect.width / 2 : innerWidth / 2;
+        const y = rect ? rect.top + rect.height / 2 : innerHeight / 2;
+        const radius = Math.max(
+            Math.hypot(x, y), Math.hypot(innerWidth - x, y),
+            Math.hypot(x, innerHeight - y), Math.hypot(innerWidth - x, innerHeight - y),
+        );
+        document.documentElement.style.setProperty('--theme-origin-x', `${x}px`);
+        document.documentElement.style.setProperty('--theme-origin-y', `${y}px`);
+        document.documentElement.style.setProperty('--theme-radius', `${radius}px`);
+        document.startViewTransition(() => commitTheme(theme)).finished.catch(() => {}).finally(() => {
+            document.documentElement.style.removeProperty('--theme-origin-x');
+            document.documentElement.style.removeProperty('--theme-origin-y');
+            document.documentElement.style.removeProperty('--theme-radius');
+        });
+        return;
+    }
+    document.body.classList.add('theme-switching');
+    commitTheme(theme);
+    setTimeout(() => document.body.classList.remove('theme-switching'), 520);
 }
 let initialTheme = 'dark';
 try { initialTheme = localStorage.getItem(THEME_KEY) || 'dark'; } catch {}
 applyTheme(initialTheme, false);
 if (profileThemeToggle) {
-    profileThemeToggle.addEventListener('change', () => {
+    profileThemeToggle.addEventListener('change', event => {
         const next = profileThemeToggle.checked ? 'light' : 'dark';
         try { localStorage.setItem(THEME_KEY, next); } catch {}
-        applyTheme(next, true);
+        applyTheme(next, true, event.currentTarget);
+    });
+}
+if (navThemeToggle) {
+    navThemeToggle.addEventListener('click', event => {
+        const next = document.body.classList.contains('light-theme') ? 'dark' : 'light';
+        try { localStorage.setItem(THEME_KEY, next); } catch {}
+        applyTheme(next, true, event.currentTarget);
     });
 }
 
@@ -1766,17 +1759,17 @@ async function saveMinecraftProfiles(uid, accounts, activeId) {
         if (validSupabaseConfig()) {
             if (!cloudReady() || uid !== cloudAuthUserId) throw new Error('Reconnect to save Minecraft profiles online.');
             const rows = accounts.map(account => ({
-        id: safeIdentifier(account.id),
-        user_id: uid,
-        username: sanitizeField(account.username, 32),
-        display_name: sanitizeField(account.displayName || account.username, 32),
-        type: ['microsoft','elyby','offline'].includes(account.type) ? account.type : 'offline',
-        uuid: sanitizeField(account.uuid, 36),
-        added_at: sanitizeField(account.addedAt, 24),
-        playtime: sanitizeField(account.playtime, 24) || '0h',
-        favorite: Boolean(account.favorite),
-        last_used: account.lastUsed || null,
-        is_active: account.id === activeId
+                id: safeIdentifier(account.id),
+                user_id: uid,
+                username: sanitizeField(account.username, 32),
+                display_name: sanitizeField(account.displayName || account.username, 32),
+                type: ['microsoft','elyby','offline'].includes(account.type) ? account.type : 'offline',
+                uuid: sanitizeField(account.uuid, 36),
+                added_at: sanitizeField(account.addedAt, 24),
+                playtime: sanitizeField(account.playtime, 24) || '0h',
+                favorite: Boolean(account.favorite),
+                last_used: account.lastUsed || null,
+                is_active: account.id === activeId
             }));
             if (rows.length > 100 || rows.some(row => !row.id || !row.username)) throw new Error('Invalid Minecraft profile data.');
             const {data:stored,error:readError}=await cloud.from('mc_accounts')
@@ -1820,6 +1813,8 @@ async function saveMinecraftProfiles(uid, accounts, activeId) {
             })) throw new Error('The database did not confirm the final Minecraft profile list.');
         }
         if (uid !== currentUserId) throw new Error('The account changed while saving Minecraft profiles.');
+        // Cloud is authoritative. A full browser cache must not turn a confirmed
+        // online save into a failed user action; the next sign-in reloads it.
         const cachedAccounts=saveMcAccounts(uid,accounts);
         const cachedActive=saveActiveMc(uid,activeId);
         if (!validSupabaseConfig() && (!cachedAccounts || !cachedActive)) {
@@ -2835,8 +2830,10 @@ function showProfileView() {
         adminTab.hidden = !canAdmin;
         adminTab.style.removeProperty('display');
     }
-    loadProfileViewData(user, { resetTab: true });
+    loadProfileViewData(user, { resetTab: false });
     activateProfileTabV2('my-profile');
+    const modal = dashOverlay.querySelector('.dashboard-modal');
+    if (modal) modal.scrollTop = 0;
     triggerProfileMenuEntrance(user, false);
 }
 
@@ -3226,14 +3223,14 @@ function activateProfileTab(target, { animate = true, refresh = true } = {}) {
 }
 
 const PROFILE_HEADERS = {
-    nebula:   { label:'Nebula Drift',      tier:'Core collection',      unlock:'USER',      icon:'fas fa-cloud-moon', description:'A calm indigo field with drifting stars.' },
-    archive:  { label:'Veteran Archive',   tier:'Founder collection',   unlock:'VETERAN',   icon:'fas fa-shield-halved', description:'A teal founder signal etched with legacy rings.' },
-    solar:    { label:'Solar Flux',         tier:'Pro collection',       unlock:'PRO',       icon:'fas fa-sun', description:'Warm gold energy waves for active players.' },
-    crown:    { label:'Violet Crown',       tier:'Legend collection',    unlock:'LEGEND',    icon:'fas fa-crown', description:'Royal violet beams with a rare starlight pulse.' },
-    prism:    { label:'Spectral Prism',     tier:'Signature identity',   unlock:'SPECTRAL',  icon:'fas fa-gem', description:'A dimensional prism with living chromatic light.' },
-    guardian: { label:'Guardian Grid',      tier:'Staff collection',     unlock:'MODERATOR', icon:'fas fa-gavel', description:'A verified blue security field for staff.' },
-    command:  { label:'Command Core',       tier:'Admin collection',     unlock:'ADMIN',     icon:'fas fa-user-shield', description:'A red command surface with scanning telemetry.' },
-    code:     { label:'Developer Protocol', tier:'Internal build',       unlock:'DEV',       icon:'fas fa-code', description:'A live engineering console wired into Spectral Core.' }
+    nebula:   { label:'Nebula Drift',      tier:'Core collection',      unlock:'USER',      icon:'fas fa-cloud-moon', description:'Indigo starlight with quiet drifting orbits.' },
+    archive:  { label:'Veteran Archive',   tier:'Founder collection',   unlock:'VETERAN',   icon:'fas fa-shield-halved', description:'Layered jade contours and a soft founder glow.' },
+    solar:    { label:'Solar Flux',         tier:'Pro collection',       unlock:'PRO',       icon:'fas fa-sun', description:'Warm horizon light across a deep dusk field.' },
+    crown:    { label:'Violet Crown',       tier:'Legend collection',    unlock:'LEGEND',    icon:'fas fa-crown', description:'Violet depth with fine refracted light.' },
+    prism:    { label:'Spectral Prism',     tier:'Signature identity',   unlock:'SPECTRAL',  icon:'fas fa-gem', description:'Cyan, violet and rose light crossing in fine planes.' },
+    guardian: { label:'Guardian Grid',      tier:'Staff collection',     unlock:'MODERATOR', icon:'fas fa-gavel', description:'Cool blue signal lines with a steady glow.' },
+    command:  { label:'Command Core',       tier:'Admin collection',     unlock:'ADMIN',     icon:'fas fa-user-shield', description:'Rose red scanlines over a dark command field.' },
+    code:     { label:'Developer Protocol', tier:'Internal build',       unlock:'DEV',       icon:'fas fa-code', description:'Rose and cyan traces across a quiet developer field.' }
 };
 const PROFILE_ENTRANCES = {
     signal:   { label:'Soft signal',   unlock:'USER',     icon:'fas fa-wave-square' },
@@ -3371,14 +3368,15 @@ document.getElementById('profileEntranceOptions')?.addEventListener('click',even
 });
 
 // ── Load profile data ─────────────────────────────────────────
-function loadProfileViewData(user,{resetTab=true}={}) {
+function loadProfileViewData(user,{resetTab=false}={}) {
     const displayRole=displayedRoleKey(user);
     const role = roleInfo(user.role);
+    const displayRoleInfo=roleInfo(displayRole);
     const draft=profileDraftFor(user);
     const img = document.getElementById('profileAvatarImg');
     if(img){img.src=draft.avatar||siteAvatarUrl({...user,avatar:''});img.onerror=function(){this.onerror=null;this.src='assets/avatar-placeholder.svg';};}
     const un = document.getElementById('profileUsername'); if(un)un.textContent=user.displayName||user.username;
-    const rb = document.getElementById('profileRoleBadge'); if(rb){rb.innerHTML=`<i class="${role.icon}"></i> ${role.label}${isDev(user)&&displayRole!=='DEV'?'<small>DEV PREVIEW</small>':''}`;rb.className=`badge-pro profile-role-${String(displayRole).toLowerCase()}`;rb.style.background=role.grad;rb.style.color='#fff';}
+    const rb = document.getElementById('profileRoleBadge'); if(rb){rb.innerHTML=`<i class="${displayRoleInfo.icon}"></i> ${displayRoleInfo.label}${isDev(user)&&displayRole!=='DEV'?'<small>VISUAL PREVIEW</small>':''}`;rb.className=`badge-pro profile-role-${String(displayRole).toLowerCase()}`;rb.style.background=displayRoleInfo.grad;rb.style.color='#fff';}
     const dn = document.getElementById('profileDisplayName'); if(dn)dn.value=draft.displayName;
     const st = document.getElementById('profileStatus'); if(st)st.value=draft.status;
     const bio= document.getElementById('profileBio'); if(bio)bio.value=draft.bio;
@@ -3396,7 +3394,11 @@ function loadProfileViewData(user,{resetTab=true}={}) {
     applyProfileStyle(user);
     updateProfileDraftState();
     renderAccountSession(user);
-    if(resetTab)activateProfileTab('my-profile',{animate:false,refresh:false});
+    if(resetTab){
+        const activeSwitcher=globalThis.activateProfileTab;
+        if(activeSwitcher&&activeSwitcher!==activateProfileTab)activeSwitcher('my-profile');
+        else activateProfileTab('my-profile',{animate:false,refresh:false});
+    }
 }
 
 // ── Roles, purchase-ready store and registration celebration ────────────────
@@ -4348,7 +4350,7 @@ function revealWorkspaceContent(element,direction=1,{distance=16,duration=360,fa
     workspaceMotionSnapshots.delete(element);
     if(REDUCED_MOTION||liteOn())return;
     const startTransform=snapshot?.transform&&snapshot.transform!=='none'?snapshot.transform:`translate3d(${direction*distance}px,6px,0)`;
-    const startOpacity=fade?Number(snapshot?.opacity??.94):1;
+    const startOpacity=fade?Number(snapshot?.opacity??.82):1;
     if(typeof element.animate!=='function'){
         element.style.setProperty('--workspace-reveal-start',startTransform);
         element.style.setProperty('--workspace-reveal-opacity',String(startOpacity));
@@ -4453,7 +4455,7 @@ function bindRolesV2(){
     rolesPanelV2.addEventListener('click',event=>{
         const cycle=event.target.closest('[data-role-v2-cycle]');if(cycle){if(rolesV2.quote)closeRoleCheckoutV2();rolesV2.cycle=cycle.dataset.roleV2Cycle;rolesPanelV2.querySelectorAll('[data-role-v2-cycle]').forEach(button=>{button.classList.toggle('active',button===cycle);button.setAttribute('aria-pressed',String(button===cycle));});renderRoleWorkspaceV2();return;}
         const category=event.target.closest('[data-role-v2-category]');if(category){const order=['capacity','appearance','permissions'],previous=rolesV2.category,next=category.dataset.roleV2Category;if(previous===next)return;rolesV2.category=next;rolesPanelV2.querySelectorAll('[data-role-v2-category]').forEach(button=>{button.classList.toggle('active',button===category);button.setAttribute('aria-selected',String(button===category));});renderRolesCompare(workspaceUser());revealWorkspaceContent(document.getElementById('roleComparisonGrid'),order.indexOf(next)>order.indexOf(previous)?1:-1,{distance:9,duration:280});return;}
-        const action=event.target.closest('[data-role-v2-action]');if(action&&!action.disabled){if(action.dataset.roleV2Action==='preview'){const user=workspaceUser();if(user&&setDeveloperRolePreview(user,action.dataset.roleV2Key)){renderNavbar();renderRoleWorkspaceV2();showToast(`Preview: ${roleInfo(action.dataset.roleV2Key).label}.`,'eye');}}else if(action.dataset.roleV2Action==='choose')openRoleCheckoutV2(action.dataset.roleV2Key);return;}
+        const action=event.target.closest('[data-role-v2-action]');if(action&&!action.disabled){if(action.dataset.roleV2Action==='preview'){const user=workspaceUser();if(user&&setDeveloperRolePreview(user,action.dataset.roleV2Key)){renderNavbar();renderRoleWorkspaceV2();activateProfileTabV2('my-profile');showToast(`Preview: ${roleInfo(action.dataset.roleV2Key).label}.`,'eye');}}else if(action.dataset.roleV2Action==='choose')openRoleCheckoutV2(action.dataset.roleV2Key);return;}
         if(event.target.closest('[data-role-v2-reset]')){const user=workspaceUser();if(user&&setDeveloperRolePreview(user,'DEV')){renderNavbar();renderRoleWorkspaceV2();}return;}
         if(event.target.closest('[data-role-v2-remove]')){const user=workspaceUser();if(user&&saveRoleOrders(loadRoleOrders().filter(item=>item.userId!==user.id))){renderRoleWorkspaceV2();showToast('Saved plan removed.','check');}return;}
         if(event.target.closest('[data-role-v2-close]')){closeRoleCheckoutV2();return;}
@@ -4555,16 +4557,13 @@ function selectAdminWorkspaceTab(target){
     const outgoing=adminPanelV2?.querySelector(`[data-admin-v2-view="${previous}"]`);
     interruptWorkspaceMotion(outgoing);
     renderAdminV2();
-    revealWorkspaceContent(adminPanelV2?.querySelector(`[data-admin-v2-view="${target}"]`),order.indexOf(target)>order.indexOf(previous)?1:-1,{distance:12,duration:320,fade:false});
+    revealWorkspaceContent(adminPanelV2?.querySelector(`[data-admin-v2-view="${target}"]`),order.indexOf(target)>order.indexOf(previous)?1:-1,{distance:10,duration:300});
 }
 
 function requestAdminWorkspaceTab(target){
     clearTimeout(adminSwitchTimer);
     if(target===adminV2.tab)return;
-    const current=adminPanelV2?.querySelector(`[data-admin-v2-view="${adminV2.tab}"]`);
-    if(workspaceAnimations.get(current)?.playState==='running'||current?.classList.contains('workspace-reveal-fallback')){
-        adminSwitchTimer=window.setTimeout(()=>selectAdminWorkspaceTab(target),75);
-    }else selectAdminWorkspaceTab(target);
+    selectAdminWorkspaceTab(target);
 }
 
 function renderAdminV2Forum(){
@@ -4624,32 +4623,35 @@ function bindAdminV2(){
 function activateProfileTabV2(target){
     if(target==='admin-panel'&&!canAccessAdmin(workspaceUser()))return;
     const selected=profileTabsV2?.querySelector(`[data-ptab="${target}"]:not([hidden])`);if(!selected)return;
-    const tabs=[...profileTabsV2.querySelectorAll('.profile-tab')],panels=[...document.querySelectorAll('#profileView > .ptab-content')],previousPanel=panels.find(panel=>!panel.hidden),nextPanel=panels.find(panel=>panel.dataset.ptabContent===target);
+    const tabs=[...profileTabsV2.querySelectorAll('.profile-tab')],panels=[...document.querySelectorAll('#profileView > .ptab-content')],previousTab=tabs.find(tab=>tab.classList.contains('active')),previousPanel=panels.find(panel=>panel.dataset.ptabContent===previousTab?.dataset.ptab)||panels.find(panel=>!panel.hidden),nextPanel=panels.find(panel=>panel.dataset.ptabContent===target);
     if(!nextPanel)return;
-    const previousIndex=tabs.findIndex(tab=>tab.dataset.ptab===previousPanel?.dataset.ptabContent),nextIndex=tabs.indexOf(selected),changed=previousPanel!==nextPanel;
-    if(!changed){renderAccountStudio();return;}
-    interruptWorkspaceMotion(previousPanel);
+    const previousIndex=tabs.indexOf(previousTab),nextIndex=tabs.indexOf(selected);
+    const changed=previousPanel!==nextPanel||panels.some(panel=>panel.hidden===(panel===nextPanel))||previousTab!==selected;
+    panels.forEach(interruptWorkspaceMotion);
     profileTabsV2.querySelectorAll('.profile-tab').forEach(tab=>{const active=tab===selected;tab.classList.toggle('active',active);tab.setAttribute('aria-selected',String(active));tab.tabIndex=active?0:-1;});
     const modal=dashOverlay?.querySelector('.dashboard-modal');
-    panels.forEach(panel=>{const active=panel===nextPanel;panel.hidden=!active;if(active)panel.style.removeProperty('display');else panel.style.display='none';panel.classList.remove('ptab-enter');panel.setAttribute('aria-hidden',String(!active));});
+    panels.forEach(panel=>{const active=panel===nextPanel;panel.hidden=!active;if(active)panel.style.removeProperty('display');else panel.style.display='none';panel.classList.toggle('active',active);panel.classList.remove('ptab-enter');panel.setAttribute('aria-hidden',String(!active));});
     const mode=target==='admin-panel'?'admin':target==='role-store'?'store':false;setDashboardWide(mode);if(modal)modal.dataset.workspace=target;
+    if(modal)modal.scrollTop=0;
+    if(target==='my-profile'){
+        const user=workspaceUser();
+        if(user)loadProfileViewData(user,{resetTab:false});
+    }
     renderAccountStudio();
     profileTabsV2.style.setProperty('--tab-index',String(nextIndex));
     if(target==='role-store'){renderRoleWorkspaceV2();}
     if(target==='admin-panel'){renderAdminV2();if(validSupabaseConfig()&&!adminCloudConnected)refreshAdminV2Cloud();}
     if(changed&&dashOverlay?.classList.contains('open')){
         const direction=nextIndex>previousIndex?1:-1;
-        revealWorkspaceContent(nextPanel,direction,{distance:18,duration:390,fade:false});
-        revealWorkspaceContent(document.querySelector('.account-hub-title'),direction,{distance:7,duration:280});
+        revealWorkspaceContent(nextPanel,direction,{distance:12,duration:340});
+        revealWorkspaceContent(document.querySelector('.account-hub-title'),direction,{distance:5,duration:260});
     }
 }
 function requestProfileTabV2(target){
     clearTimeout(profileSwitchTimer);
     const current=document.querySelector('#profileView > .ptab-content:not([hidden])');
     if(current?.dataset.ptabContent===target)return;
-    if(workspaceAnimations.get(current)?.playState==='running'||current?.classList.contains('workspace-reveal-fallback')){
-        profileSwitchTimer=window.setTimeout(()=>{if(dashOverlay?.classList.contains('open'))activateProfileTabV2(target);},75);
-    }else activateProfileTabV2(target);
+    activateProfileTabV2(target);
 }
 function openRoleStoreV2(){if(!currentUserId){openDashboard();return;}if(!dashOverlay?.classList.contains('open'))openDashboard();activateProfileTabV2('role-store');}
 globalThis.activateProfileTab=activateProfileTabV2;

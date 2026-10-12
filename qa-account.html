@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<!-- Generated from src/html/* by `pnpm compose`. Edit the fragments, not this output. -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080a18">
+    <meta name="color-scheme" content="dark light">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="spectral-supabase-url" content="">
+    <meta name="spectral-supabase-publishable-key" content="">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://minotar.net https://ely.by https://*.googleusercontent.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; manifest-src 'self'; worker-src 'none'">
+    <meta name="description" content="Spectral Launcher - Qt 6 C++ Minecraft launcher with local instances, Java management, console logs, accounts, mods, and RU/EN interface">
+    <title>Spectral Launcher | Qt Minecraft Launcher</title>
+    <link rel="icon" href="Icon-256.png" type="image/png">
+    <script src="boot.min.js?v=1"></script>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preload" href="assets/fonts/Onest-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="style.min.css?v=53">
+</head>
+<body>
+    <script src="theme-init.js?v=1"></script>
+    <canvas id="particles-canvas" aria-hidden="true"></canvas>
+    <div class="bg-gradient-overlay" aria-hidden="true"></div>
+    <div class="vignette" aria-hidden="true"></div>
+    <div class="ambient-light purple" style="top:-15%;left:15%;" aria-hidden="true"></div>
+    <div class="ambient-light blue" style="bottom:-15%;right:5%;" aria-hidden="true"></div>
+    <div class="ambient-light pink" style="top:35%;left:-15%;" aria-hidden="true"></div>
+
+    <!-- Light-theme only: drifting soft orbs for an interesting background -->
+    <div class="light-bg-shapes" aria-hidden="true">
+        <span class="lbs lbs-1"></span>
+        <span class="lbs lbs-2"></span>
+        <span class="lbs lbs-3"></span>
+        <span class="lbs lbs-4"></span>
+        <span class="lbs lbs-5"></span>
+        <span class="lbs lbs-6"></span>
+    </div>
+
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <!-- Navigation -->
+    <nav class="navbar glass-nav" role="navigation" aria-label="Main navigation">
+        <a class="logo-container" href="#home" aria-label="Spectral Launcher — Home">
+            <span class="logo-mark"><img src="Icon-256.webp" alt="" class="logo-img-custom" width="50" height="50" decoding="async" fetchpriority="high"></span>
+            <span class="logo-lockup"><strong class="logo-text">Spectral</strong><small>LAUNCHER</small></span>
+        </a>
+        <div class="nav-links-container glass" id="primaryNavigation" aria-label="Primary navigation">
+            <span class="nav-active-indicator" id="navActiveIndicator" aria-hidden="true"></span>
+            <a href="#home" class="nav-btn active" data-target="home"><i class="fas fa-home" aria-hidden="true"></i> <span>Home</span></a>
+            <a href="#accounts" class="nav-btn" data-target="accounts"><i class="fas fa-users" aria-hidden="true"></i> <span>Accounts</span></a>
+            <a href="#updates" class="nav-btn" data-target="updates"><i class="fas fa-bolt" aria-hidden="true"></i> <span>Updates</span></a>
+            <a href="#development" class="nav-btn" data-target="development"><i class="fas fa-code" aria-hidden="true"></i> <span>Development</span></a>
+            <a href="#advanced-features" class="nav-btn" data-target="advanced-features"><i class="fas fa-tools" aria-hidden="true"></i> <span>Features</span></a>
+            <a href="#support" class="nav-btn" data-target="support"><i class="fas fa-life-ring" aria-hidden="true"></i> <span>Support</span></a>
+        </div>
+        <div class="nav-actions">
+            <button type="button" class="btn-account" id="openDashboardBtn" aria-label="Open account panel">
+                <div class="avatar-circle" id="navAvatarCircle"><i class="fas fa-user" aria-hidden="true"></i></div>
+                <span class="req-badge" id="reqBadge" style="display:none;">0</span>
+                <span class="account-copy"><small id="accountEyebrow">YOUR SPACE</small><strong id="accountText">Sign In</strong></span>
+                <i class="fas fa-chevron-down account-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="nav-theme-toggle" id="navThemeToggle" aria-label="Switch to light theme" aria-pressed="false" title="Switch to light theme">
+                <i class="fas fa-sun theme-icon-sun" aria-hidden="true"></i>
+                <i class="fas fa-moon theme-icon-moon" aria-hidden="true"></i>
+            </button>
+        </div>
+        <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="primaryNavigation">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+    <div class="nav-backdrop" id="navBackdrop" aria-hidden="true"></div>
+
+    <main class="content-wrapper" id="main-content" tabindex="-1">
+        <!-- ══════════════ HOME ══════════════ -->
+        <section id="home" class="tab-content active-tab">
+            <div class="hero-container">
+                <div class="hero-text-block animate-on-scroll">
+                    <h1>Your worlds.<br><span class="text-gradient">Ready to launch.</span></h1>
+                    <p>Keep versions, mods and profiles in one place. If a game fails to start, follow the last error instead of guessing.</p>
+                    <div class="cta-group">
+                        <a href="https://github.com/KaiserrSL/spectral-downloads/releases/latest/download/SpectralSetup_Installer.exe" class="btn-primary ripple magnetic-btn" id="downloadBtn"><span>Download</span><i class="fas fa-download"></i></a>
+                        <a href="#advanced-features" class="btn-secondary magnetic-btn"><span><i class="fas fa-layer-group"></i> Features</span></a>
+                    </div>
+                    <div class="hero-quick-points" aria-label="Launcher highlights">
+                        <span><i class="fas fa-cubes" aria-hidden="true"></i> Your builds</span>
+                        <span><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> One click launch</span>
+                        <span><i class="fas fa-shield-halved" aria-hidden="true"></i> Clear diagnostics</span>
+                    </div>
+                </div>
+                <div class="hero-visual-block animate-on-scroll delay-1">
+                    <div class="launcher-presentation">
+                        <div class="launcher-ui tilt-card-lg" role="img" aria-label="Spectral desktop launcher preview: Play screen, local build, account and friends panel">
+                            <div class="lu-winbar">
+                                <span class="lu-brand"><img src="Icon-256.webp" class="lu-win-logo" alt="" width="20" height="20" decoding="async"><b>SPECTRAL</b></span>
+                                <div class="lu-nav" aria-hidden="true">
+                                    <span class="lu-nav-tab active"><i class="fas fa-play"></i> Play</span>
+                                    <span class="lu-nav-tab"><i class="fas fa-terminal"></i> Console</span>
+                                    <span class="lu-nav-tab"><i class="fas fa-bars"></i> Library</span>
+                                    <span class="lu-nav-tab"><i class="fas fa-user"></i> Accounts</span>
+                                    <span class="lu-nav-tab"><i class="fas fa-gear"></i> Settings</span>
+                                </div>
+                                <span class="lu-winctl" aria-hidden="true"><i class="fas fa-minus"></i><i class="far fa-square"></i><i class="fas fa-xmark"></i></span>
+                            </div>
+                            <div class="lu-shell">
+                                <div class="lu-hero">
+                                    <div class="lu-hero-bg" aria-hidden="true"></div>
+                                    <div class="lu-nebula" aria-hidden="true"></div>
+                                    <div class="lu-stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                                    <div class="lu-streaks" aria-hidden="true"><i></i><i></i><i></i></div>
+                                    <span class="lu-build-tag"><i></i> Fabric</span>
+                                    <div class="lu-orbit" aria-hidden="true"><span></span></div>
+                                    <div class="lu-cube-cluster" aria-hidden="true">
+                                        <span class="lu-cube cube-main"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                        <span class="lu-cube cube-left"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                        <span class="lu-cube cube-top"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                        <span class="lu-cube cube-right"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                        <span class="lu-cube cube-small"><i class="front"></i><i class="back"></i><i class="right"></i><i class="left"></i><i class="top"></i><i class="bottom"></i></span>
+                                    </div>
+                                    <div class="lu-game-copy">
+                                        <span class="lu-eyebrow">Continue playing</span>
+                                        <strong>Survival Realm</strong>
+                                        <span class="lu-meta">Minecraft 1.21.11 <i></i> Fabric <i></i> Ready to launch</span>
+                                        <div class="lu-actions"><span class="lu-play"><i class="fas fa-play"></i> Play</span><span class="lu-version"><i class="fas fa-cube"></i> Survival Realm <i class="fas fa-chevron-down"></i></span></div>
+                                    </div>
+                                    <div class="lu-profile"><span><small>Player profile</small><b id="launcherUsername">Guest</b><em><i class="lu-dot"></i> Ready</em></span><div class="lu-profile-avatar"><img id="launcherSkinHead" src="https://minotar.net/avatar/steve/100" alt="" width="100" height="100" decoding="async" fetchpriority="low" referrerpolicy="no-referrer"></div></div>
+                                </div>
+                                <aside class="lu-friends">
+                                    <span class="lu-social-kicker">Spectral social</span>
+                                    <div class="lu-friends-head"><b>Friends</b><span>0</span></div>
+                                    <div class="lu-friends-wait"><i class="fas fa-user-group" aria-hidden="true"></i><p>Sign in to see<br>your friends here.</p></div>
+                                    <div class="lu-friends-foot"><i class="fas fa-circle" aria-hidden="true"></i> Network ready</div>
+                                </aside>
+                            </div>
+                        </div>
+                        <div class="launcher-presentation-note"><span><i></i> Desktop experience</span><span>Designed around the real Spectral launcher</span></div>
+                    </div>
+                </div>
+                <nav class="home-wayfinder" aria-label="Explore Spectral">
+                    <a href="#updates" class="home-wayfinder-link"><span class="home-wayfinder-icon"><i class="fas fa-clock-rotate-left" aria-hidden="true"></i></span><span class="home-wayfinder-copy"><small>01 / What changed</small><strong>Release notes</strong></span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="#development" class="home-wayfinder-link"><span class="home-wayfinder-icon"><i class="fas fa-code-branch" aria-hidden="true"></i></span><span class="home-wayfinder-copy"><small>02 / Under the hood</small><strong>How it works</strong></span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                    <a href="#support" class="home-wayfinder-link"><span class="home-wayfinder-icon"><i class="fas fa-life-ring" aria-hidden="true"></i></span><span class="home-wayfinder-copy"><small>03 / Need a hand</small><strong>Find a fix</strong></span><i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                </nav>
+            </div>
+            <div class="features-section">
+                <div class="home-features-heading animate-on-scroll">
+                    <div><span><i class="fas fa-layer-group"></i> Core systems</span><h2>One launcher.<br><em>Four connected tools.</em></h2></div>
+                    <div class="home-features-heading-note"><b><i></i> Interactive tour</b><p>Select a tool for a closer look.</p></div>
+                </div>
+                <div class="features-grid" data-home-feature-deck>
+                    <article class="feature-card is-active animate-on-scroll delay-1" tabindex="0" role="button" aria-pressed="true" data-home-feature="instances">
+                        <div class="feature-card-top"><span>01 / Library</span><div class="f-icon"><i class="fas fa-cubes"></i></div></div>
+                        <div class="feature-card-main"><small>Instance engine</small><h3>Instances</h3><p>Separate Minecraft builds with their own versions, mods, saves and launch settings.</p></div>
+                        <div class="feature-card-extra">
+                            <div class="feature-card-extra-inner">
+                            <div class="feature-mini-window feature-instance-preview">
+                                <div class="feature-mini-head"><span><i class="fas fa-layer-group"></i> Library</span><b>3 builds</b></div>
+                                <div class="feature-instance-row is-ready"><span><i class="fas fa-cube"></i></span><div><strong>Survival 1.21.1</strong><small>Fabric · 4096 MB</small></div><em><i></i> Ready</em></div>
+                                <div class="feature-instance-row"><span><i class="fas fa-flask"></i></span><div><strong>Modded Lab</strong><small>Forge · 6144 MB</small></div><em>Local</em></div>
+                            </div>
+                            <div class="feature-benefits"><span>Isolated folders</span><span>Per-instance Java</span><span>Fast switching</span></div>
+                            </div>
+                        </div>
+                        <span class="feature-card-open"><b>In focus</b><i class="fas fa-arrow-right"></i></span>
+                    </article>
+                    <article class="feature-card animate-on-scroll delay-2" tabindex="0" role="button" aria-pressed="false" data-home-feature="mods">
+                        <div class="feature-card-top"><span>02 / Content</span><div class="f-icon"><i class="fas fa-puzzle-piece"></i></div></div>
+                        <div class="feature-card-main"><small>Modrinth inside</small><h3>Mods</h3><p>Browse, install and update instance content without leaving the launcher.</p></div>
+                        <div class="feature-card-extra">
+                            <div class="feature-card-extra-inner">
+                            <div class="feature-mini-window feature-mod-preview">
+                                <div class="feature-mini-head"><span><i class="fas fa-compass"></i> Discover</span><b>12 updates</b></div>
+                                <div class="feature-mod-row"><span class="feature-mod-mark">S</span><div><strong>Sodium</strong><small>Performance · Fabric</small></div><em class="feature-update-pill">Update</em></div>
+                                <div class="feature-mod-row"><span class="feature-mod-mark alt">I</span><div><strong>Iris Shaders</strong><small>Visuals · Fabric</small></div><em>Installed</em></div>
+                            </div>
+                            <div class="feature-benefits"><span>One-click install</span><span>Update history</span><span>Version matching</span></div>
+                            </div>
+                        </div>
+                        <span class="feature-card-open"><b>Focus this tool</b><i class="fas fa-arrow-right"></i></span>
+                    </article>
+                    <article class="feature-card animate-on-scroll delay-3" tabindex="0" role="button" aria-pressed="false" data-home-feature="accounts">
+                        <div class="feature-card-top"><span>03 / Identity</span><div class="f-icon"><i class="fas fa-users-cog"></i></div></div>
+                        <div class="feature-card-main"><small>Player profiles</small><h3>Accounts</h3><p>Stable local identities with skin previews, playtime and instant profile switching.</p></div>
+                        <div class="feature-card-extra">
+                            <div class="feature-card-extra-inner">
+                            <div class="feature-mini-window feature-account-preview">
+                                <div class="feature-mini-head"><span><i class="fas fa-user-shield"></i> Active profile</span><b><i></i> Online</b></div>
+                                <div class="feature-profile-row"><span><i class="fas fa-user"></i></span><div><strong>Player</strong><small>Offline profile · skin ready</small></div><em class="feature-switch-icon"><i class="fas fa-repeat"></i></em></div>
+                                <div class="feature-profile-meta"><span><small>Playtime</small><b>42h 18m</b></span><span><small>Identity</small><b>Stable UUID</b></span></div>
+                            </div>
+                            <div class="feature-benefits"><span>Skin preview</span><span>Offline UUID</span><span>Quick switch</span></div>
+                            </div>
+                        </div>
+                        <span class="feature-card-open"><b>Focus this tool</b><i class="fas fa-arrow-right"></i></span>
+                    </article>
+                    <article class="feature-card animate-on-scroll delay-4" tabindex="0" role="button" aria-pressed="false" data-home-feature="ai">
+                        <div class="feature-card-top"><span>04 / Assistant</span><div class="f-icon"><i class="fas fa-robot"></i></div></div>
+                        <div class="feature-card-main"><small>Launcher-aware AI</small><h3>SpectrAI</h3><p>Get help with mods, settings and real launch diagnostics in a built-in assistant.</p></div>
+                        <div class="feature-card-extra">
+                            <div class="feature-card-extra-inner">
+                            <div class="feature-mini-window feature-ai-preview">
+                                <div class="feature-mini-head"><span><i class="fas fa-wand-magic-sparkles"></i> SpectrAI</span><b><i></i> Ready</b></div>
+                                <div class="feature-ai-question">Why did my instance fail?</div>
+                                <div class="feature-ai-answer"><span><i class="fas fa-robot"></i></span><p>This version requires Java 17. I found Java 8 in the selected path.</p></div>
+                            </div>
+                            <div class="feature-benefits"><span>Log-aware help</span><span>Mod guidance</span><span>Settings support</span></div>
+                            </div>
+                        </div>
+                        <span class="feature-card-open"><b>Focus this tool</b><i class="fas fa-arrow-right"></i></span>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ ACCOUNTS (Launcher Profiles) ══════════════ -->
+        <section id="accounts" class="tab-content account-cockpit-tab">
+            <div class="accounts-section account-cockpit-section">
+                <header class="account-cockpit-heading animate-on-scroll">
+                    <div class="account-cockpit-heading-copy">
+                        <span class="account-cockpit-kicker"><i class="fas fa-fingerprint"></i> Identity cockpit</span>
+                        <h2>One launcher.<br><span class="text-gradient">Every version of you.</span></h2>
+                        <p>Switch Minecraft identities, inspect the active signal and keep your player network close without leaving one workspace.</p>
+                    </div>
+                    <div class="account-cockpit-summary" aria-label="Account overview">
+                        <span><i class="fas fa-layer-group"></i><b id="cockpitProfileCount">0</b><small>Profiles</small></span>
+                        <span><i class="fas fa-user-group"></i><b id="cockpitFriendCount">0</b><small>Friends</small></span>
+                        <span><i class="fas fa-shield-halved"></i><b id="cockpitSlotLimit">—</b><small>Role slots</small></span>
+                    </div>
+                </header>
+
+                <!-- Notice: shown when not logged in to site account -->
+                <div class="launcher-notice glass animate-on-scroll delay-1" id="launcherNotice">
+                    <div class="ln-icon"><i class="fas fa-gamepad"></i></div>
+                    <div class="ln-body">
+                        <strong>Site account required</strong>
+                        <span>Sign in to your Spectral account to manage your personal Minecraft profiles. Each user has their own separate set.</span>
+                    </div>
+                    <button type="button" class="ln-signin-btn" id="noticeSignInBtn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+                </div>
+
+                <div id="accountsSignedInWorkspace" class="account-cockpit-workspace">
+                    <div class="identity-cockpit animate-on-scroll delay-1" id="accountsColumns">
+                        <aside class="cockpit-rail cockpit-profile-rail" aria-labelledby="cockpitProfilesTitle">
+                            <div class="cockpit-rail-head">
+                                <div><small>Identity bank</small><h3 id="cockpitProfilesTitle">Your profiles</h3></div>
+                            </div>
+                            <p class="cockpit-rail-hint">Select an identity to route it into the launcher core.</p>
+                            <button type="button" class="cockpit-add-profile" id="openAddAccountBtn" aria-label="Add Minecraft profile"><i class="fas fa-plus" aria-hidden="true"></i><span>Add profile</span></button>
+                            <div class="accounts-grid" id="accountsGrid"></div>
+                            <div class="accounts-empty" id="accountsEmpty" style="display:none;">
+                                <i class="fas fa-user-slash" aria-hidden="true"></i>
+                                <p id="accountsEmptyText">No Minecraft profiles</p>
+                                <button type="button" id="accountsEmptyAddBtn"><i class="fas fa-plus" aria-hidden="true"></i> Add your first profile</button>
+                            </div>
+                            <div class="cockpit-slot-meter">
+                                <div><span>Role capacity</span><b id="cockpitSlotUsage">0 / 0</b></div>
+                                <i><b id="cockpitSlotMeterBar"></b></i>
+                                <button type="button" id="accountsViewRolesBtn"><i class="fas fa-gem"></i> Explore role capacity</button>
+                            </div>
+                        </aside>
+
+                        <div class="cockpit-core" id="activeAccountBanner" role="region" aria-label="Active launcher identity">
+                            <div class="active-account-glow"></div>
+                            <div class="cockpit-core-grid" aria-hidden="true"></div>
+                            <div class="cockpit-core-rings" aria-hidden="true"><i></i><i></i><i></i></div>
+                            <div class="cockpit-core-topline">
+                                <span id="cockpitCoreStatus"><i></i> Launcher identity online</span>
+                                <em><i class="fas fa-satellite-dish"></i> Local signal</em>
+                            </div>
+                            <div class="active-account-left">
+                                <div class="active-account-avatar" id="activeAvatar">
+                                    <img id="activeAvatarImg" src="" alt="Avatar" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                    <div class="active-badge"><i class="fas fa-check"></i></div>
+                                </div>
+                                <div class="active-account-info">
+                                    <div class="active-account-label">Currently routed</div>
+                                    <div class="active-account-name" id="activeAccountName">—</div>
+                                    <div class="active-account-type" id="activeAccountType"></div>
+                                </div>
+                            </div>
+                            <div class="cockpit-identity-code">
+                                <span>Stable identity code</span>
+                                <button type="button" class="active-account-uuid" id="activeAccountUuid" title="Copy UUID"><i class="fas fa-fingerprint"></i><span id="activeUuidText">—</span><em>Copy</em></button>
+                            </div>
+                            <div class="active-account-stats">
+                                <div class="acc-stat"><i class="fas fa-clock"></i><span id="activeAccountTime">0h</span><small>in game</small></div>
+                                <div class="acc-stat"><i class="fas fa-calendar-alt"></i><span id="activeAccountDate">—</span><small>added</small></div>
+                            </div>
+                            <div class="account-ready-state">
+                                <span><i></i> Ready to launch</span>
+                                <small>This identity will be used for the next game session.</small>
+                            </div>
+                            <div class="no-accounts-msg" id="noAccountsMsg">
+                                <i class="fas fa-user-plus" aria-hidden="true"></i>
+                                <div><b>No identity routed</b><p>Add your first Minecraft profile to activate the cockpit.</p></div>
+                            </div>
+                        </div>
+
+                        <aside class="cockpit-rail cockpit-social-rail friends-section" id="friendsSection" style="display:none;" aria-labelledby="cockpitFriendsTitle">
+                            <div class="friends-header cockpit-rail-head">
+                                <div><small>Player network</small><h3 id="cockpitFriendsTitle">Friends <span class="friends-count" id="friendsCount">0</span></h3></div>
+                            </div>
+                            <form class="friend-add-form" id="friendAddForm" autocomplete="off">
+                                <div class="friend-add-input">
+                                    <i class="fas fa-user-plus"></i>
+                                    <input type="text" id="friendAddInput" placeholder="Find by username…" maxlength="30" aria-label="Friend username">
+                                </div>
+                                <button type="submit" class="btn-add-friend" aria-label="Add friend"><i class="fas fa-arrow-right"></i></button>
+                            </form>
+                            <div class="friend-add-msg" id="friendAddMsg" role="status" aria-live="polite" style="display:none;"></div>
+                            <div class="friend-requests" id="friendRequests" style="display:none;"></div>
+                            <div class="friends-grid" id="friendsGrid"></div>
+                            <div class="friends-empty" id="friendsEmpty" style="display:none;">
+                                <i class="fas fa-user-group" aria-hidden="true"></i>
+                                <p>Your player network is empty. Search for someone above.</p>
+                            </div>
+                            <div class="cockpit-social-note"><i class="fas fa-shield-heart"></i><span>Friend profiles open in the new public identity view.</span></div>
+                        </aside>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Minecraft Account Modal -->
+            <div class="add-account-overlay" id="addAccountOverlay" role="dialog" aria-modal="true" aria-labelledby="addAccountTitle" aria-hidden="true" inert>
+                <div class="add-account-modal glass-modal">
+                    <button type="button" class="close-add-account" id="closeAddAccountBtn" aria-label="Close account dialog">&times;</button>
+                    <h3 id="addAccountTitle"><i class="fas fa-gamepad"></i> Add Minecraft Profile</h3>
+                    <div class="acc-type-selector" id="accTypeSelector">
+                        <div class="acc-type-title">Profile type</div>
+                        <div class="acc-type-grid">
+                            <button type="button" class="acc-type-card active" data-type="elyby"><img src="https://ely.by/favicon.ico" data-hide-on-error width="28" height="28" loading="lazy" decoding="async" referrerpolicy="no-referrer" style="border-radius:6px" alt=""><i class="fas fa-cloud" style="display:none"></i><span>Ely.by</span><small>Save profile name</small></button>
+                            <button type="button" class="acc-type-card" data-type="offline"><i class="fas fa-user-shield"></i><span>Offline</span><small>No authentication</small></button>
+                        </div>
+                    </div>
+                    <div class="acc-form" id="formElyby">
+                        <div class="input-group-animated"><input type="text" id="elybyLogin" required placeholder=" " maxlength="16" autocomplete="username"><label for="elybyLogin">Profile name</label></div>
+                        <div class="offline-info"><i class="fas fa-shield-halved"></i> This website saves only the profile name. Connect Ely.by securely in the desktop launcher.</div>
+                        <button type="button" class="btn-submit-login" id="btnElybySubmit"><span>Add Ely.by Profile</span><div class="btn-loader"></div></button>
+                    </div>
+                    <div class="acc-form" id="formOffline" style="display:none;">
+                        <div class="input-group-animated"><input type="text" id="offlineUsername" required placeholder=" " maxlength="16" autocomplete="off"><label for="offlineUsername">Username (up to 16 characters)</label></div>
+                        <div class="offline-info"><i class="fas fa-info-circle"></i> Offline accounts only work on servers without online verification.</div>
+                        <button type="button" class="btn-submit-login" id="btnOfflineSubmit"><span>Create Profile</span><div class="btn-loader"></div></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ UPDATES ══════════════ -->
+        <section id="updates" class="tab-content">
+            <div class="updates-header animate-on-scroll">
+                <div class="updates-heading-copy">
+                    <span class="updates-eyebrow"><i class="fas fa-satellite-dish"></i> Release stream</span>
+                    <h2>Update <span class="text-gradient">History</span></h2>
+                    <p>Follow every launcher release, interface improvement and important fix.</p>
+                    <div class="updates-overview" aria-label="Update statistics">
+                        <div><strong id="updatesReleaseCount">0</strong><span>Releases</span></div>
+                        <div><strong id="updatesChangeCount">0</strong><span>Changes</span></div>
+                        <div><strong id="updatesLatestDate">—</strong><span>Latest</span></div>
+                    </div>
+                </div>
+                <aside class="updates-featured" id="updatesFeatured" aria-label="Latest release">
+                    <div class="updates-featured-top">
+                        <span class="updates-featured-icon"><i class="fas fa-bolt" id="updatesFeaturedIcon"></i></span>
+                        <span class="updates-featured-live"><i></i> Latest release</span>
+                    </div>
+                    <strong id="updatesFeaturedTitle">Loading release…</strong>
+                    <p id="updatesFeaturedSummary">Preparing the latest release notes.</p>
+                    <div class="updates-featured-meta"><span id="updatesFeaturedVersion">Latest</span><span id="updatesFeaturedChannel">Stable</span></div>
+                    <div class="updates-featured-actions">
+                        <button type="button" class="updates-featured-open" id="updatesFeaturedOpen"><span>View release</span><i class="fas fa-arrow-down"></i></button>
+                        <button type="button" class="dev-write-btn" id="devWriteNewsBtn" style="display:none;">
+                            <i class="fas fa-pen-nib"></i><span>Write Update</span>
+                        </button>
+                    </div>
+                </aside>
+                <div class="updates-header-decoration" aria-hidden="true"><i></i><i></i><i></i></div>
+            </div>
+            <div class="updates-toolbar animate-on-scroll delay-1">
+                <label class="updates-search" for="updatesSearchInput">
+                    <i class="fas fa-search"></i>
+                    <input id="updatesSearchInput" type="search" placeholder="Search releases and changes…" autocomplete="off">
+                    <kbd>Ctrl K</kbd>
+                </label>
+                <div class="updates-filters" id="updatesFilters" role="group" aria-label="Filter updates">
+                    <button type="button" class="updates-filter active" data-news-filter="all">All</button>
+                    <button type="button" class="updates-filter" data-news-filter="add"><i class="fas fa-plus"></i> Added</button>
+                    <button type="button" class="updates-filter" data-news-filter="imp"><i class="fas fa-arrow-up"></i> Improved</button>
+                    <button type="button" class="updates-filter" data-news-filter="fix"><i class="fas fa-wrench"></i> Fixed</button>
+                    <button type="button" class="updates-filter" data-news-filter="breaking"><i class="fas fa-triangle-exclamation"></i> Important</button>
+                </div>
+            </div>
+            <div class="updates-timeline" id="updatesTimeline">
+                <div class="timeline-line" aria-hidden="true"></div>
+                <!-- Rendered by JS -->
+            </div>
+            <div class="updates-empty" id="updatesEmpty" hidden>
+                <i class="fas fa-wave-square"></i>
+                <h3>No matching updates</h3>
+                <p>Try a different search or change the active filter.</p>
+                <button type="button" id="updatesResetFilters">Reset filters</button>
+            </div>
+        </section>
+
+        <!-- ══════════════ DEVELOPMENT ══════════════ -->
+        <section id="development" class="tab-content development-premium">
+            <div class="dev-layout">
+                <header class="dev-hero animate-on-scroll">
+                    <div class="dev-hero-copy">
+                        <span class="dev-eyebrow"><i class="fas fa-code-branch"></i> Under the hood</span>
+                        <h2>Every launch should be <span class="text-gradient">explainable.</span></h2>
+                        <p>Spectral shows the decisions behind each launch, so a failed process leaves a useful trail instead of a silent exit.</p>
+                        <div class="dev-hero-actions">
+                            <button type="button" class="dev-primary-action" data-dev-scroll="dev-pipeline"><span>Trace a launch</span><i class="fas fa-arrow-down"></i></button>
+                            <button type="button" class="dev-secondary-action" data-dev-target="updates"><span>Release notes</span><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="dev-profile" aria-label="Spectral build profile">
+                        <div class="dev-profile-bar">
+                            <span><i></i><i></i><i></i></span>
+                            <code>spectral.build.profile</code>
+                            <b><i class="fas fa-circle-check"></i> mapped</b>
+                        </div>
+                        <div class="dev-profile-body">
+                            <div class="dev-profile-rail" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                            <div class="dev-profile-layer is-ui"><span><i class="fas fa-window-maximize"></i></span><div><small>Interface layer</small><strong>Qt 6 Widgets</strong><em>Tabs · dialogs · animations · i18n</em></div></div>
+                            <div class="dev-profile-layer is-core"><span><i class="fas fa-code"></i></span><div><small>Orchestration</small><strong>LauncherCore</strong><em>Command building · process state</em></div></div>
+                            <div class="dev-profile-layer is-services"><span><i class="fas fa-cubes"></i></span><div><small>Services</small><strong>Java · Versions · Mods</strong><em>Resolve · install · update</em></div></div>
+                            <div class="dev-profile-layer is-runtime"><span><i class="fas fa-gamepad"></i></span><div><small>Runtime</small><strong>Minecraft JVM</strong><em>Logs · exit code · diagnostics</em></div></div>
+                        </div>
+                    </div>
+                    <div class="dev-hero-orbit" aria-hidden="true"></div>
+                </header>
+                <nav class="dev-document-index animate-on-scroll" aria-label="Development chapters">
+                    <span><i class="fas fa-book-open"></i> Technical contents</span>
+                    <a href="#dev-pipeline"><b>01</b> Launch pipeline</a>
+                    <a href="#dev-systems"><b>02</b> Subsystems</a>
+                    <a href="#dev-source"><b>03</b> Source paths</a>
+                </nav>
+                <section class="dev-section dev-pipeline animate-on-scroll delay-1" id="dev-pipeline">
+                    <div class="dev-section-heading">
+                        <div><span>Launch pipeline</span><h3>From Play to process</h3></div>
+                        <p>Pick a step to see what goes in, what the launcher does, and what you can check when it stops.</p>
+                    </div>
+                    <div class="dev-pipeline-experience">
+                        <div class="dev-pipeline-rail">
+                            <div class="dev-pipeline-progress"><span>Launch sequence</span><strong id="devPipelineProgress">01 / 05</strong></div>
+                            <div class="dev-pipeline-track" role="tablist" aria-label="Launch steps">
+                                <button type="button" class="dev-stage active" id="devStageTabProfile" role="tab" aria-selected="true" aria-controls="devStagePanel" tabindex="0" data-dev-stage="profile"><span class="dev-stage-number">01</span><i class="fas fa-sliders" aria-hidden="true"></i><span><strong>Read profile</strong><small>Instance &amp; account</small></span></button>
+                                <button type="button" class="dev-stage" id="devStageTabVersion" role="tab" aria-selected="false" aria-controls="devStagePanel" tabindex="-1" data-dev-stage="version"><span class="dev-stage-number">02</span><i class="fas fa-cubes-stacked" aria-hidden="true"></i><span><strong>Resolve version</strong><small>Libraries &amp; assets</small></span></button>
+                                <button type="button" class="dev-stage" id="devStageTabJava" role="tab" aria-selected="false" aria-controls="devStagePanel" tabindex="-1" data-dev-stage="java"><span class="dev-stage-number">03</span><i class="fas fa-mug-hot" aria-hidden="true"></i><span><strong>Match Java</strong><small>Compatible runtime</small></span></button>
+                                <button type="button" class="dev-stage" id="devStageTabCommand" role="tab" aria-selected="false" aria-controls="devStagePanel" tabindex="-1" data-dev-stage="command"><span class="dev-stage-number">04</span><i class="fas fa-list-check" aria-hidden="true"></i><span><strong>Assemble launch</strong><small>Command &amp; natives</small></span></button>
+                                <button type="button" class="dev-stage" id="devStageTabResult" role="tab" aria-selected="false" aria-controls="devStagePanel" tabindex="-1" data-dev-stage="result"><span class="dev-stage-number">05</span><i class="fas fa-wave-square" aria-hidden="true"></i><span><strong>Observe result</strong><small>Console &amp; errors</small></span></button>
+                            </div>
+                        </div>
+                        <div class="dev-stage-panel" id="devStagePanel" role="tabpanel" aria-labelledby="devStageTabProfile" aria-live="polite" style="--stage-rgb:139,124,255">
+                            <div class="dev-stage-panel-top"><span class="dev-stage-kicker"><i class="fas fa-circle-nodes" aria-hidden="true"></i> Step <b id="devStageNumber">01</b> / 05</span><span class="dev-stage-state"><i></i> Ready to inspect</span></div>
+                            <div class="dev-stage-visual" aria-hidden="true"><span class="dev-stage-visual-node"><i id="devStageIcon" class="fas fa-sliders"></i></span><span class="dev-stage-visual-line"></span><span class="dev-stage-visual-node is-output"><i class="fas fa-arrow-right"></i></span></div>
+                            <h4 id="devStageTitle">Read the selected profile</h4>
+                            <p id="devStageDescription">Spectral gathers the instance, account, memory, window and launch preferences before touching the game files.</p>
+                            <div class="dev-stage-details"><div><small>Input</small><strong id="devStageInput">Selected instance + player profile</strong></div><div><small>Output</small><strong id="devStageOutput">One validated GameSettings object</strong></div></div>
+                            <div class="dev-stage-insight"><i class="fas fa-lightbulb" aria-hidden="true"></i><span id="devStageInsight">If the wrong instance opens, check the selection and account before changing Java or mods.</span></div>
+                            <div class="dev-stage-controls"><button type="button" id="devStagePrev" aria-label="Previous launch step"><i class="fas fa-arrow-left"></i></button><span id="devStageCounter">1 of 5</span><button type="button" id="devStageNext" aria-label="Next launch step"><i class="fas fa-arrow-right"></i></button></div>
+                        </div>
+                    </div>
+                    <div class="dev-principle"><i class="fas fa-shield-heart"></i><span><b>Engineering principle</b> If a launch fails, the last successful stage and the real process error should remain visible.</span></div>
+                </section>
+
+                <section class="dev-section dev-systems animate-on-scroll delay-2" id="dev-systems">
+                    <div class="dev-section-heading">
+                        <div><span>Subsystem atlas</span><h3>Choose a layer</h3></div>
+                        <div class="dev-systems-heading-meta"><span><i></i> Launcher architecture</span><p>Inspect each layer's responsibilities and the data it passes on.</p></div>
+                    </div>
+                    <div class="dev-systems-layout">
+                        <div class="tech-stack-grid" role="tablist" aria-label="Launcher subsystems">
+                            <button type="button" class="tech-card active" id="devSystemTabUi" role="tab" aria-selected="true" aria-controls="devSystemPanel" tabindex="0" data-dev-system="ui"><span class="tech-icon"><i class="fas fa-window-maximize"></i></span><span class="tech-card-copy"><small>Presentation</small><strong>Qt 6 Widgets</strong><em>UI, motion and translation</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabCore" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="core"><span class="tech-icon"><i class="fas fa-code"></i></span><span class="tech-card-copy"><small>Orchestration</small><strong>Launcher Core</strong><em>Launch state and arguments</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabJava" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="java"><span class="tech-icon"><i class="fas fa-mug-hot"></i></span><span class="tech-card-copy"><small>Runtime</small><strong>Java Manager</strong><em>Discovery and matching</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabContent" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="content"><span class="tech-icon"><i class="fas fa-box-open"></i></span><span class="tech-card-copy"><small>Content</small><strong>Versions &amp; Mods</strong><em>Install, browse and update</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabAccounts" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="accounts"><span class="tech-icon"><i class="fas fa-user-shield"></i></span><span class="tech-card-copy"><small>Identity</small><strong>Accounts</strong><em>Profiles, UUIDs and skins</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabDiagnostics" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="diagnostics"><span class="tech-icon"><i class="fas fa-terminal"></i></span><span class="tech-card-copy"><small>Observability</small><strong>Console &amp; Logs</strong><em>Search, export and failures</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                        </div>
+                        <aside class="dev-system-panel" id="devSystemPanel" role="tabpanel" aria-labelledby="devSystemTabUi" aria-live="polite" data-system-code="01">
+                            <div class="dev-system-panel-head"><span id="devSystemIcon"><i class="fas fa-window-maximize"></i></span><div><small>Layer <span id="devSystemNumber">01</span> / 06</small><h4 id="devSystemTitle">Qt 6 Widgets</h4></div><b id="devSystemKind">Presentation</b></div>
+                            <div class="dev-layer-diagram" aria-label="Switch launcher layer"><button type="button" data-layer-node="ui" class="active" aria-label="Show interface layer"><i class="fas fa-window-maximize"></i><small>UI</small></button><button type="button" data-layer-node="core" aria-label="Show core layer"><i class="fas fa-code"></i><small>Core</small></button><button type="button" data-layer-node="java" aria-label="Show Java layer"><i class="fas fa-mug-hot"></i><small>Java</small></button><button type="button" data-layer-node="content" aria-label="Show content layer"><i class="fas fa-box-open"></i><small>Content</small></button><button type="button" data-layer-node="accounts" aria-label="Show identity layer"><i class="fas fa-user-shield"></i><small>Identity</small></button><button type="button" data-layer-node="diagnostics" aria-label="Show diagnostics layer"><i class="fas fa-terminal"></i><small>Logs</small></button></div>
+                            <div class="dev-system-content">
+                                <div class="dev-system-overview">
+                                    <p id="devSystemDescription">The desktop surface for Play, Library, Accounts, Console, settings and dialog flows, with shared styling and RU / EN translation.</p>
+                                    <div class="dev-system-tags" id="devSystemTags" aria-label="Technologies"><span>QWidget</span><span>Signals</span><span>Qt Linguist</span></div>
+                                    <ul id="devSystemTasks"><li><i class="fas fa-check"></i> Keeps product surfaces visually consistent</li><li><i class="fas fa-check"></i> Translates state into clear player actions</li><li><i class="fas fa-check"></i> Delivers accessible feedback and dialogs</li></ul>
+                                </div>
+                                <div class="dev-system-map" aria-label="Subsystem signal path">
+                                    <div class="dev-system-map-head"><span><i class="fas fa-route"></i> Signal path</span><b><i></i> Connected</b></div>
+                                    <div class="dev-signal-path">
+                                        <div class="dev-signal-node"><small>Input</small><strong id="devSystemFlowInput">Player action</strong></div>
+                                        <span class="dev-signal-link" aria-hidden="true"><i></i></span>
+                                        <div class="dev-signal-node is-focus"><small>Handled by</small><strong id="devSystemFlowCore">Qt event</strong></div>
+                                        <span class="dev-signal-link" aria-hidden="true"><i></i></span>
+                                        <div class="dev-signal-node"><small>Output</small><strong id="devSystemFlowOutput">LauncherCore</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dev-system-contract">
+                                <div><small>Owns</small><strong id="devSystemOwns">Tabs · dialogs · interaction</strong></div>
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                <div><small>Connects to</small><strong id="devSystemConnects">LauncherCore · managers</strong></div>
+                            </div>
+                        </aside>
+                    </div>
+                </section>
+
+                <section class="dev-section dev-source animate-on-scroll delay-3" id="dev-source">
+                    <div class="dev-section-heading">
+                        <div><span>Source walkthrough</span><h3>Read the critical paths</h3></div>
+                        <p>Switch files to see how the launcher separates process control, runtime choice and account identity.</p>
+                    </div>
+                    <div class="dev-workbench">
+                <div class="code-editor">
+                    <div class="code-editor-header">
+                        <div class="dots"><span></span><span></span><span></span></div>
+                        <div class="code-tabs" role="tablist" aria-label="Source examples">
+                            <button type="button" class="code-tab active" id="codeTabLaunch" role="tab" aria-selected="true" aria-controls="codePaneLaunch" tabindex="0" data-tab="launch">LauncherCore.cpp</button>
+                            <button type="button" class="code-tab" id="codeTabJava" role="tab" aria-selected="false" aria-controls="codePaneJava" tabindex="-1" data-tab="java">JavaManager.cpp</button>
+                            <button type="button" class="code-tab" id="codeTabAuth" role="tab" aria-selected="false" aria-controls="codePaneAuth" tabindex="-1" data-tab="auth">AccountsTab.cpp</button>
+                        </div>
+                        <div class="code-lang">C++ / Qt</div>
+                    </div>
+                    <div class="code-panes">
+                        <div class="code-content code-pane active" id="codePaneLaunch" role="tabpanel" aria-labelledby="codeTabLaunch" data-pane="launch"><pre><code><span class="kw">void</span> <span class="type">LauncherCore</span>::<span class="fn">launchGame</span>(<span class="kw">const</span> <span class="type">GameSettings</span>&amp; settings,
+                      <span class="kw">const</span> <span class="type">Account</span>&amp; account) {
+    <span class="comment">// Resolve metadata before starting the Minecraft process</span>
+    <span class="kw">auto</span> command = <span class="fn">buildLaunchCommand</span>(settings, account);
+    <span class="fn">prepareNatives</span>(settings.versionId);
+    <span class="fn">startProcess</span>(settings.javaPath, command);
+}</code></pre></div>
+                        <div class="code-content code-pane" id="codePaneJava" role="tabpanel" aria-labelledby="codeTabJava" aria-hidden="true" data-pane="java" style="display:none"><pre><code><span class="type">JavaVersion</span> <span class="type">JavaManager</span>::<span class="fn">findSuitableJava</span>(<span class="kw">const</span> <span class="type">QString</span>&amp; mcVersion,
+                                              <span class="type">bool</span> allowDownload) {
+    <span class="kw">const</span> <span class="type">int</span> required = <span class="fn">requiredJavaMajor</span>(mcVersion);
+    <span class="kw">auto</span> installed = <span class="fn">scanInstalledJava</span>();
+    <span class="kw">return</span> <span class="fn">bestMatchingRuntime</span>(installed, required, allowDownload);
+}</code></pre></div>
+                        <div class="code-content code-pane" id="codePaneAuth" role="tabpanel" aria-labelledby="codeTabAuth" aria-hidden="true" data-pane="auth" style="display:none"><pre><code><span class="type">QString</span> <span class="type">AccountsTab</span>::<span class="fn">generateOfflineUuid</span>(<span class="kw">const</span> <span class="type">QString</span>&amp; username) <span class="kw">const</span> {
+    <span class="comment">// Vanilla-compatible OfflinePlayer UUID (MD5 v3 + RFC variant bits)</span>
+    <span class="kw">return</span> <span class="fn">minecraftOfflineUuid</span>(
+        <span class="type">QString</span>(<span class="type">"OfflinePlayer:%1"</span>).arg(username));
+}</code></pre></div>
+                    </div>
+                </div>
+                        <aside class="dev-code-notes">
+                            <span><i class="fas fa-book-open"></i> File focus</span>
+                            <h4 id="devCodeTitle">Launch orchestration</h4>
+                            <p id="devCodeDescription">Turns validated settings and an account into a prepared Minecraft process while keeping failure signals available to the UI.</p>
+                            <div class="dev-code-path"><small>Responsibility</small><code id="devCodeResponsibility">metadata → arguments → QProcess</code></div>
+                            <ul id="devCodeTasks"><li>Build the classpath and game arguments</li><li>Prepare native libraries</li><li>Forward output and failures to Console</li></ul>
+                        </aside>
+                    </div>
+                </section>
+
+                <div class="build-metrics animate-on-scroll delay-4" aria-label="Architecture qualities">
+                    <div class="bm-item"><div class="bm-icon"><i class="fas fa-folder-tree"></i></div><div class="bm-info"><div class="bm-label">Instances</div><div class="bm-val">Isolated folders</div></div></div>
+                    <div class="bm-item"><div class="bm-icon"><i class="fas fa-hard-drive"></i></div><div class="bm-info"><div class="bm-label">Data model</div><div class="bm-val">Local-first</div></div></div>
+                    <div class="bm-item"><div class="bm-icon"><i class="fas fa-language"></i></div><div class="bm-info"><div class="bm-label">Localization</div><div class="bm-val">RU / EN</div></div></div>
+                    <div class="bm-item"><div class="bm-icon"><i class="fas fa-bug-slash"></i></div><div class="bm-info"><div class="bm-label">Diagnostics</div><div class="bm-val">Explicit errors</div></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ ADVANCED FEATURES ══════════════ -->
+        <section id="advanced-features" class="tab-content legacy-tab-style">
+            <div class="af-wrapper">
+                <div class="af-hero animate-on-scroll">
+                    <div class="af-hero-badge"><i class="fas fa-star"></i> Actual Launcher</div>
+                    <h2>Features that <span class="text-gradient">are actually built.</span></h2>
+                    <p>Explore the tools available in the desktop launcher and see what each one does.</p>
+                </div>
+                <div class="af-showcase animate-on-scroll delay-1">
+                    <div class="af-showcase-left">
+                        <div class="af-showcase-tag"><i class="fas fa-bolt"></i> Desktop architecture</div>
+                        <h3>Desktop Launcher Core</h3>
+                        <p>Written in C++17 with Qt 6 Widgets. The launcher uses native desktop UI, local files and explicit Minecraft process control.</p>
+                    </div>
+                    <div class="af-showcase-right">
+                        <div class="af-terminal">
+                            <div class="af-terminal-bar"><div class="dots"><span></span><span></span><span></span></div><span>Spectral Console</span><span class="term-live"><span class="term-live-dot"></span> live</span></div>
+                            <div class="af-terminal-body" id="terminalBody">
+                                <div class="t-line"><span class="t-prompt">$</span> <span class="t-text" data-text="launch selected local instance"></span></div>
+                                <div class="t-line t-info"><span class="t-text" data-text="&#9654; Reading version JSON and libraries..."></span></div>
+                                <div class="t-line t-ok"><span class="t-text" data-text="&#10004; Suitable Java runtime selected"></span></div>
+                                <div class="t-line t-ok"><span class="t-text" data-text="&#10004; Assets, libraries and natives prepared"></span></div>
+                                <div class="t-line t-info"><span class="t-text" data-text="&#9654; Starting Minecraft process..."></span></div>
+                                <div class="t-line t-success"><span class="t-text" data-text="&#128640; Game output is now streamed to Console"></span></div>
+                                <div class="t-line t-cursorline"><span class="t-prompt">$</span> <span class="t-caret"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="af-features-grid">
+                    <div class="af-card animate-on-scroll delay-1" data-color="#6366f1"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-cubes"></i></div><div class="af-card-num">01</div><h4>Instance Library</h4><p>Each local build has its own folder, version, loader metadata, memory profile and game settings.</p><div class="af-card-tags"><span>Mods</span><span>Configs</span><span>Worlds</span></div></div>
+                    <div class="af-card animate-on-scroll delay-2" data-color="#10b981"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-coffee"></i></div><div class="af-card-num">02</div><h4>Java Manager</h4><p>Finds a suitable Java version for the selected Minecraft release and passes it into the launch settings.</p><div class="af-card-tags"><span>Java 8</span><span>Java 17</span><span>Java 21</span></div></div>
+                    <div class="af-card animate-on-scroll delay-3" data-color="#ec4899"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-puzzle-piece"></i></div><div class="af-card-num">03</div><h4>Mod Manager</h4><p>Browse and install mods from Modrinth without leaving the launcher. Enable or disable files, auto-update everything and keep an update history.</p><div class="af-card-tags"><span>Modrinth</span><span>Auto-update</span><span>History</span></div></div>
+                    <div class="af-card animate-on-scroll delay-1" data-color="#f59e0b"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-download"></i></div><div class="af-card-num">04</div><h4>Version Installer</h4><p>Installs Minecraft versions and loader versions through dedicated dialogs with progress and error states.</p><div class="af-card-tags"><span>Multi-thread</span><span>Resume</span></div></div>
+                    <div class="af-card animate-on-scroll delay-2" data-color="#3b82f6"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fab fa-discord"></i></div><div class="af-card-num">05</div><h4>Discord RPC</h4><p>Discord Rich Presence integration is included in the launcher source, together with playtime tracking.</p><div class="af-card-tags"><span>RPC</span><span>Status</span><span>History</span></div></div>
+                    <div class="af-card animate-on-scroll delay-3" data-color="#8b5cf6"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-terminal"></i></div><div class="af-card-num">06</div><h4>Dev Console</h4><p>Built-in console with colored levels, search, timestamps, auto-scroll, copy and export.</p><div class="af-card-tags"><span>Logs</span><span>Crash</span><span>Export</span></div></div>
+                </div>
+                <div class="af-stats-strip animate-on-scroll">
+                    <div class="af-stat-item"><div class="af-stat-num" data-count="6">0</div><div class="af-stat-label">Qt widgets tabs</div></div>
+                    <div class="af-stat-divider"></div>
+                    <div class="af-stat-item"><div class="af-stat-num" data-count="221">0</div><div class="af-stat-label">translated strings</div></div>
+                    <div class="af-stat-divider"></div>
+                    <div class="af-stat-item"><div class="af-stat-num" data-count="6">0</div><div class="af-stat-label">main tabs</div></div>
+                    <div class="af-stat-divider"></div>
+                    <div class="af-stat-item"><div class="af-stat-num" data-count="1">0</div><div class="af-stat-label">local-first design</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ SUPPORT ══════════════ -->
+        <section id="support" class="tab-content legacy-tab-style">
+            <div class="support-wrapper">
+                <header class="support-hero support-hub-hero animate-on-scroll">
+                    <div class="support-hero-copy">
+                        <div class="support-badge"><i class="fas fa-life-ring"></i> Spectral Help Center</div>
+                        <h2>Find the issue.<br><span class="text-gradient">Get back in game.</span></h2>
+                        <p>Search a guide or choose a symptom below. If you still need help, prepare a note with your version and error details.</p>
+                        <label class="support-search" for="supportSearchInput">
+                            <i class="fas fa-magnifying-glass"></i>
+                            <input id="supportSearchInput" type="search" placeholder="Search Java, memory, mods, accounts..." autocomplete="off">
+                            <kbd>/</kbd>
+                        </label>
+                        <div class="support-search-status" id="supportSearchStatus" aria-live="polite">Search across 7 guides and 4 guided checks</div>
+                    </div>
+                </header>
+
+                <div class="support-channels animate-on-scroll delay-1" id="supportChannels">
+                    <a class="support-channel" href="https://discord.gg/Ek8qgfDCZ" target="_blank" rel="noopener noreferrer" style="--ch:#5865F2"><div class="sc-icon"><i class="fab fa-discord"></i></div><div class="sc-body"><h4>Discord</h4><p>Live help and community chat</p></div><i class="fas fa-arrow-up-right-from-square sc-arrow"></i></a>
+                    <a class="support-channel" href="https://github.com/KaiserrSL/spectral-downloads/issues" target="_blank" rel="noopener noreferrer" style="--ch:#a78bfa"><div class="sc-icon"><i class="fab fa-github"></i></div><div class="sc-body"><h4>GitHub Issues</h4><p>Browse the public issue history</p></div><i class="fas fa-arrow-up-right-from-square sc-arrow"></i></a>
+                    <a class="support-channel" href="mailto:spectrallaunchersupport@gmail.com" style="--ch:#10b981"><div class="sc-icon"><i class="fas fa-envelope"></i></div><div class="sc-body"><h4>Email</h4><p>spectrallaunchersupport@gmail.com</p></div><i class="fas fa-arrow-up-right-from-square sc-arrow"></i></a>
+                </div>
+
+                <section class="support-diagnostic-workspace animate-on-scroll delay-1" id="supportDiagnostic" aria-labelledby="supportDiagnosticTitle">
+                    <div class="support-diagnostic-head"><div><span>Guided checks</span><h3 id="supportDiagnosticTitle">What went wrong?</h3><p>Select a symptom and work through its checks.</p></div><div class="support-diagnostic-progress"><span>Checklist progress</span><strong id="supportChecklistCount">0 / 3</strong><div class="support-progress-track"><i id="supportProgressFill"></i></div></div></div>
+                    <div class="support-diagnostic-layout">
+                        <div class="support-symptom-list" role="tablist" aria-label="Choose a symptom">
+                            <button type="button" id="supportFixCrash" class="support-symptom active" role="tab" aria-selected="true" aria-controls="supportPanelCrash" data-support-fix="crash"><i class="fas fa-bug"></i><span><small>01 / Startup</small><strong>Game crashes or freezes</strong></span><i class="fas fa-arrow-right"></i></button>
+                            <button type="button" id="supportFixLoader" class="support-symptom" role="tab" aria-selected="false" aria-controls="supportPanelLoader" data-support-fix="loader"><i class="fas fa-puzzle-piece"></i><span><small>02 / Modded</small><strong>Fabric or Forge fails</strong></span><i class="fas fa-arrow-right"></i></button>
+                            <button type="button" id="supportFixPerformance" class="support-symptom" role="tab" aria-selected="false" aria-controls="supportPanelPerformance" data-support-fix="performance"><i class="fas fa-gauge-high"></i><span><small>03 / In game</small><strong>Low FPS or stutter</strong></span><i class="fas fa-arrow-right"></i></button>
+                            <button type="button" id="supportFixAccount" class="support-symptom" role="tab" aria-selected="false" aria-controls="supportPanelAccount" data-support-fix="account"><i class="fas fa-user-shield"></i><span><small>04 / Identity</small><strong>Account or offline play</strong></span><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                        <div class="support-solution" id="supportPanelCrash" role="tabpanel" aria-labelledby="supportFixCrash" data-support-panel="crash">
+                            <div class="support-solution-label"><i class="fas fa-bug"></i> STARTUP / CRASH</div><h4>Find where the launch stopped.</h4><p>Start with the last red Console line. It often identifies a missing dependency or an incompatible runtime.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Open Console and read the final error line.</span></label><label><input type="checkbox"><span>Confirm the instance has the Java version it requires.</span></label><label><input type="checkbox"><span>Try a sensible memory setting and leave RAM for the system.</span></label></div>
+                            <div class="support-solution-actions"><button type="button" data-support-guide="logs">Read the Console guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
+                        </div>
+                        <div class="support-solution" id="supportPanelLoader" role="tabpanel" aria-labelledby="supportFixLoader" data-support-panel="loader" hidden>
+                            <div class="support-solution-label"><i class="fas fa-puzzle-piece"></i> MODDED / LOADER</div><h4>Check the version chain.</h4><p>Mod loaders need a matching Minecraft base version, Java runtime and compatible mods.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Match the Fabric or Forge build to the Minecraft version.</span></label><label><input type="checkbox"><span>Check Java's required major version.</span></label><label><input type="checkbox"><span>Disable the newest mod and retry if the error names it.</span></label></div>
+                            <div class="support-solution-actions"><button type="button" data-support-guide="fabric">Read the modded guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
+                        </div>
+                        <div class="support-solution" id="supportPanelPerformance" role="tabpanel" aria-labelledby="supportFixPerformance" data-support-panel="performance" hidden>
+                            <div class="support-solution-label"><i class="fas fa-gauge-high"></i> PERFORMANCE</div><h4>Change one variable at a time.</h4><p>Compare FPS in the same world and location so you can see which adjustment helped.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Lower render distance and restart the game.</span></label><label><input type="checkbox"><span>Use a compatible optimization mod for your loader.</span></label><label><input type="checkbox"><span>Set reasonable memory without assigning all system RAM.</span></label></div>
+                            <div class="support-solution-actions"><button type="button" data-support-guide="fps">Read the FPS guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
+                        </div>
+                        <div class="support-solution" id="supportPanelAccount" role="tabpanel" aria-labelledby="supportFixAccount" data-support-panel="account" hidden>
+                            <div class="support-solution-label"><i class="fas fa-user-shield"></i> ACCOUNT / OFFLINE</div><h4>Check which identity you are using.</h4><p>A website account, a Minecraft profile and an online Microsoft session serve different purposes.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Select the intended Minecraft profile in the launcher.</span></label><label><input type="checkbox"><span>For online services, confirm your Microsoft session.</span></label><label><input type="checkbox"><span>For offline play, check that the selected profile is local.</span></label></div>
+                            <div class="support-solution-actions"><button type="button" data-support-guide="account">Read the account guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
+                        </div>
+                    </div>
+                    <div class="support-diagnostic-empty" role="status"><i class="fas fa-magnifying-glass"></i><strong>No guided path matches that search.</strong><span>Try a shorter term or browse the guides below.</span></div>
+                    <div class="support-diagnostic-foot"><span><i class="fas fa-circle-info"></i> Still stuck? Prepare a support note with the details you found.</span><button type="button" data-support-jump="supportBrief">Build a support note <i class="fas fa-arrow-right"></i></button></div>
+                </section>
+
+                <section class="support-brief animate-on-scroll" id="supportBrief" aria-labelledby="supportBriefTitle">
+                    <div class="support-brief-intro">
+                        <span class="support-brief-symbol" aria-hidden="true"><i class="fas fa-clipboard-list"></i></span>
+                        <div><span class="support-brief-label">Before you ask for help</span><h3 id="supportBriefTitle">Build a useful support note.</h3><p>A clear version and the final error line help others reproduce the problem. Fill in what you know, then copy a note for Discord, email or an issue.</p></div>
+                    </div>
+                    <div class="support-brief-grid">
+                        <form class="support-brief-form" id="supportBriefForm">
+                            <label>What happened?<select id="supportBriefIssue"><option value="Game crashes or freezes">Game crashes or freezes</option><option value="Fabric or Forge fails">Fabric or Forge fails</option><option value="Low FPS or stutter">Low FPS or stutter</option><option value="Account or offline play">Account or offline play</option><option value="Something else">Something else</option></select></label>
+                            <label>Minecraft version<input id="supportBriefVersion" type="text" autocomplete="off" placeholder="For example, 1.21.1" maxlength="60"></label>
+                            <label>Java version, if relevant<input id="supportBriefJava" type="text" autocomplete="off" placeholder="For example, Java 21" maxlength="60"></label>
+                            <label class="support-brief-wide">Final Console error or what you observed<textarea id="supportBriefError" rows="3" placeholder="Paste a short, relevant excerpt. Remove account details or tokens first." maxlength="1200"></textarea></label>
+                            <div class="support-brief-actions"><button type="button" id="supportBriefCopy"><i class="fas fa-copy" aria-hidden="true"></i> Copy support note</button><button type="reset">Clear fields</button><span id="supportBriefStatus" role="status" aria-live="polite"></span></div>
+                        </form>
+                        <aside class="support-brief-preview" aria-label="Support note preview"><div class="support-brief-preview-head"><span><i class="fas fa-file-lines" aria-hidden="true"></i> Your note</span><span>Live preview</span></div><pre id="supportBriefPreview"></pre><p><i class="fas fa-shield-halved" aria-hidden="true"></i> Check the note for personal information before sharing it.</p></aside>
+                    </div>
+                </section>
+
+                <section class="support-knowledge-studio animate-on-scroll" aria-labelledby="supportKnowledgeTitle">
+                    <header class="support-knowledge-head">
+                        <div>
+                            <span>Knowledge base</span>
+                            <h3 id="supportKnowledgeTitle">Answers without the guesswork.</h3>
+                        </div>
+                        <p>Filter by topic or search for a specific issue.</p>
+                    </header>
+                    <div class="support-topic-strip" role="group" aria-label="Filter guides by topic">
+                        <button type="button" class="active" data-support-topic="all" aria-pressed="true" style="--topic:#aeb6ff"><i class="fas fa-layer-group"></i> All guides</button>
+                        <button type="button" data-support-topic="accounts" aria-pressed="false" style="--topic:#8b7cff"><i class="fas fa-user-shield"></i> Accounts</button>
+                        <button type="button" data-support-topic="launch" aria-pressed="false" style="--topic:#4ca8ff"><i class="fas fa-rocket"></i> Launch</button>
+                        <button type="button" data-support-topic="mods" aria-pressed="false" style="--topic:#ff6fcf"><i class="fas fa-puzzle-piece"></i> Mods</button>
+                        <button type="button" data-support-topic="performance" aria-pressed="false" style="--topic:#45d6b5"><i class="fas fa-gauge-high"></i> Performance</button>
+                    </div>
+                    <div class="support-knowledge-layout">
+                        <div class="support-faq-column">
+                            <div class="support-faq-head"><strong>All questions</strong><span id="faqVisibleCount">7 guides</span></div>
+                            <div class="faq-list" id="faqList">
+                                <div class="faq-item open" data-support-topic="accounts" data-support-id="account" style="--faq-accent:#8b7cff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-user-plus"></i></span><span class="faq-q-copy"><small>Accounts · 2 min</small><strong>How do I add a Minecraft account?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Go to the Accounts tab and click <b>Add Profile</b>. This website stores profile names for previews; connect Microsoft or Ely.by securely in the desktop launcher before playing. Offline profiles do not use online authentication.</p></div></div>
+                                <div class="faq-item" data-support-topic="accounts" style="--faq-accent:#b46cff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-id-card"></i></span><span class="faq-q-copy"><small>Identity · 1 min</small><strong>What's the difference between a site account and a Minecraft account?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Your <b>site account</b> is your identity on this website. It stores preferences and can contain several <b>Minecraft profiles</b>, which are the identities used to launch the game.</p></div></div>
+                                <div class="faq-item" data-support-topic="mods" data-support-id="fabric" style="--faq-accent:#ff6fcf"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-puzzle-piece"></i></span><span class="faq-q-copy"><small>Mods · 3 min</small><strong>Why does my Fabric/Forge build fail to start?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Loader builds need a compatible Minecraft base version and Java runtime. Reinstall the build, confirm the required Java major version, then read the final Console error if the launch still stops.</p></div></div>
+                                <div class="faq-item" data-support-topic="performance" style="--faq-accent:#ffb84d"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-memory"></i></span><span class="faq-q-copy"><small>Memory · 2 min</small><strong>How much memory should I allocate?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Use 2–4 GB for vanilla, 4–6 GB for medium modpacks and up to 8 GB for heavy packs. Leave enough memory for your operating system instead of assigning nearly all system RAM.</p></div></div>
+                                <div class="faq-item" data-support-topic="launch" data-support-id="logs" style="--faq-accent:#4ca8ff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-terminal"></i></span><span class="faq-q-copy"><small>Diagnostics · 2 min</small><strong>Where can I see logs and errors?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>The Console tab streams JVM output with colored levels, search, copy and export. Start at the bottom: the final red lines usually name the failing stage or missing dependency.</p></div></div>
+                                <div class="faq-item" data-support-topic="accounts" style="--faq-accent:#45d6b5"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-wifi"></i></span><span class="faq-q-copy"><small>Offline play · 1 min</small><strong>Is the launcher free and does it work offline?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Yes. Spectral runs locally and supports offline profiles. A Microsoft account is required only when you want licensed online authentication and multiplayer services that depend on it.</p></div></div>
+                                <div class="faq-item" data-support-topic="performance" data-support-id="fps" style="--faq-accent:#67e8f9"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-gauge-high"></i></span><span class="faq-q-copy"><small>Performance · 3 min</small><strong>How can I improve low FPS?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Start with Sodium on Fabric or another compatible optimization stack. Keep render distance reasonable, avoid excessive memory allocation and compare changes in the same world and location.</p></div></div>
+                            </div>
+                            <div class="support-no-results" id="supportNoResults" hidden><i class="fas fa-magnifying-glass"></i><strong>No matching guide yet</strong><p>Try a shorter term such as Java, memory, mods or account.</p></div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="forum-section animate-on-scroll delay-1">
+                    <div class="forum-header-row">
+                        <div>
+                            <h3 class="support-subtitle" style="margin-top:0;">Ideas &amp; Suggestions</h3>
+                            <p style="color:var(--text-muted);font-size:0.9rem;margin-top:4px;">Share your ideas for the launcher and site — the best ones become real features</p>
+                        </div>
+                        <div class="forum-write-wrap">
+                            <button type="button" class="forum-write-btn" id="forumWriteBtn"><i class="fas fa-lightbulb"></i> Share Idea</button>
+                            <span class="forum-login-hint" id="forumLoginHint" style="display:none;"><i class="fas fa-lock"></i> Sign in to share an idea</span>
+                        </div>
+                    </div>
+                    <div class="forum-posts-list" id="forumPostsList"></div>
+                    <div class="forum-empty-state" id="forumEmpty" style="display:none;"><i class="fas fa-comment-slash"></i><p>No ideas yet — be the first!</p></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    <!-- ══════════════ FOOTER ══════════════ -->
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div class="footer-brand"><img src="Icon-256.webp" alt="Spectral" class="footer-logo" width="48" height="48" loading="lazy" decoding="async"><div><div class="footer-name">Spectral Launcher</div><div class="footer-tag">Independent desktop launcher</div></div></div>
+            <div class="footer-links">
+                <a href="#home" class="nav-btn" data-target="home">Home</a>
+                <a href="#accounts" class="nav-btn" data-target="accounts">Accounts</a>
+                <a href="#updates" class="nav-btn" data-target="updates">Updates</a>
+                <a href="#advanced-features" class="nav-btn" data-target="advanced-features">Features</a>
+                <a href="#support" class="nav-btn" data-target="support">Support</a>
+            </div>
+            <div class="footer-social">
+                <a href="https://discord.gg/Ek8qgfDCZ" target="_blank" rel="noopener noreferrer" aria-label="Discord"><i class="fab fa-discord"></i></a>
+            </div>
+        </div>
+        <div class="footer-bottom">&copy; 2026 Spectral Launcher — Not affiliated with Mojang or Microsoft</div>
+    </footer>
+    <!-- ══════════════ SITE ACCOUNT DASHBOARD ══════════════ -->
+    <div id="dashboardOverlay" class="dashboard-overlay" role="dialog" aria-modal="true" aria-label="Spectral account" aria-hidden="true" inert>
+        <div class="dashboard-modal glass-modal">
+            <button type="button" class="close-dashboard" id="closeDashboardBtn" aria-label="Close account panel">&times;</button>
+
+            <!-- AUTH VIEW -->
+            <div id="authView" class="view-section">
+                <div class="auth-icon-box"><i class="fas fa-fingerprint"></i></div>
+                <h2 style="text-align:center;margin-bottom:8px;">Site Account</h2>
+                <p class="auth-sub">Sign in to manage your Minecraft profiles and access community features</p>
+                <p class="auth-mode-note" id="authModeNote"><i class="fas fa-hard-drive" aria-hidden="true"></i><span>Local demo mode: account data stays in this browser. Do not reuse a password from another service.</span></p>
+                <button type="button" class="btn-google" id="googleLoginBtn">
+                    <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.2-5.6l-6.6-5.4C29.6 34.7 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.6l6.6 5.4C40.9 36.7 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+                    <span>Continue with Google</span>
+                </button>
+                <p class="auth-provider-hint" id="authProviderHint">Used Google before? Sign in here, even if your profile has a username.</p>
+                <div class="auth-divider"><span>or</span></div>
+                <form id="loginForm">
+                    <div class="input-group-animated"><input type="text" id="loginInput" required placeholder=" " autocomplete="username" aria-describedby="loginError loginNote"><label for="loginInput">Email or username</label></div>
+                    <div class="input-group-animated"><input type="password" id="passwordInput" required placeholder=" " maxlength="128" autocomplete="current-password" aria-describedby="loginError loginNote"><label for="passwordInput">Password</label></div>
+                    <div class="auth-error" id="loginError" role="alert" style="display:none;"></div>
+                    <div class="auth-note" id="loginNote" role="status" aria-live="polite" style="display:none;"></div>
+                    <button type="submit" class="btn-submit-login"><span>Sign In</span></button>
+                </form>
+                <div class="auth-switch"><button type="button" class="link-btn" id="forgotPasswordBtn">Forgot password?</button></div>
+                <div class="auth-switch">No account? <button type="button" class="link-btn" id="switchToRegisterBtn">Create one</button></div>
+            </div>
+
+            <!-- REGISTER VIEW -->
+            <div id="registerView" class="view-section" style="display:none;">
+                <div class="auth-icon-box" style="background:rgba(16,185,129,0.1);"><i class="fas fa-user-plus" style="color:#10b981;"></i></div>
+                <h2 style="text-align:center;margin-bottom:8px;">Create Account</h2>
+                <p class="auth-sub">Choose a username and password. Email is optional.</p>
+                <div class="veteran-registration-note" id="veteranRegistrationNote">
+                    <span class="veteran-registration-icon"><i class="fas fa-shield-halved"></i><i class="fas fa-wand-magic-sparkles"></i></span>
+                    <span><b>Founder's window is open</b><small>Accounts created before 2027 receive the permanent Veteran role automatically.</small></span>
+                </div>
+                <button type="button" class="btn-google" id="googleRegisterBtn">
+                    <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.2-5.6l-6.6-5.4C29.6 34.7 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.6l6.6 5.4C40.9 36.7 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+                    <span>Sign up with Google</span>
+                </button>
+                <div class="auth-divider"><span>or</span></div>
+                <form id="registerForm">
+                    <div class="input-group-animated"><input type="text" id="regUsername" required placeholder=" " minlength="3" maxlength="20" autocomplete="username" aria-describedby="registerError registerNote"><label for="regUsername">Username (3–20 chars)</label></div>
+                    <div class="input-group-animated"><input type="email" id="regEmail" placeholder=" " autocomplete="email" aria-describedby="regEmailHint registerError registerNote"><label for="regEmail">Email saved only on this device</label></div>
+                    <div id="regEmailHint" style="font-size:0.8rem;line-height:1.4;margin:-4px 2px 12px;opacity:0.72;"><i class="fas fa-circle-info" style="margin-right:6px;opacity:0.8;"></i><span id="regEmailHintText">Without configured cloud authentication, this creates a device-local demo account only.</span></div>
+                    <div class="input-group-animated"><input type="password" id="regPassword" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="regPasswordHint registerError registerNote"><label for="regPassword">Password</label></div>
+                    <p class="auth-field-hint" id="regPasswordHint">Use at least 10 characters and do not reuse another account password.</p>
+                    <div class="input-group-animated"><input type="password" id="regPasswordConfirm" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="registerError registerNote"><label for="regPasswordConfirm">Confirm Password</label></div>
+                    <div class="auth-error" id="registerError" role="alert" style="display:none;"></div>
+                    <div class="auth-note" id="registerNote" role="status" aria-live="polite" style="display:none;"></div>
+                    <button type="submit" class="btn-submit-login" style="background:linear-gradient(135deg,#10b981,#059669);"><span>Create Account</span></button>
+                </form>
+                <div class="auth-switch">Already registered? <button type="button" class="link-btn" id="switchToLoginBtn">Sign In</button></div>
+            </div>
+
+            <!-- PASSWORD RECOVERY VIEW (set new password after email link) -->
+            <div id="recoveryView" class="view-section" style="display:none;">
+                <div class="auth-icon-box" style="background:rgba(99,102,241,0.12);"><i class="fas fa-key" style="color:#818cf8;"></i></div>
+                <h2 style="text-align:center;margin-bottom:8px;">Set a new password</h2>
+                <p class="auth-sub">Enter a new password for your account</p>
+                <form id="recoveryForm">
+                    <div class="input-group-animated"><input type="password" id="recoveryPassword" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="recoveryError recoveryNote"><label for="recoveryPassword">New password</label></div>
+                    <div class="input-group-animated"><input type="password" id="recoveryPasswordConfirm" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="recoveryError recoveryNote"><label for="recoveryPasswordConfirm">Confirm new password</label></div>
+                    <div class="auth-error" id="recoveryError" role="alert" style="display:none;"></div>
+                    <div class="auth-note" id="recoveryNote" role="status" aria-live="polite" style="display:none;"></div>
+                    <button type="submit" class="btn-submit-login"><span>Update password</span></button>
+                </form>
+            </div>
+
+            <!-- PROFILE VIEW -->
+            <div id="profileView" class="view-section" style="display:none;">
+                <header class="account-hub-head" aria-label="Account workspace">
+                    <span class="account-hub-mark"><i class="fas fa-bolt" aria-hidden="true"></i></span>
+                    <div class="account-hub-title"><small>SPECTRAL / ACCOUNT</small><strong id="accountHubTitle">Your space</strong><span id="accountHubSubtitle">Everything about your identity in one place</span></div>
+                    <div class="account-hub-person"><img id="accountHubAvatar" src="" alt="" width="40" height="40"><span><b id="accountHubName">Player</b><small id="accountHubRole">Account</small></span></div>
+                    <button type="button" class="account-hub-close" id="closeAccountHubBtn" aria-label="Close account panel"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+                </header>
+                <!-- Tabs -->
+                <div class="profile-tabs" id="profileTabs" role="tablist" aria-label="Account menu">
+                    <span class="account-rail-label">WORKSPACE</span>
+                    <button type="button" class="profile-tab active" id="profileTabMain" role="tab" aria-selected="true" aria-controls="profilePanelMain" tabindex="0" data-ptab="my-profile"><i class="fas fa-user-astronaut"></i><span class="account-tab-copy"><b>Profile</b><small>Identity &amp; settings</small></span><i class="fas fa-chevron-right account-tab-arrow"></i></button>
+                    <button type="button" class="profile-tab" id="profileTabRoles" role="tab" aria-selected="false" aria-controls="profilePanelRoles" tabindex="-1" data-ptab="role-store"><i class="fas fa-gem"></i><span class="account-tab-copy"><b>Roles</b><small>Plans &amp; perks</small></span><i class="fas fa-chevron-right account-tab-arrow"></i></button>
+                    <button type="button" class="profile-tab" role="tab" aria-selected="false" aria-controls="profilePanelAdmin" tabindex="-1" data-ptab="admin-panel" id="adminPanelTab" style="display:none;"><i class="fas fa-shield-halved"></i><span class="account-tab-copy"><b>Admin</b><small>People &amp; activity</small></span><i class="fas fa-chevron-right account-tab-arrow"></i></button>
+                    <div class="account-rail-footer"><span><i class="fas fa-circle" aria-hidden="true"></i> <b id="accountHubMode">Local demo</b></span><small id="accountRailHint">Changes to your profile are saved when you press Save.</small></div>
+                </div>
+
+                <!-- Profile sub-view -->
+                <div class="ptab-content active" id="profilePanelMain" role="tabpanel" aria-labelledby="profileTabMain" data-ptab-content="my-profile">
+                    <section class="profile-cover" id="profileCover" data-header="nebula">
+                        <div class="profile-cover-scene" aria-hidden="true"><i></i><i></i><i></i><span></span><b></b></div>
+                        <div class="profile-cover-top">
+                            <span class="profile-cover-label"><i class="fas fa-wave-square" id="profileHeaderIcon"></i> <span id="profileHeaderTitle">Nebula Drift</span><em id="profileHeaderTier">Core collection</em></span>
+                            <button type="button" class="profile-cover-customize" id="openHeaderStudioBtn"><i class="fas fa-wand-magic-sparkles"></i> Customize</button>
+                        </div>
+                        <div class="profile-header">
+                            <div class="profile-avatar-wrapper">
+                                <img id="profileAvatarImg" src="https://minotar.net/avatar/steve/100" alt="Avatar" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                <label for="avatarUpload" class="avatar-upload-btn" aria-label="Upload avatar"><i class="fas fa-camera"></i></label>
+                                <input type="file" id="avatarUpload" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                            </div>
+                            <div class="profile-header-copy">
+                                <span class="profile-presence"><i></i> Online identity</span>
+                                <h3 id="profileUsername">Username</h3>
+                                <span class="badge-pro" id="profileRoleBadge">USER</span>
+                            </div>
+                            <div class="profile-cover-signal"><small>Profile signal</small><b id="profileSignalName">Soft reveal</b><em id="profileHeaderAccess">1 header unlocked</em></div>
+                        </div>
+                    </section>
+                    <div class="profile-stat-chips" id="profileStatChips"></div>
+                    <button type="button" class="profile-role-spotlight" id="openRoleStoreBtn">
+                        <span class="profile-role-spotlight-icon" id="profileRoleSpotlightIcon"><i class="fas fa-user"></i></span>
+                        <span class="profile-role-spotlight-copy"><small>Your access</small><b id="profileRoleSpotlightTitle">Player role</b><em id="profileRoleSpotlightText">Explore role perks and profile styles</em></span>
+                        <span class="profile-role-spotlight-action">View roles <i class="fas fa-arrow-right"></i></span>
+                    </button>
+                    <section class="profile-identity-studio" id="profileIdentityStudio" hidden>
+                        <div class="profile-identity-studio-head">
+                            <span class="profile-identity-studio-icon"><i class="fas fa-palette"></i></span>
+                            <div><small>Identity studio</small><h4>Animated profile headers</h4><p>Choose a role-powered scene and the way your account menu appears.</p></div>
+                            <button type="button" id="closeHeaderStudioBtn" aria-label="Close identity studio"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="profile-header-options" id="profileHeaderOptions"></div>
+                        <div class="profile-entrance-picker">
+                            <div><small>Menu entrance</small><b id="profileEntranceTitle">Soft signal</b></div>
+                            <div class="profile-entrance-options" id="profileEntranceOptions"></div>
+                        </div>
+                    </section>
+                    <section class="profile-preferences" aria-labelledby="profilePreferencesTitle">
+                        <div class="profile-preferences-head">
+                            <span><i class="fas fa-sliders"></i></span>
+                            <div><h4 id="profilePreferencesTitle">Appearance &amp; performance</h4><p>Device preferences are saved locally in this browser.</p></div>
+                        </div>
+                        <div class="profile-preference-list">
+                            <label class="profile-preference-row" for="profileThemeToggle">
+                                <span class="profile-preference-icon theme"><i class="fas fa-moon" id="profileThemeIcon"></i></span>
+                                <span class="profile-preference-copy"><strong>Light theme</strong><small id="profileThemeState">Dark palette is active</small></span>
+                                <input type="checkbox" id="profileThemeToggle" class="profile-preference-input">
+                                <span class="profile-preference-switch" aria-hidden="true"><i></i></span>
+                            </label>
+                            <label class="profile-preference-row" for="profileLiteToggle">
+                                <span class="profile-preference-icon performance"><i class="fas fa-gauge-high" id="profileLiteIcon"></i></span>
+                                <span class="profile-preference-copy"><strong>Lightweight mode</strong><small id="profileLiteState">Full visual quality</small></span>
+                                <input type="checkbox" id="profileLiteToggle" class="profile-preference-input">
+                                <span class="profile-preference-switch" aria-hidden="true"><i></i></span>
+                            </label>
+                        </div>
+                        <p class="profile-performance-note" id="profilePerformanceNote"><i class="fas fa-circle-info"></i><span>Reduces motion, blur, particles and decorative rendering. The page reloads once when this setting changes.</span></p>
+                    </section>
+                    <section class="account-editor" aria-labelledby="accountEditorTitle">
+                        <header class="workspace-section-heading"><span><i class="fas fa-pen-nib" aria-hidden="true"></i></span><div><small>YOUR PUBLIC IDENTITY</small><h3 id="accountEditorTitle">Make yourself known</h3><p>Your display name, status and bio appear on your profile.</p></div></header>
+                        <div class="account-live-preview" aria-label="Profile preview"><img id="accountPreviewAvatar" src="" alt="" width="56" height="56"><div><small>LIVE PREVIEW</small><strong id="accountPreviewName">Your name</strong><span id="accountPreviewStatus">Your status appears here</span></div><i class="fas fa-sparkles" aria-hidden="true"></i></div>
+                        <form id="profileEditForm" class="profile-settings">
+                            <label class="account-field" for="profileDisplayName"><span><i class="fas fa-signature"></i> Display name <output id="profileDisplayNameCount">0 / 24</output></span><input type="text" id="profileDisplayName" maxlength="24" required autocomplete="nickname"></label>
+                            <label class="account-field" for="profileStatus"><span><i class="fas fa-comment-dots"></i> Status <output id="profileStatusCount">0 / 100</output></span><input type="text" id="profileStatus" maxlength="100" placeholder="What are you working on?"></label>
+                            <div class="account-status-presets" role="group" aria-label="Quick status ideas"><button type="button" data-account-status="Exploring new worlds">Exploring new worlds</button><button type="button" data-account-status="Building something new">Building something new</button><button type="button" data-account-status="Ready to play">Ready to play</button></div>
+                            <label class="account-field" for="profileBio"><span><i class="fas fa-align-left"></i> About you <output id="profileBioCount">0 / 120</output></span><textarea id="profileBio" maxlength="120" rows="3" placeholder="A little about your Minecraft world…"></textarea></label>
+                            <div class="account-avatar-tools"><button type="button" id="changeAvatarBtn"><i class="fas fa-camera"></i> Change photo</button><button type="button" id="removeAvatarBtn"><i class="fas fa-eraser"></i> Reset photo</button><small>PNG, JPEG or WebP · up to 1 MB</small></div>
+                            <div class="account-save-bar"><span id="profileSaveState" role="status">All changes saved</span><button type="button" id="resetProfileBtn" disabled>Discard</button><button type="submit" class="btn-save-profile" id="saveProfileBtn" disabled><i class="fas fa-check"></i> Save profile</button></div>
+                        </form>
+                    </section>
+                    <section class="account-session-card" aria-labelledby="accountSessionTitle">
+                        <header class="workspace-section-heading"><span><i class="fas fa-fingerprint"></i></span><div><small>SESSION &amp; DATA</small><h3 id="accountSessionTitle">Your account, explained</h3></div></header>
+                        <div id="accountSessionDetails"></div>
+                        <div class="account-session-actions"><button type="button" id="exportOwnAccount"><i class="fas fa-download"></i> Export my data</button><button type="button" id="accountRecoveryBtn" hidden><i class="fas fa-key"></i> Send password reset</button></div>
+                    </section>
+                    <div class="profile-actions">
+                        <button type="button" class="p-btn logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                    </div>
+                </div>
+
+                <!-- Role store sub-view -->
+                <div class="ptab-content role-store-view" id="profilePanelRoles" role="tabpanel" aria-labelledby="profileTabRoles" aria-hidden="true" data-ptab-content="role-store" style="display:none;">
+                    <header class="role-store-hero" id="roleStoreHero">
+                        <div class="role-store-orbit orbit-one"></div>
+                        <div class="role-store-orbit orbit-two"></div>
+                        <div class="role-store-hero-copy">
+                            <span class="role-store-eyebrow"><i class="fas fa-wand-magic-sparkles"></i> Spectral roles</span>
+                            <h2>Make your account <span>unmistakable.</span></h2>
+                            <p>Unlock more launcher profiles, rare identity effects and a badge that follows you across the community.</p>
+                        </div>
+                        <div class="current-role-card">
+                            <span class="current-role-icon" id="currentRoleIcon"><i class="fas fa-user"></i></span>
+                            <div><small id="currentRoleEyebrow">Current role</small><b id="currentRoleName">Player</b><em id="currentRoleSince">Standard access</em></div>
+                        </div>
+                    </header>
+
+                    <section id="accountEntitlements" class="account-entitlements" aria-label="Your current limits"></section>
+                    <section id="roleReservation" class="role-reservation" hidden aria-live="polite"></section>
+                    <section class="developer-role-lab" id="developerRoleLab" hidden></section>
+
+                    <div class="role-store-toolbar">
+                        <div><small>Choose your signal</small><h3>Role collection</h3></div>
+                        <div class="role-billing-toggle" role="group" aria-label="Billing period">
+                            <button type="button" data-role-billing="monthly">Monthly</button>
+                            <button type="button" class="active" data-role-billing="yearly">Yearly <span>-20%</span></button>
+                        </div>
+                    </div>
+
+                    <div class="role-store-grid" id="roleStoreGrid"></div>
+
+                    <section class="role-comparison" aria-labelledby="roleCompareTitle">
+                        <header class="workspace-section-heading"><span><i class="fas fa-table-cells-large"></i></span><div><small>COMPARE THE DETAILS</small><h3 id="roleCompareTitle">Find your fit</h3><p>Compare capacity, appearance and staff permissions separately.</p></div></header>
+                        <div class="role-compare-controls" role="group" aria-label="Compare role features"><button type="button" data-compare="capacity" aria-pressed="true"><i class="fas fa-cubes"></i> Capacity</button><button type="button" data-compare="appearance" aria-pressed="false"><i class="fas fa-palette"></i> Appearance</button><button type="button" data-compare="permissions" aria-pressed="false"><i class="fas fa-shield-halved"></i> Permissions</button></div>
+                        <div id="roleComparisonGrid" class="role-comparison-scroll" tabindex="0" aria-label="Role comparison, scroll horizontally on small screens"></div>
+                        <p class="workspace-note"><i class="fas fa-circle-info"></i> Saving a launch choice does not activate a role. Staff roles are assigned by authorized administrators.</p>
+                    </section>
+
+                    <aside class="role-checkout-sheet" id="roleCheckoutSheet" hidden aria-live="polite">
+                        <button type="button" class="role-checkout-close" id="roleCheckoutClose" aria-label="Close checkout"><i class="fas fa-times"></i></button>
+                        <div class="role-checkout-icon" id="roleCheckoutIcon"><i class="fas fa-star"></i></div>
+                        <div class="role-checkout-copy">
+                            <span>Local launch choice</span>
+                            <h3 id="roleCheckoutTitle">Reserve Pro</h3>
+                            <p id="roleCheckoutDescription">Your choice will be saved for the payment launch. No payment is taken now.</p>
+                            <p class="workspace-note"><i class="fas fa-hard-drive"></i> Saved in this browser. No email is sent and no subscription starts.</p>
+                        </div>
+                        <div class="role-checkout-total"><small id="roleCheckoutCycle">Yearly plan</small><b id="roleCheckoutPrice">$0</b><em>No charge today</em></div>
+                        <button type="button" class="role-checkout-submit" id="roleCheckoutSubmit"><span>Save launch choice</span><i class="fas fa-arrow-right"></i></button>
+                    </aside>
+                </div>
+
+                <!-- Admin Panel sub-view -->
+                <div class="ptab-content" id="profilePanelAdmin" role="tabpanel" aria-labelledby="adminPanelTab" aria-hidden="true" data-ptab-content="admin-panel" style="display:none;">
+                    <div class="admin-panel-wrap">
+                        <header class="admin-command-head">
+                            <div class="admin-command-copy">
+                                <span class="admin-command-icon"><i class="fas fa-shield-halved"></i></span>
+                                <div><small>Administration</small><h2>Control center</h2><p>Review accounts, understand access and track every local management change.</p></div>
+                            </div>
+                            <div class="admin-command-access"><span id="adminAccessBadge"><i class="fas fa-key"></i> Moderator access</span><b id="adminCloudState"><i></i> Local mode</b></div>
+                            <div class="admin-overview" aria-label="Administration overview">
+                                <div><span><i class="fas fa-users"></i></span><b id="adminOverviewUsers">0</b><small>Users</small></div>
+                                <div><span><i class="fas fa-bolt"></i></span><b id="adminOverviewActive">0</b><small>Active 7d</small></div>
+                                <div><span><i class="fas fa-inbox"></i></span><b id="adminOverviewPending">0</b><small>Pending</small></div>
+                                <div><span><i class="fas fa-user-slash"></i></span><b id="adminOverviewBanned">0</b><small>Banned</small></div>
+                            </div>
+                        </header>
+                        <p class="workspace-note admin-mode-note" id="adminModeNote"></p>
+                        <div class="admin-subtabs" id="adminSubtabs" role="tablist" aria-label="Administration">
+                            <button type="button" class="admin-stab active" data-stab="users"><span class="admin-stab-icon"><i class="fas fa-users"></i></span><span class="admin-stab-copy"><strong>Users</strong><small>Accounts &amp; access</small></span><b id="adminUsersTabCount">0</b></button>
+                            <button type="button" class="admin-stab" data-stab="forum"><span class="admin-stab-icon"><i class="fas fa-comments"></i></span><span class="admin-stab-copy"><strong>Forum</strong><small>Community queue</small></span><b id="adminForumTabCount">0</b></button>
+                            <button type="button" class="admin-stab" data-stab="activity"><span class="admin-stab-icon"><i class="fas fa-clock-rotate-left"></i></span><span class="admin-stab-copy"><strong>Activity</strong><small>Change history</small></span></button>
+                            <button type="button" class="admin-stab" data-stab="site-stats"><span class="admin-stab-icon"><i class="fas fa-chart-line"></i></span><span class="admin-stab-copy"><strong>Analytics</strong><small>Usage overview</small></span></button>
+                        </div>
+                        <section class="admin-review" id="adminActionReview" hidden aria-labelledby="adminReviewTitle">
+                            <header class="workspace-section-heading"><span><i class="fas fa-code-compare"></i></span><div><small>REVIEW BEFORE APPLYING</small><h3 id="adminReviewTitle">Review change</h3></div></header>
+                            <div id="adminReviewDiff"></div>
+                            <label class="account-field" for="adminActionReason"><span>Reason for this change</span><input id="adminActionReason" maxlength="160" placeholder="Add context for the activity log" required></label>
+                            <p id="adminActionError" role="alert"></p>
+                            <div class="admin-review-actions"><button type="button" id="adminCancelAction">Cancel</button><button type="button" id="adminConfirmAction"><i class="fas fa-check"></i> Apply change</button></div>
+                        </section>
+                        <div class="admin-stab-content" data-stab-content="activity" style="display:none;"><header class="workspace-section-heading"><span><i class="fas fa-clock-rotate-left"></i></span><div><small>CHANGE HISTORY</small><h3>Activity log</h3><p>Role and access changes, with the actor and reason. Local history is stored on this device.</p></div></header><div id="adminAuditList" class="admin-audit-list"></div></div>
+                        <div class="admin-stab-content active" data-stab-content="users">
+                            <div class="admin-users-toolbar">
+                                <label class="admin-search-field" for="adminUserSearch"><i class="fas fa-search"></i><input type="search" id="adminUserSearch" placeholder="Search name, username or bio..." class="admin-search-input" autocomplete="off"><kbd>Ctrl K</kbd></label>
+                                <select id="adminRoleFilter" class="admin-role-filter" aria-label="Filter by role">
+                                    <option value="">All roles</option>
+                                    <option value="DEV">Developer</option>
+                                    <option value="ADMIN">Admin</option>
+                                    <option value="MODERATOR">Moderator</option>
+                                    <option value="SPECTRAL">Spectral</option>
+                                    <option value="LEGEND">Legend</option>
+                                    <option value="PRO">Pro</option>
+                                    <option value="VETERAN">Veteran</option>
+                                    <option value="USER">Player</option>
+                                </select>
+                                <select id="adminStatusFilter" class="admin-role-filter" aria-label="Filter by status">
+                                    <option value="">All statuses</option>
+                                    <option value="online">Online now</option>
+                                    <option value="active">Active this week</option>
+                                    <option value="banned">Banned</option>
+                                    <option value="inactive">Inactive 30d+</option>
+                                </select>
+                                <select id="adminUserSort" class="admin-role-filter" aria-label="Sort users">
+                                    <option value="role">Highest role</option>
+                                    <option value="recent">Recently active</option>
+                                    <option value="joined">Newest users</option>
+                                    <option value="time">Most time</option>
+                                    <option value="name">Name A–Z</option>
+                                </select>
+                            </div>
+                            <div class="admin-users-summary">
+                                <label id="adminSelectAllWrap"><input type="checkbox" id="adminSelectAllUsers"><span><i class="fas fa-check"></i></span> Select visible</label>
+                                <p id="adminUserResultCount">0 users</p>
+                                <button type="button" id="adminResetUserFilters"><i class="fas fa-filter-circle-xmark"></i> Reset filters</button>
+                            </div>
+                            <div class="admin-bulk-bar" id="adminBulkBar" hidden>
+                                <div><span><i class="fas fa-check-double"></i></span><p><b id="adminSelectedCount">0 selected</b><small>Bulk actions only affect manageable users</small></p></div>
+                                <select id="adminBulkRole" aria-label="Bulk role"><option value="">Choose role...</option></select>
+                                <button type="button" id="adminBulkApplyRole"><i class="fas fa-id-badge"></i> Apply role</button>
+                                <button type="button" id="adminBulkBan" class="warn"><i class="fas fa-ban"></i> Ban</button>
+                                <button type="button" id="adminBulkUnban" class="good"><i class="fas fa-unlock"></i> Unban</button>
+                                <button type="button" id="adminBulkExport"><i class="fas fa-file-export"></i> Export</button>
+                                <button type="button" id="adminBulkClear" class="icon" aria-label="Clear selection"><i class="fas fa-times"></i></button>
+                            </div>
+                            <nav id="adminPagination" class="admin-pagination" aria-label="User pages"></nav>
+                            <div class="admin-users-layout">
+                                <div class="admin-users-list" id="adminUsersList"></div>
+                                <aside class="admin-user-inspector" id="adminUserInspector" aria-live="polite">
+                                    <div class="admin-inspector-empty"><span><i class="fas fa-user-gear"></i></span><h3>Select a user</h3><p>Open any account to inspect its activity, identities and access level.</p></div>
+                                </aside>
+                            </div>
+                        </div>
+                        <div class="admin-stab-content" data-stab-content="forum" style="display:none;">
+                            <div class="admin-section-head"><div><small>Community moderation</small><h3>Idea review queue</h3><p>Approve useful suggestions, reject unsuitable posts or restore them later.</p></div><span id="adminForumResultCount">0 ideas</span></div>
+                            <div class="admin-forum-toolbar">
+                                <label class="admin-search-field" for="adminForumSearch"><i class="fas fa-search"></i><input type="search" id="adminForumSearch" placeholder="Search ideas or authors..." autocomplete="off"></label>
+                                <div class="admin-forum-filters" id="adminForumFilters" role="group" aria-label="Filter ideas">
+                                    <button type="button" class="active" data-admin-forum-filter="all">All</button>
+                                    <button type="button" data-admin-forum-filter="pending">Pending</button>
+                                    <button type="button" data-admin-forum-filter="approved">Approved</button>
+                                    <button type="button" data-admin-forum-filter="rejected">Rejected</button>
+                                </div>
+                            </div>
+                            <div class="admin-forum-list" id="adminForumList"></div>
+                        </div>
+                        <div class="admin-stab-content" data-stab-content="site-stats" style="display:none;">
+                            <div class="admin-section-head admin-analytics-head"><div><small>Live overview</small><h3>Site analytics</h3><p>Accounts, engagement, Minecraft profiles and community activity.</p></div><button type="button" id="adminAnalyticsRefresh"><i class="fas fa-rotate"></i><span>Refresh</span></button></div>
+                            <div class="admin-stats-grid" id="adminStatsGrid"></div>
+                            <div id="adminStatsExtra"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ FRIEND INFO ══════════════ -->
+    <!-- Account creation celebration -->
+    <div class="registration-welcome-overlay" id="registrationWelcomeOverlay" role="dialog" aria-modal="true" aria-labelledby="registrationWelcomeTitle" aria-hidden="true" inert>
+        <div class="registration-welcome-card" id="registrationWelcomeCard">
+            <div class="welcome-confetti" aria-hidden="true">
+                <i style="--x:7%;--d:.05s;--c:#5eead4"></i><i style="--x:16%;--d:.35s;--c:#818cf8"></i><i style="--x:28%;--d:.12s;--c:#fbbf24"></i><i style="--x:41%;--d:.5s;--c:#f472b6"></i><i style="--x:54%;--d:.2s;--c:#2dd4bf"></i><i style="--x:67%;--d:.42s;--c:#a78bfa"></i><i style="--x:79%;--d:.08s;--c:#f59e0b"></i><i style="--x:91%;--d:.28s;--c:#38bdf8"></i>
+            </div>
+            <button type="button" class="welcome-close" id="registrationWelcomeClose" aria-label="Close"><i class="fas fa-times"></i></button>
+            <span class="welcome-kicker"><i class="fas fa-check"></i> Account created</span>
+            <div class="welcome-role-emblem" id="welcomeRoleEmblem"><span><i class="fas fa-shield-halved"></i></span></div>
+            <h2 id="registrationWelcomeTitle">Welcome to Spectral, <span id="welcomeUsername">Player</span>.</h2>
+            <p id="welcomeLead">Your identity is ready. We also found something special for you.</p>
+            <div class="welcome-role-reveal">
+                <small>Your starting role</small>
+                <strong id="welcomeRoleName">Veteran</strong>
+                <span id="welcomeRoleReason">Unlocked forever for joining before 2027</span>
+            </div>
+            <div class="welcome-perks" id="welcomePerks"></div>
+            <div class="welcome-actions">
+                <button type="button" class="welcome-primary" id="welcomeContinueBtn">Enter my account <i class="fas fa-arrow-right"></i></button>
+                <button type="button" class="welcome-secondary" id="welcomeExploreRolesBtn"><i class="fas fa-gem"></i> Explore roles</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="friend-info-overlay" id="friendInfoOverlay" role="dialog" aria-modal="true" aria-label="Friend profile" aria-hidden="true" inert>
+        <div class="friend-info-modal glass-modal" tabindex="-1">
+            <button type="button" class="close-dashboard" id="closeFriendInfoBtn" aria-label="Close friend profile">&times;</button>
+            <div id="friendInfoBody"></div>
+        </div>
+    </div>
+
+    <!-- ══════════════ DELETE CONFIRM ══════════════ -->
+    <div class="confirm-overlay" id="confirmOverlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText" aria-hidden="true" inert>
+        <div class="confirm-modal glass-modal">
+            <div class="confirm-icon"><i class="fas fa-trash-alt"></i></div>
+            <h3 id="confirmTitle">Delete?</h3>
+            <p id="confirmText">This action is permanent.</p>
+            <div class="confirm-actions">
+                <button type="button" class="confirm-cancel" id="confirmCancel">Cancel</button>
+                <button type="button" class="confirm-delete" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ NEWS EDITOR MODAL ══════════════ -->
+    <div class="dashboard-overlay" id="newsEditorOverlay" role="dialog" aria-modal="true" aria-labelledby="newsEditorTitle" aria-hidden="true" inert style="z-index:4000;">
+        <div class="dashboard-modal glass-modal news-editor-modal">
+            <button type="button" class="close-dashboard" id="closeNewsEditorBtn" aria-label="Close editor">&times;</button>
+            <div class="news-editor-heading">
+                <span class="news-editor-icon"><i class="fas fa-pen-nib"></i></span>
+                <div><span id="newsEditorModeLabel">New release</span><h2 id="newsEditorTitle">Update editor</h2><p>Compose, preview and publish without leaving the page.</p></div>
+            </div>
+            <form id="newsEditorFormV2" class="news-editor-layout">
+                <div class="news-editor-fields">
+                    <div class="news-field-grid">
+                        <label class="news-field news-field-title"><span>Release title</span><input type="text" id="newsTitle" required placeholder="Library &amp; Mod Manager refresh"></label>
+                        <label class="news-field"><span>Version</span><input type="text" id="newsVersion" placeholder="v0.9.4"></label>
+                        <label class="news-field"><span>Date</span><input type="text" id="newsDate" required placeholder="Jun 27, 2026"></label>
+                        <label class="news-field"><span>Channel</span><select id="newsChannel"><option value="stable">Stable</option><option value="beta">Beta</option><option value="dev">Development</option><option value="website">Website</option></select></label>
+                        <label class="news-field"><span>Release icon</span><select id="newsIcon"><option value="bolt">Bolt</option><option value="puzzle-piece">Mods</option><option value="robot">SpectrAI</option><option value="gauge-high">Performance</option><option value="language">Localization</option><option value="terminal">Console</option><option value="palette">Interface</option><option value="globe">Website</option><option value="cubes">Launcher core</option><option value="shield-halved">Security</option></select></label>
+                    </div>
+                    <label class="news-field"><span>Short summary</span><textarea id="newsSummary" rows="2" maxlength="220" placeholder="A short overview shown before the full changelog."></textarea></label>
+                    <label class="news-current-toggle"><input type="checkbox" id="newsIsCurrent" checked><span><i class="fas fa-thumbtack"></i></span><b>Mark as current release</b><small>Highlights this update at the top of the timeline.</small></label>
+                <div class="news-items-editor" id="newsItemsEditor">
+                    <div class="nie-editor-head"><div><span>Changelog</span><small>Use **bold**, `code` and [links](https://…)</small></div><span id="newsItemCount">1 item</span></div>
+                    <div class="nie-quick-add" role="group" aria-label="Add changelog item">
+                        <button type="button" data-add-news-type="add"><i class="fas fa-plus"></i> Feature</button>
+                        <button type="button" data-add-news-type="imp"><i class="fas fa-arrow-up"></i> Improvement</button>
+                        <button type="button" data-add-news-type="fix"><i class="fas fa-wrench"></i> Fix</button>
+                        <button type="button" data-add-news-type="breaking"><i class="fas fa-triangle-exclamation"></i> Important</button>
+                        <button type="button" data-add-news-type="security"><i class="fas fa-shield-halved"></i> Security</button>
+                    </div>
+                    <div id="newsItemRows">
+                        <div class="news-item-row">
+                            <select class="nie-type" aria-label="Change type"><option value="add">+ Added</option><option value="imp">↑ Improved</option><option value="fix">✧ Fixed</option></select>
+                            <textarea class="nie-text" rows="2" placeholder="Describe the change..." aria-label="Changelog item"></textarea>
+                            <button type="button" class="nie-remove" title="Remove" aria-label="Remove changelog item"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                </div>
+                    <div class="news-editor-actions-secondary">
+                        <button type="button" id="saveNewsDraftBtn"><i class="fas fa-floppy-disk"></i> Save draft</button>
+                        <button type="button" id="copyNewsMarkdownBtn"><i class="fab fa-markdown"></i> Copy Markdown</button>
+                        <button type="button" id="clearNewsEditorBtn" class="danger"><i class="fas fa-eraser"></i> Clear</button>
+                    </div>
+                    <div class="news-publish-row">
+                        <span id="newsDraftStatus"><i class="fas fa-circle-check"></i> Changes saved locally</span>
+                        <button type="submit" class="btn-submit-login"><span id="newsPublishLabel">Publish Update</span><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                <aside class="news-preview-pane">
+                    <div class="news-preview-head"><span><i class="fas fa-eye"></i> Live preview</span><b>Updates</b></div>
+                    <div id="newsLivePreview" class="news-live-preview"></div>
+                </aside>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══════════════ FORUM POST MODAL ══════════════ -->
+    <div class="dashboard-overlay" id="forumPostOverlay" role="dialog" aria-modal="true" aria-labelledby="forumPostDialogTitle" aria-hidden="true" inert style="z-index:4000;">
+        <div class="dashboard-modal glass-modal" style="max-width:500px;width:95%;">
+            <button type="button" class="close-dashboard" id="closeForumPostBtn" aria-label="Close idea form">&times;</button>
+            <h2 id="forumPostDialogTitle" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><i class="fas fa-lightbulb" style="color:#f59e0b;font-size:1.4rem;"></i> Share Your Idea</h2>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1.5rem;">Ideas are reviewed before appearing publicly. Inappropriate content is automatically filtered.</p>
+            <form id="forumPostForm">
+                <div class="input-group-animated"><input type="text" id="forumPostTitle" required placeholder=" " maxlength="80" aria-describedby="forumPostError"><label for="forumPostTitle">Idea title (max 80 chars)</label></div>
+                <div class="forum-textarea-wrap">
+                    <label class="forum-textarea-label" for="forumPostText">Description (max 500 chars)</label>
+                    <textarea id="forumPostText" required maxlength="500" placeholder="Describe your idea in detail..." aria-describedby="forumCharCountDescription forumPostError"></textarea>
+                    <div class="forum-char-count" id="forumCharCountDescription"><span id="forumCharCount">0</span>/500</div>
+                </div>
+                <div class="auth-error" id="forumPostError" role="alert" style="display:none;"></div>
+                <button type="submit" class="btn-submit-login" style="margin-top:1rem;background:linear-gradient(135deg,#f59e0b,#d97706);"><span>Submit Idea</span></button>
+            </form>
+        </div>
+    </div>
+
+    <button type="button" id="scrollToTop" class="scroll-to-top" aria-label="Scroll to top"><i class="fas fa-arrow-up"></i></button>
+    <script src="qa-account-setup.js"></script><script defer src="script.min.js?v=49"></script>
+</body>
+</html>
+

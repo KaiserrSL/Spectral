@@ -6,7 +6,7 @@ export default [
         ignores: ['*.min.js', 'node_modules/**']
     },
     {
-        files: ['boot.js', 'script.js'],
+        files: ['boot.js', 'theme-init.js', 'script.js'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'script',
