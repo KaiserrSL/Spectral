@@ -1,0 +1,180 @@
+/* Account workspace motion v2: one timing system for profile, roles and admin. */
+:root {
+    --account-motion-soft: cubic-bezier(.22, 1, .36, 1);
+    --account-motion-spring: cubic-bezier(.16, 1, .3, 1);
+    --account-motion-fast: 180ms;
+    --account-motion-panel: 520ms;
+}
+
+/* The modal morphs into a wider work surface when Roles or Admin is selected. */
+.dashboard-modal.profile-wide {
+    width: min(1060px, calc(100vw - 34px)) !important;
+    transition:
+        width var(--account-motion-panel) var(--account-motion-spring),
+        max-width var(--account-motion-panel) var(--account-motion-spring),
+        padding var(--account-motion-panel) var(--account-motion-spring),
+        border-radius 360ms var(--account-motion-soft),
+        box-shadow 420ms var(--account-motion-soft),
+        background 420ms var(--account-motion-soft),
+        transform 420ms var(--account-motion-spring) !important;
+}
+.dashboard-modal.profile-wide.store-wide {
+    width: min(1210px, calc(100vw - 28px)) !important;
+}
+.dashboard-modal.profile-wide.admin-wide {
+    width: min(1320px, calc(100vw - 24px)) !important;
+}
+.dashboard-modal.profile-wide.workspace-morphing::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(105deg, transparent 20%, rgba(174, 164, 255, .13) 49%, transparent 72%);
+    transform: translate3d(-115%, 0, 0);
+    animation: workspaceMorphSweep 620ms var(--account-motion-soft) both;
+}
+@keyframes workspaceMorphSweep {
+    to { transform: translate3d(115%, 0, 0); opacity: 0; }
+}
+
+/* Profile tabs behave like a moving control surface, not four unrelated buttons. */
+#profileTabs::before { transition: transform 460ms var(--account-motion-spring), width 360ms var(--account-motion-spring), box-shadow 260ms ease; }
+#profileTabs .profile-tab { transition: color 220ms ease, transform 260ms var(--account-motion-spring), opacity 220ms ease; }
+#profileTabs .profile-tab.active { transform: translateY(-1px); }
+.dashboard-modal.profile-wide .ptab-content.ptab-enter {
+    animation: accountSurfaceEnter 420ms var(--account-motion-spring) both;
+    will-change: transform, opacity;
+}
+@keyframes accountSurfaceEnter {
+    from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.988); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+/* Profile cards reveal in a short, readable cascade. */
+.dashboard-modal.profile-wide [data-ptab-content="my-profile"] > * { animation: none; }
+.dashboard-modal.profile-wide [data-ptab-content="my-profile"].ptab-enter > * {
+    animation: accountItemEnter 360ms var(--account-motion-spring) both;
+    animation-delay: calc(var(--item-index, 0) * 38ms);
+}
+.dashboard-modal.profile-wide [data-ptab-content="my-profile"].ptab-enter > :nth-child(1) { --item-index: 0; }
+.dashboard-modal.profile-wide [data-ptab-content="my-profile"].ptab-enter > :nth-child(2) { --item-index: 1; }
+.dashboard-modal.profile-wide [data-ptab-content="my-profile"].ptab-enter > :nth-child(3) { --item-index: 2; }
+.dashboard-modal.profile-wide [data-ptab-content="my-profile"].ptab-enter > :nth-child(4) { --item-index: 3; }
+.dashboard-modal.profile-wide [data-ptab-content="my-profile"].ptab-enter > :nth-child(5) { --item-index: 4; }
+.dashboard-modal.profile-wide [data-ptab-content="my-profile"].ptab-enter > :nth-child(6) { --item-index: 5; }
+@keyframes accountItemEnter {
+    from { opacity: 0; transform: translate3d(0, 10px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.account-editor,.account-session-card,.profile-preferences,.profile-role-spotlight { transition: border-color 220ms ease, box-shadow 360ms var(--account-motion-soft), transform 360ms var(--account-motion-soft), background-color 220ms ease; }
+.account-editor:hover,.account-session-card:hover { border-color: color-mix(in srgb, var(--workspace-accent) 42%, var(--workspace-line)); box-shadow: 0 22px 48px rgba(0,0,0,.18), 0 0 0 1px rgba(169,160,255,.06); transform: translate3d(0,-2px,0); }
+.account-field input,.account-field textarea { transition: border-color 200ms ease, box-shadow 280ms var(--account-motion-soft), background-color 200ms ease; }
+.account-field input:focus,.account-field textarea:focus { box-shadow: 0 0 0 4px rgba(169,160,255,.10), inset 0 1px rgba(255,255,255,.06); }
+.account-save-bar #profileSaveState { transition: color 200ms ease; }
+
+/* Roles: the hero and cards enter as one collection with a restrained stagger. */
+.role-store-view > * { animation: none; }
+.role-store-view.ptab-enter .role-store-hero,
+.role-store-view.ptab-enter .role-store-toolbar,
+.role-store-view.ptab-enter .account-entitlements,
+.role-store-view.ptab-enter .role-reservation,
+.role-store-view.ptab-enter .role-comparison { animation: accountItemEnter 420ms var(--account-motion-spring) both; }
+.role-store-view.ptab-enter .role-store-hero { animation-delay: 35ms; }
+.role-store-view.ptab-enter .role-store-toolbar { animation-delay: 90ms; }
+.role-store-view.ptab-enter .account-entitlements { animation-delay: 125ms; }
+.role-store-view.ptab-enter .role-comparison { animation-delay: 150ms; }
+.role-store-grid { perspective: 1200px; }
+.role-store-card {
+    animation: roleCardEnter 520ms var(--account-motion-spring) both;
+    animation-delay: calc(90ms + var(--card-index, 0) * 46ms);
+    backface-visibility: hidden;
+    transform-origin: 50% 100%;
+    transition: transform 360ms var(--account-motion-spring), border-color 220ms ease, box-shadow 360ms var(--account-motion-soft);
+}
+.role-store-card:hover { transform: translate3d(0,-7px,0) rotateX(1deg); }
+.role-store-card:active { transform: translate3d(0,-2px,0) scale(.995); transition-duration: 100ms; }
+@keyframes roleCardEnter {
+    from { opacity: 0; transform: translate3d(0, 18px, 0) rotateX(5deg) scale(.965); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) rotateX(0) scale(1); }
+}
+.role-store-card .role-card-icon { transition: transform 360ms var(--account-motion-spring), box-shadow 300ms ease; }
+.role-store-card:hover .role-card-icon { transform: translate3d(0,-2px,0) rotate(-4deg) scale(1.06); box-shadow: 0 12px 24px color-mix(in srgb,var(--role-color) 28%,transparent); }
+.role-compare-controls button { transition: transform 240ms var(--account-motion-spring), background-color 220ms ease, color 220ms ease, border-color 220ms ease; }
+.role-compare-controls button:hover { transform: translate3d(0,-2px,0); }
+.role-comparison tbody tr { transition: background-color 180ms ease; }
+.role-comparison tbody tr:hover { background: rgba(169,160,255,.06); }
+.role-comparison .is-current { position: relative; }
+
+/* Admin navigation becomes a four-part command rail with an active indicator. */
+.admin-panel-wrap .admin-subtabs {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 7px;
+    padding: 7px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 18px;
+    background: rgba(5,8,22,.54);
+    box-shadow: inset 0 1px rgba(255,255,255,.05), 0 14px 34px rgba(0,0,0,.14);
+}
+.admin-panel-wrap .admin-stab {
+    position: relative;
+    min-width: 0;
+    min-height: 62px;
+    display: grid;
+    grid-template-columns: 34px minmax(0,1fr) auto;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    overflow: hidden;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    background: transparent;
+    color: var(--workspace-muted);
+    transition: transform 280ms var(--account-motion-spring), background-color 240ms ease, border-color 240ms ease, color 220ms ease, box-shadow 320ms var(--account-motion-soft);
+}
+.admin-panel-wrap .admin-stab::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 2px; border-radius: 99px; background: var(--workspace-accent); transform: scaleX(0); transform-origin: left; transition: transform 360ms var(--account-motion-spring); }
+.admin-panel-wrap .admin-stab:hover { color: var(--workspace-text); background: rgba(169,160,255,.07); transform: translate3d(0,-2px,0); }
+.admin-panel-wrap .admin-stab.active { color: var(--workspace-text); border-color: rgba(169,160,255,.25); background: linear-gradient(135deg, rgba(119,108,225,.24), rgba(56,75,157,.12)); box-shadow: 0 10px 28px rgba(76,65,170,.18), inset 0 1px rgba(255,255,255,.07); }
+.admin-panel-wrap .admin-stab.active::after { transform: scaleX(1); }
+.admin-stab-icon { width: 34px; height: 34px; display: grid; place-items: center; border: 1px solid rgba(169,160,255,.18); border-radius: 10px; color: var(--workspace-accent); background: rgba(169,160,255,.08); transition: transform 300ms var(--account-motion-spring), background-color 220ms ease, color 220ms ease; }
+.admin-stab:hover .admin-stab-icon { transform: rotate(-4deg) scale(1.05); }
+.admin-stab-copy { min-width: 0; display: grid; gap: 3px; }
+.admin-stab-copy strong { font-size: 12px; line-height: 1.1; color: inherit; }
+.admin-stab-copy small { overflow: hidden; color: var(--workspace-muted); font-size: 10px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.admin-panel-wrap .admin-stab b { min-width: 24px; min-height: 22px; display: grid; place-items: center; padding: 0 6px; border-radius: 7px; color: var(--workspace-muted); background: rgba(255,255,255,.06); font: 10px var(--font-data); }
+.admin-panel-wrap .admin-stab.active b { color: var(--workspace-text); background: rgba(169,160,255,.20); }
+.admin-stab-content[hidden] { display: none !important; }
+.admin-stab-content { animation: adminContentEnter 360ms var(--account-motion-spring) both; }
+@keyframes adminContentEnter { from { opacity: 0; transform: translate3d(14px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
+.admin-command-head { transition: box-shadow 420ms var(--account-motion-soft), border-color 240ms ease, transform 420ms var(--account-motion-spring); }
+.admin-wide .admin-command-head { animation: adminHeaderEnter 460ms var(--account-motion-spring) both; }
+@keyframes adminHeaderEnter { from { opacity: .4; transform: translate3d(0,-8px,0) scale(.992); } to { opacity: 1; transform: none; } }
+.admin-wide .admin-user-row { animation: adminRowEnter 340ms var(--account-motion-spring) both; animation-delay: calc(var(--row-index, 0) * 24ms); }
+.admin-wide .admin-user-row:nth-child(1) { --row-index: 0; }.admin-wide .admin-user-row:nth-child(2) { --row-index: 1; }.admin-wide .admin-user-row:nth-child(3) { --row-index: 2; }.admin-wide .admin-user-row:nth-child(4) { --row-index: 3; }.admin-wide .admin-user-row:nth-child(5) { --row-index: 4; }.admin-wide .admin-user-row:nth-child(6) { --row-index: 5; }
+@keyframes adminRowEnter { from { opacity: 0; transform: translate3d(10px,0,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
+.admin-user-row,.admin-forum-item,.admin-audit-list article,.admin-stats-grid .admin-stat-box { transition: transform 300ms var(--account-motion-spring), border-color 220ms ease, box-shadow 300ms var(--account-motion-soft), background-color 220ms ease; }
+
+/* Keep the full command rail legible on smaller screens. */
+@media (max-width: 820px) {
+    .dashboard-modal.profile-wide.store-wide { width: calc(100vw - 20px) !important; }
+    .dashboard-modal.profile-wide.admin-wide { width: calc(100vw - 16px) !important; }
+    .admin-panel-wrap .admin-subtabs { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 540px) {
+    .dashboard-modal.profile-wide { width: calc(100vw - 14px) !important; }
+    .dashboard-modal.profile-wide.store-wide,.dashboard-modal.profile-wide.admin-wide { width: calc(100vw - 10px) !important; }
+    .admin-panel-wrap .admin-subtabs { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; padding: 6px; }
+    .admin-panel-wrap .admin-stab { min-height: 52px; grid-template-columns: 30px minmax(0,1fr); padding: 8px; gap: 8px; }
+    .admin-stab-icon { width: 30px; height: 30px; }
+    .admin-stab-copy strong { font-size: 11px; }.admin-stab-copy small { font-size: 9px; }.admin-panel-wrap .admin-stab b { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-modal.profile-wide,.dashboard-modal.profile-wide.store-wide,.dashboard-modal.profile-wide.admin-wide { transition-duration: .01ms !important; }
+    .dashboard-modal.profile-wide.workspace-morphing::after,.dashboard-modal.profile-wide .ptab-content.ptab-enter,.role-store-card,.role-store-view.ptab-enter .role-store-hero,.role-store-view.ptab-enter .role-store-toolbar,.role-store-view.ptab-enter .account-entitlements,.role-store-view.ptab-enter .role-comparison,.admin-stab-content,.admin-wide .admin-command-head,.admin-wide .admin-user-row { animation: none !important; }
+    .admin-panel-wrap .admin-stab,.role-compare-controls button,.role-store-card,.account-editor,.account-session-card { transition-duration: .01ms !important; transform: none !important; }
+}
+html.lite-mode .dashboard-modal.profile-wide.workspace-morphing::after { display: none; }
+html.lite-mode .role-store-card,.html.lite-mode .admin-user-row { animation: none !important; }

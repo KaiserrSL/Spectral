@@ -1,0 +1,56 @@
+        <section id="updates" class="tab-content">
+            <div class="updates-header animate-on-scroll">
+                <div class="updates-heading-copy">
+                    <span class="updates-eyebrow"><i class="fas fa-satellite-dish"></i> Release stream</span>
+                    <h2>Update <span class="text-gradient">History</span></h2>
+                    <p>Follow every launcher release, interface improvement and important fix.</p>
+                    <div class="updates-overview" aria-label="Update statistics">
+                        <div><strong id="updatesReleaseCount">0</strong><span>Releases</span></div>
+                        <div><strong id="updatesChangeCount">0</strong><span>Changes</span></div>
+                        <div><strong id="updatesLatestDate">—</strong><span>Latest</span></div>
+                    </div>
+                </div>
+                <aside class="updates-featured" id="updatesFeatured" aria-label="Latest release">
+                    <div class="updates-featured-top">
+                        <span class="updates-featured-icon"><i class="fas fa-bolt" id="updatesFeaturedIcon"></i></span>
+                        <span class="updates-featured-live"><i></i> Latest release</span>
+                    </div>
+                    <strong id="updatesFeaturedTitle">Loading release…</strong>
+                    <p id="updatesFeaturedSummary">Preparing the latest release notes.</p>
+                    <div class="updates-featured-meta"><span id="updatesFeaturedVersion">Latest</span><span id="updatesFeaturedChannel">Stable</span></div>
+                    <div class="updates-featured-actions">
+                        <button type="button" class="updates-featured-open" id="updatesFeaturedOpen"><span>View release</span><i class="fas fa-arrow-down"></i></button>
+                        <button type="button" class="dev-write-btn" id="devWriteNewsBtn" style="display:none;">
+                            <i class="fas fa-pen-nib"></i><span>Write Update</span>
+                        </button>
+                    </div>
+                </aside>
+                <div class="updates-header-decoration" aria-hidden="true"><i></i><i></i><i></i></div>
+            </div>
+            <div class="updates-toolbar animate-on-scroll delay-1">
+                <label class="updates-search" for="updatesSearchInput">
+                    <i class="fas fa-search"></i>
+                    <input id="updatesSearchInput" type="search" placeholder="Search releases and changes…" autocomplete="off">
+                    <kbd>Ctrl K</kbd>
+                </label>
+                <div class="updates-filters" id="updatesFilters" role="group" aria-label="Filter updates">
+                    <button type="button" class="updates-filter active" data-news-filter="all">All</button>
+                    <button type="button" class="updates-filter" data-news-filter="add"><i class="fas fa-plus"></i> Added</button>
+                    <button type="button" class="updates-filter" data-news-filter="imp"><i class="fas fa-arrow-up"></i> Improved</button>
+                    <button type="button" class="updates-filter" data-news-filter="fix"><i class="fas fa-wrench"></i> Fixed</button>
+                    <button type="button" class="updates-filter" data-news-filter="breaking"><i class="fas fa-triangle-exclamation"></i> Important</button>
+                </div>
+            </div>
+            <div class="updates-timeline" id="updatesTimeline">
+                <div class="timeline-line" aria-hidden="true"></div>
+                <!-- Rendered by JS -->
+            </div>
+            <div class="updates-empty" id="updatesEmpty" hidden>
+                <i class="fas fa-wave-square"></i>
+                <h3>No matching updates</h3>
+                <p>Try a different search or change the active filter.</p>
+                <button type="button" id="updatesResetFilters">Reset filters</button>
+            </div>
+        </section>
+
+        <!-- ══════════════ DEVELOPMENT ══════════════ -->

@@ -1,0 +1,188 @@
+/* Spectral account surfaces: a calmer launcher workspace with one clear focus. */
+.dashboard-modal.glass-modal:not(.profile-wide){
+  border:1px solid rgba(173,185,231,.22);
+  background:linear-gradient(165deg,#17203a 0%,#0c1225 55%,#090f20 100%);
+  box-shadow:0 32px 90px rgba(2,5,20,.56),inset 0 1px rgba(255,255,255,.07);
+}
+.dashboard-modal:not(.profile-wide) .auth-icon-box{
+  border:1px solid rgba(167,151,255,.32);
+  box-shadow:0 12px 32px rgba(92,83,210,.18),inset 0 1px rgba(255,255,255,.1);
+}
+.dashboard-modal:not(.profile-wide) h2{font-family:'Onest',var(--font-ui),sans-serif;font-size:25px;letter-spacing:-.045em}
+.dashboard-modal:not(.profile-wide) .auth-sub{max-width:30ch;margin-inline:auto;line-height:1.55}
+.dashboard-modal:not(.profile-wide) .auth-mode-note{border-radius:12px}
+.dashboard-modal:not(.profile-wide) .input-group-animated input{
+  border-color:rgba(178,191,230,.18);
+  background:rgba(15,22,42,.78);
+}
+.dashboard-modal:not(.profile-wide) .input-group-animated input:focus{
+  border-color:#9d91f8;
+  box-shadow:0 0 0 3px rgba(149,132,255,.17);
+}
+.dashboard-modal:not(.profile-wide) .btn-submit-login{
+  min-height:48px;
+  border:1px solid rgba(201,193,255,.32);
+  background:#746be7!important;
+  box-shadow:0 9px 24px rgba(85,73,195,.22);
+  font-weight:730;
+}
+.dashboard-modal:not(.profile-wide) .btn-submit-login:hover{background:#8b82f2!important;transform:translateY(-1px)}
+.dashboard-modal:not(.profile-wide) .btn-submit-login:disabled{transform:none;opacity:.65}
+.dashboard-modal:not(.profile-wide) .btn-google{min-height:46px;border-radius:11px}
+.dashboard-modal:not(.profile-wide) .auth-field-hint{line-height:1.5}
+.auth-provider-hint{max-width:33ch;margin:8px auto 2px;color:#a9b5d0;font-size:11px;line-height:1.45;text-align:center}
+.dashboard-modal:has(#registerView:not([hidden])){
+  width:min(610px,calc(100vw - 28px));max-width:none;
+  max-height:calc(100dvh - 28px);padding:26px 34px 28px;
+}
+#registerView .auth-icon-box{width:56px;height:56px;margin-bottom:12px;font-size:27px;border-radius:15px}
+#registerView .auth-sub{max-width:none;margin-bottom:13px}
+#registerView .btn-google{min-height:40px}
+#registerView .auth-divider{margin:11px 0}
+#registerForm{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+#registerForm .input-group-animated{margin:0}
+#registerForm .input-group-animated input{min-height:46px}
+#registerForm .input-group-animated:has(#regUsername){grid-column:1;grid-row:1}
+#registerForm .input-group-animated:has(#regEmail){grid-column:2;grid-row:1}
+#registerForm #regEmailHint{grid-column:1/-1;grid-row:2;margin:0 2px 2px!important;color:#b4c0d8}
+#registerForm .input-group-animated:has(#regPassword){grid-column:1;grid-row:3}
+#registerForm .input-group-animated:has(#regPasswordConfirm){grid-column:2;grid-row:3}
+#registerForm #regPasswordHint{grid-column:1/-1;grid-row:4;margin:0 2px 4px}
+#registerForm .auth-error,#registerForm .auth-note,#registerForm .btn-submit-login{grid-column:1/-1}
+#registerForm .btn-submit-login{margin-top:2px}
+#registerView .auth-switch{margin-top:13px}
+
+.dashboard-modal.profile-wide.glass-modal{
+  border-color:rgba(179,193,236,.2);
+  background:#0d1528!important;
+  box-shadow:0 36px 100px rgba(1,4,18,.56);
+}
+.account-hub-head{
+  background:#18223a!important;
+  border-bottom:1px solid rgba(161,180,226,.19);
+  box-shadow:0 7px 24px rgba(2,5,20,.14);
+}
+.account-hub-head::before{
+  content:"";position:absolute;left:0;top:0;width:100%;height:2px;
+  background:linear-gradient(90deg,#7b80ef 0%,#b697f2 39%,#67d6cc 75%,transparent 100%);
+}
+.account-hub-mark{background:#746fe7;box-shadow:0 8px 19px rgba(86,77,198,.2)}
+.account-hub-title small{color:#c0b8ff;letter-spacing:.08em}
+.account-hub-title strong{font-size:20px;font-weight:760}
+.account-hub-person{background:#222d48;border-color:rgba(183,197,231,.17)}
+.dashboard-modal.profile-wide #profileTabs,
+.dashboard-modal.profile-wide.admin-wide #profileTabs,
+.dashboard-modal.profile-wide.store-wide #profileTabs{
+  background:#111b30;border-right-color:rgba(171,188,226,.15);
+}
+.account-rail-label{color:#aab9d3;letter-spacing:.09em}
+.dashboard-modal.profile-wide #profileTabs .profile-tab{
+  min-height:64px;border-radius:12px;color:#c0cbe0;
+}
+.dashboard-modal.profile-wide #profileTabs .profile-tab:hover{
+  background:#25324e;color:#fff;transform:none;
+}
+.dashboard-modal.profile-wide #profileTabs .profile-tab.active{
+  background:#303758;border-color:rgba(180,170,255,.38);
+  box-shadow:inset 3px 0 #b8aaff,0 8px 18px rgba(2,5,18,.12);
+}
+#profileTabs .profile-tab>i:first-child{background:#293451;color:#bcb4ff}
+#profileTabs .profile-tab.active>i:first-child{background:#514f88;color:#fff}
+#profileTabs .account-tab-copy b{font-size:13px}
+#profileTabs .account-tab-copy small{color:#a6b3ca;font-size:11px}
+.account-rail-footer{border-top-color:rgba(173,191,227,.17)}
+.account-rail-footer>span{color:#d8e1f1}
+#profileView>.ptab-content{background:#0d1528}
+
+.roles-v2-hero,.admin-v2-header{
+  position:relative;overflow:hidden;
+  background:#1b2644;border-color:rgba(172,188,234,.22);
+  box-shadow:0 13px 30px rgba(2,5,20,.17);
+}
+.roles-v2-hero::before,.admin-v2-header::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(#a79bff 0 46%,#62d8c6 46% 100%);
+}
+.roles-v2-hero h2,.admin-v2-header h2{font-size:clamp(27px,3vw,38px);line-height:1.08}
+.roles-v2-hero p,.admin-v2-header p{color:#c0cbe0}
+.roles-v2-current,.admin-v2-connection{background:#293653;border-color:rgba(172,190,234,.2)}
+.roles-v2-cycle,.admin-v2-nav{background:#111b30;border-color:rgba(174,192,232,.18)}
+.roles-v2-cycle button.active{background:#6159af;color:#fff}
+.role-v2-card{
+  border-color:rgba(169,185,225,.18);
+  background:#18223b;box-shadow:0 8px 19px rgba(2,5,18,.13);
+}
+.role-v2-card.featured{background:#262c50;border-color:rgba(175,160,255,.62)}
+.role-v2-card:hover{border-color:var(--role-color);box-shadow:0 16px 35px rgba(2,5,18,.22)}
+.role-v2-card.locked{opacity:.86}
+.role-v2-card p{color:#b7c4db}
+.role-v2-card li{color:#d0d9e9}
+.role-v2-card button{border-radius:11px}
+.roles-v2-compare,.admin-v2-inspector{background:#17223b;border-color:rgba(171,187,226,.2)}
+.roles-v2-table-wrap{border-color:rgba(173,191,230,.2)}
+.roles-v2-table-wrap tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
+.admin-v2-nav button{min-height:70px}
+.admin-v2-nav button.active{
+  background:#343b62;border-color:rgba(183,173,255,.4);
+  box-shadow:inset 0 -3px #a99bff;
+}
+.admin-v2-nav button.active b{display:none}
+.admin-v2-metrics>div,.admin-v2-user,.admin-v2-forum article,.admin-v2-audit article{
+  background:#17223b;border-color:rgba(169,187,228,.18);
+}
+.admin-v2-user:hover{background:#202c48}
+.admin-v2-user.is-selected{background:#1e3b42}
+.admin-v2-toolbar label,.admin-v2-toolbar select,.admin-v2-forum-tools label{
+  border-color:rgba(170,187,227,.22);background:#17223b;
+}
+.admin-v2-toolbar input,.admin-v2-forum-tools input{font-size:13px}
+.admin-v2-toolbar :is(input,select):focus-visible,.admin-v2-forum-tools input:focus-visible,
+.admin-v2-review input:focus-visible{outline:2px solid #ad9fff;outline-offset:2px}
+.admin-v2-review{background:#252b4b;border-color:#8f85de}
+
+body.light-theme .dashboard-modal.profile-wide.glass-modal,
+body.light-theme #profileView>.ptab-content{background:#f3f6fc!important}
+body.light-theme .account-hub-head{background:#e8edfb!important;border-color:#ced7eb}
+body.light-theme .account-hub-title small{color:#6458b2}
+body.light-theme .account-hub-person{background:#fff;border-color:#d8dfef}
+body.light-theme .dashboard-modal.profile-wide #profileTabs{background:#e9eef9;border-color:#d7e0ef}
+body.light-theme .dashboard-modal.profile-wide #profileTabs .profile-tab.active{background:#dadcf6;border-color:#b9b5e9;box-shadow:inset 3px 0 #796ed4}
+body.light-theme #profileTabs .profile-tab>i:first-child{background:#e0e3f7;color:#6559b5}
+body.light-theme #profileTabs .profile-tab.active>i:first-child{background:#beb9ea;color:#342871}
+body.light-theme #profileTabs .account-tab-copy small{color:#596781}
+body.light-theme .roles-v2-hero,body.light-theme .admin-v2-header{background:#e9eefd;border-color:#cbd6ec}
+body.light-theme .roles-v2-hero p,body.light-theme .admin-v2-header p{color:#52607a}
+body.light-theme .roles-v2-current,body.light-theme .admin-v2-connection{background:#fff}
+body.light-theme .roles-v2-cycle,body.light-theme .admin-v2-nav{background:#e8edf8}
+body.light-theme .role-v2-card,body.light-theme .admin-v2-metrics>div,
+body.light-theme .admin-v2-user,body.light-theme .admin-v2-inspector,
+body.light-theme .admin-v2-forum article,body.light-theme .admin-v2-audit article,
+body.light-theme .roles-v2-compare{background:#fff;border-color:#dbe2ef}
+body.light-theme .role-v2-card.featured{background:#f1efff;border-color:#9f94df}
+body.light-theme .role-v2-card p,body.light-theme .role-v2-card li{color:#596781}
+body.light-theme .admin-v2-nav button.active{background:#d9dcf5;border-color:#b8b5e8;box-shadow:inset 0 -3px #776acf}
+body.light-theme .admin-v2-toolbar label,body.light-theme .admin-v2-toolbar select,
+body.light-theme .admin-v2-forum-tools label{background:#fff;border-color:#d5deed}
+body.light-theme .admin-v2-review{background:#f0effc}
+
+@media(max-width:680px){
+  .account-hub-title strong{font-size:16px}
+  .dashboard-modal.profile-wide #profileTabs .profile-tab,
+  .dashboard-modal.profile-wide.admin-wide #profileTabs .profile-tab,
+  .dashboard-modal.profile-wide.store-wide #profileTabs .profile-tab{
+    flex:1 1 0;width:auto!important;min-width:0;min-height:44px;
+  }
+  .admin-v2-nav button{min-height:62px}
+}
+@media(max-width:520px){
+  .dashboard-modal:has(#registerView:not([hidden])){padding:24px 23px;width:calc(100vw - 20px)}
+  #registerForm{grid-template-columns:1fr;gap:11px}
+  #registerForm .input-group-animated:has(#regUsername),
+  #registerForm .input-group-animated:has(#regEmail),
+  #registerForm .input-group-animated:has(#regPassword),
+  #registerForm .input-group-animated:has(#regPasswordConfirm),
+  #registerForm #regEmailHint,#registerForm #regPasswordHint{grid-column:1;grid-row:auto}
+}
+@media(prefers-reduced-motion:reduce){
+  .dashboard-modal:not(.profile-wide) .btn-submit-login:hover{transform:none}
+}

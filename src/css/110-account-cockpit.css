@@ -1,0 +1,691 @@
+/* ================================================================
+   ACCOUNT IDENTITY COCKPIT — NEW ACCOUNTS EXPERIENCE
+   ================================================================ */
+#accounts.account-cockpit-tab { overflow: visible; }
+#accounts.account-cockpit-tab .account-cockpit-section {
+    width: min(1240px, 100%);
+    max-width: none;
+    margin: 0 auto;
+}
+.account-cockpit-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 48px;
+    margin-bottom: 31px;
+}
+.account-cockpit-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #97a2ff;
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+.account-cockpit-kicker i { color: #67e8f9; }
+.account-cockpit-heading h2 {
+    margin-top: 13px;
+    color: #f6f7ff;
+    font-family: 'Sora', 'Onest', sans-serif;
+    font-size: clamp(2.8rem, 5.2vw, 4.8rem);
+    line-height: .96;
+    letter-spacing: -.057em;
+}
+.account-cockpit-heading-copy > p {
+    max-width: 670px;
+    margin-top: 18px;
+    color: #8791ad;
+    font-size: .91rem;
+    line-height: 1.65;
+}
+.account-cockpit-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(88px, 1fr));
+    min-width: 330px;
+    padding: 10px;
+    border: 1px solid rgba(143, 154, 239, .12);
+    border-radius: 19px;
+    background: rgba(10, 13, 29, .54);
+    box-shadow: inset 0 1px rgba(255, 255, 255, .05);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+}
+.account-cockpit-summary > span {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    grid-template-rows: auto auto;
+    align-items: center;
+    padding: 6px 11px;
+    border-right: 1px solid rgba(255, 255, 255, .06);
+}
+.account-cockpit-summary > span:last-child { border-right: 0; }
+.account-cockpit-summary i { grid-row: 1 / 3; color: #7887ff; font-size: .72rem; }
+.account-cockpit-summary b { color: #f0f2ff; font-size: .91rem; line-height: 1; }
+.account-cockpit-summary small { margin-top: 3px; color: #6f7893; font-size: .52rem; text-transform: uppercase; }
+
+#accounts.account-cockpit-tab .launcher-notice {
+    margin: 0;
+    padding: 23px 26px;
+    border-radius: 23px;
+}
+.account-cockpit-workspace { min-width: 0; }
+.identity-cockpit {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(245px, .78fr) minmax(390px, 1.44fr) minmax(260px, .84fr);
+    grid-template-areas: "profiles core social";
+    min-height: 625px;
+    overflow: hidden;
+    isolation: isolate;
+    border: 1px solid rgba(143, 154, 239, .14);
+    border-radius: 31px;
+    background:
+        radial-gradient(600px circle at 49% 45%, rgba(83, 92, 217, .13), transparent 62%),
+        linear-gradient(145deg, rgba(13, 16, 34, .96), rgba(5, 7, 17, .985));
+    box-shadow: 0 32px 90px rgba(0, 0, 0, .34), inset 0 1px rgba(255, 255, 255, .07);
+}
+.identity-cockpit::after {
+    content: "SPECTRAL / IDENTITY ROUTE / LOCAL";
+    position: absolute;
+    z-index: -1;
+    right: 21px;
+    bottom: 9px;
+    color: rgba(139, 148, 255, .055);
+    font: 800 .58rem 'Courier New', monospace;
+    letter-spacing: .18em;
+    pointer-events: none;
+}
+.cockpit-rail {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 22px 18px 18px;
+    border: 0;
+    border-radius: 0;
+    background: rgba(255, 255, 255, .012);
+    box-shadow: none;
+}
+.cockpit-profile-rail { grid-area: profiles; border-right: 1px solid rgba(143, 154, 239, .09); }
+.cockpit-social-rail { grid-area: social; border-left: 1px solid rgba(143, 154, 239, .09); }
+.cockpit-rail-head,
+#accounts.account-cockpit-tab .friends-header.cockpit-rail-head {
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.cockpit-rail-head small {
+    color: #6f7892;
+    font-size: .52rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+.cockpit-rail-head h3,
+#accounts.account-cockpit-tab .cockpit-rail-head h3 {
+    margin-top: 3px;
+    color: #eef1ff;
+    font-size: 1rem;
+}
+.cockpit-add-profile {
+    width: 39px;
+    height: 39px;
+    display: grid;
+    place-items: center;
+    color: #dfe3ff;
+    border: 1px solid rgba(129, 140, 248, .25);
+    border-radius: 12px;
+    background: linear-gradient(145deg, rgba(99, 102, 241, .22), rgba(79, 70, 229, .1));
+    cursor: pointer;
+    transition: transform .3s cubic-bezier(.16, 1, .3, 1), border-color .25s ease, background .25s ease, box-shadow .25s ease;
+}
+.cockpit-add-profile:hover {
+    transform: translateY(-2px) rotate(90deg);
+    border-color: rgba(129, 140, 248, .52);
+    background: linear-gradient(145deg, rgba(99, 102, 241, .42), rgba(79, 70, 229, .24));
+    box-shadow: 0 11px 25px rgba(65, 66, 184, .18);
+}
+.cockpit-rail-hint {
+    margin: 9px 0 15px;
+    color: #707a95;
+    font-size: .62rem;
+    line-height: 1.45;
+}
+
+/* Profile bank: compact routes instead of the old large card grid. */
+#accounts.account-cockpit-tab .cockpit-profile-rail .accounts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 405px;
+    padding: 1px 5px 5px 1px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+#accounts.account-cockpit-tab .account-card {
+    position: relative;
+    min-width: 0;
+    min-height: 98px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "top fav" "meta actions";
+    gap: 8px 9px;
+    margin: 0;
+    padding: 11px;
+    overflow: hidden;
+    border: 1px solid rgba(143, 154, 239, .09);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .024);
+    box-shadow: none;
+    cursor: pointer;
+    transition: transform .34s cubic-bezier(.16, 1, .3, 1), border-color .28s ease, background .28s ease, box-shadow .3s ease;
+}
+#accounts.account-cockpit-tab .account-card::before { display: none; }
+#accounts.account-cockpit-tab .account-card:hover {
+    transform: translateX(3px);
+    border-color: rgba(129, 140, 248, .26);
+    background: rgba(99, 102, 241, .065);
+    box-shadow: none;
+}
+#accounts.account-cockpit-tab .account-card.is-active {
+    border-color: rgba(103, 116, 236, .46);
+    background: linear-gradient(135deg, rgba(99, 102, 241, .16), rgba(34, 211, 238, .035));
+    box-shadow: inset 3px 0 #7785ff, 0 9px 24px rgba(48, 56, 153, .11);
+}
+#accounts.account-cockpit-tab .acc-card-top { grid-area: top; min-width: 0; display: flex; align-items: center; gap: 10px; }
+#accounts.account-cockpit-tab .acc-avatar,
+#accounts.account-cockpit-tab .acc-avatar img { width: 42px; height: 42px; border-radius: 12px; }
+#accounts.account-cockpit-tab .acc-card-head { min-width: 0; padding: 0 !important; }
+#accounts.account-cockpit-tab .acc-card-name { overflow: hidden; color: #e9ecfa; font-size: .76rem; text-overflow: ellipsis; white-space: nowrap; }
+#accounts.account-cockpit-tab .acc-card-head .active-account-type { max-width: 100%; margin-top: 4px; padding: 2px 7px !important; font-size: .51rem !important; }
+#accounts.account-cockpit-tab .acc-fav {
+    grid-area: fav;
+    position: static;
+    width: 29px;
+    height: 29px;
+    align-self: start;
+    color: #606a85;
+    border-color: transparent;
+    background: transparent;
+}
+#accounts.account-cockpit-tab .acc-card-meta {
+    grid-area: meta;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #747f99;
+    font-size: .49rem;
+}
+#accounts.account-cockpit-tab .acc-card-meta span { gap: 4px; }
+#accounts.account-cockpit-tab .acc-card-actions { grid-area: actions; display: flex; gap: 4px; justify-self: end; }
+#accounts.account-cockpit-tab .acc-btn-select {
+    min-width: 56px;
+    min-height: 27px;
+    padding: 0 7px;
+    border-radius: 8px;
+    font-size: .5rem;
+}
+#accounts.account-cockpit-tab .acc-btn-delete { width: 27px; height: 27px; border-radius: 8px; }
+#accounts.account-cockpit-tab .acc-active-tag {
+    top: 8px;
+    right: 45px;
+    width: 7px;
+    min-width: 7px;
+    height: 7px;
+    padding: 0;
+    overflow: hidden;
+    color: transparent;
+    font-size: 0;
+    border: 0;
+    border-radius: 50%;
+    background: #63e6be;
+    box-shadow: 0 0 10px rgba(99, 230, 190, .65);
+}
+#accounts.account-cockpit-tab .acc-active-tag .acc-active-dot { display: none; }
+#accounts.account-cockpit-tab .accounts-empty { min-height: 180px; padding: 22px 12px; }
+
+.cockpit-slot-meter {
+    display: grid;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 15px;
+    border-top: 1px solid rgba(143, 154, 239, .08);
+}
+.cockpit-slot-meter > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cockpit-slot-meter > div span { color: #6f7893; font-size: .55rem; }
+.cockpit-slot-meter > div b { color: #aeb7d2; font-size: .6rem; }
+.cockpit-slot-meter > i {
+    height: 5px;
+    display: block;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .05);
+}
+.cockpit-slot-meter > i > b {
+    width: 100%;
+    height: 100%;
+    display: block;
+    transform: scaleX(0);
+    transform-origin: left center;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6, #22d3ee);
+    box-shadow: 0 0 12px rgba(99, 102, 241, .45);
+    transition: transform .7s cubic-bezier(.16, 1, .3, 1);
+}
+.cockpit-slot-meter > i.is-unlimited > b { background-size: 200% 100%; animation: cockpitCapacityFlow 3.5s linear infinite; }
+.cockpit-slot-meter button {
+    min-height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: #949eca;
+    font-size: .56rem;
+    font-weight: 700;
+    border: 1px solid rgba(139, 92, 246, .14);
+    border-radius: 10px;
+    background: rgba(139, 92, 246, .055);
+    cursor: pointer;
+    transition: color .2s ease, border-color .2s ease, background .2s ease, transform .25s ease;
+}
+.cockpit-slot-meter button:hover { color: #e5e7ff; border-color: rgba(139, 92, 246, .32); background: rgba(139, 92, 246, .12); transform: translateY(-1px); }
+@keyframes cockpitCapacityFlow { to { background-position: 200% 0; } }
+
+/* The active identity is the visual core rather than another banner. */
+#accounts.account-cockpit-tab .cockpit-core {
+    grid-area: core;
+    position: relative;
+    min-width: 0;
+    min-height: 625px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    margin: 0;
+    padding: 22px 28px 24px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background:
+        radial-gradient(360px circle at 50% 36%, rgba(83, 100, 231, .18), transparent 60%),
+        linear-gradient(165deg, rgba(18, 22, 48, .40), rgba(6, 9, 23, .18));
+    box-shadow: inset 0 1px rgba(255, 255, 255, .025);
+    transform: none;
+}
+#accounts.account-cockpit-tab .cockpit-core:hover { border-color: transparent; box-shadow: inset 0 1px rgba(255, 255, 255, .025); transform: none; }
+.cockpit-core-grid {
+    position: absolute;
+    inset: 0;
+    opacity: .38;
+    background-image: linear-gradient(rgba(139, 148, 255, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 148, 255, .045) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(circle at 50% 42%, #000, transparent 72%);
+    pointer-events: none;
+}
+.cockpit-core-rings { position: absolute; inset: 78px 0 auto; height: 300px; pointer-events: none; }
+.cockpit-core-rings i {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 260px;
+    height: 260px;
+    border: 1px solid rgba(112, 126, 238, .14);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    animation: cockpitRingSpin 22s linear infinite;
+}
+.cockpit-core-rings i::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #7c8cff;
+    box-shadow: 0 0 16px #7c8cff;
+}
+.cockpit-core-rings i:nth-child(2) { width: 330px; height: 330px; opacity: .55; animation-duration: 31s; animation-direction: reverse; }
+.cockpit-core-rings i:nth-child(3) { width: 190px; height: 190px; opacity: .38; animation-duration: 15s; }
+@keyframes cockpitRingSpin { from { transform: translate(-50%, -50%) rotate(0); } to { transform: translate(-50%, -50%) rotate(360deg); } }
+.cockpit-core-topline {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.cockpit-core-topline span,
+.cockpit-core-topline em {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #76819e;
+    font-size: .54rem;
+    font-weight: 800;
+    font-style: normal;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+}
+.cockpit-core-topline span i { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 11px rgba(74, 222, 128, .75); animation: motionStatusPulse 2.2s ease-in-out infinite; }
+.cockpit-core:not(.has-active) .cockpit-core-topline span i { background: #fbbf24; box-shadow: 0 0 11px rgba(251, 191, 36, .65); }
+.cockpit-core-topline em i { color: #7180ef; }
+#accounts.account-cockpit-tab .cockpit-core .active-account-left {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    min-height: 320px;
+    padding: 34px 0 18px;
+    text-align: center;
+}
+#accounts.account-cockpit-tab .active-account-avatar,
+#accounts.account-cockpit-tab .active-account-avatar img {
+    width: 138px;
+    height: 138px;
+    border-radius: 30px;
+}
+#accounts.account-cockpit-tab .active-account-avatar img {
+    border: 3px solid rgba(177, 185, 255, .70);
+    box-shadow: 0 21px 52px rgba(0, 0, 0, .34), 0 0 0 8px rgba(129, 140, 248, .06), 0 0 42px rgba(99, 102, 241, .22);
+}
+#accounts.account-cockpit-tab .active-account-banner:hover .active-account-avatar img { transform: none; }
+#accounts.account-cockpit-tab .active-badge { right: -3px; bottom: -3px; width: 31px; height: 31px; border-width: 4px; }
+#accounts.account-cockpit-tab .active-account-label { color: #78839f; font-size: .58rem; letter-spacing: .13em; }
+#accounts.account-cockpit-tab .active-account-name {
+    margin-top: 6px;
+    color: #f4f6ff;
+    font-family: 'Sora', 'Onest', sans-serif;
+    font-size: clamp(2rem, 3.4vw, 3rem);
+    line-height: 1;
+    letter-spacing: -.05em;
+}
+#accounts.account-cockpit-tab .active-account-info .active-account-type { width: max-content; margin: 10px auto 0; }
+.cockpit-identity-code {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    gap: 6px;
+    margin-bottom: 11px;
+}
+.cockpit-identity-code > span { color: #6d7793; font-size: .52rem; letter-spacing: .1em; text-transform: uppercase; }
+#accounts.account-cockpit-tab .active-account-uuid {
+    width: 100%;
+    max-width: none;
+    min-height: 43px;
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    gap: 9px;
+    padding: 0 12px;
+    color: #98a3c3;
+    text-align: left;
+    border-color: rgba(143, 154, 239, .12);
+    border-radius: 12px;
+    background: rgba(5, 8, 22, .48);
+}
+#accounts.account-cockpit-tab .active-account-uuid span { overflow: hidden; font: 600 .6rem 'Courier New', monospace; text-overflow: ellipsis; white-space: nowrap; }
+#accounts.account-cockpit-tab .active-account-uuid em { color: #7784c8; font-size: .52rem; font-style: normal; font-weight: 800; text-transform: uppercase; }
+#accounts.account-cockpit-tab .active-account-stats {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+    margin: 0;
+}
+#accounts.account-cockpit-tab .acc-stat {
+    min-width: 0;
+    min-height: 66px;
+    display: grid;
+    grid-template-columns: 25px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 1px 8px;
+    padding: 11px 12px;
+    border: 1px solid rgba(143, 154, 239, .10);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .027);
+}
+#accounts.account-cockpit-tab .acc-stat i { grid-row: 1 / 3; color: #7887ff; }
+#accounts.account-cockpit-tab .acc-stat span { color: #e9ecff; font-size: .8rem; }
+#accounts.account-cockpit-tab .acc-stat small { color: #6f7892; font-size: .53rem; }
+#accounts.account-cockpit-tab .account-ready-state {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 11px;
+    padding: 10px 12px;
+    border: 1px solid rgba(74, 222, 128, .11);
+    border-radius: 12px;
+    background: rgba(34, 197, 94, .045);
+}
+#accounts.account-cockpit-tab .account-ready-state span { font-size: .56rem; }
+#accounts.account-cockpit-tab .account-ready-state small { max-width: 190px; font-size: .52rem; text-align: right; }
+#accounts.account-cockpit-tab .no-accounts-msg {
+    position: relative;
+    z-index: 3;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 15px;
+    padding: 40px 24px;
+    text-align: center;
+}
+#accounts.account-cockpit-tab .no-accounts-msg > i { width: 66px; height: 66px; display: grid; place-items: center; color: #8b98ff; font-size: 1.3rem; border: 1px solid rgba(129, 140, 248, .20); border-radius: 22px; background: rgba(99, 102, 241, .08); }
+#accounts.account-cockpit-tab .no-accounts-msg b { color: #edf0ff; font-size: 1rem; }
+#accounts.account-cockpit-tab .no-accounts-msg p { max-width: 260px; margin-top: 5px; color: #737e9a; font-size: .66rem; line-height: 1.5; }
+.cockpit-core.identity-switching .active-account-left,
+.cockpit-core.identity-switching .cockpit-identity-code,
+.cockpit-core.identity-switching .active-account-stats { animation: cockpitIdentityArrive .48s cubic-bezier(.16, 1, .3, 1) both; }
+.cockpit-core.identity-switching .cockpit-identity-code { animation-delay: .04s; }
+.cockpit-core.identity-switching .active-account-stats { animation-delay: .08s; }
+@keyframes cockpitIdentityArrive { from { opacity: 0; transform: translate3d(0, 12px, 0) scale(.985); } to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); } }
+
+/* Social rail is a live network stream, not a second card column. */
+#accounts.account-cockpit-tab .cockpit-social-rail .friend-add-form {
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 37px;
+    gap: 7px;
+    margin: 13px 0 12px;
+}
+#accounts.account-cockpit-tab .cockpit-social-rail .friend-add-input {
+    min-width: 0;
+    min-height: 39px;
+    border-color: rgba(143, 154, 239, .11);
+    border-radius: 11px;
+    background: rgba(5, 8, 22, .42);
+}
+#accounts.account-cockpit-tab .cockpit-social-rail .friend-add-input input { min-width: 0; font-size: .61rem; }
+#accounts.account-cockpit-tab .cockpit-social-rail .btn-add-friend { width: 37px; min-width: 37px; min-height: 37px; padding: 0; border-radius: 11px; }
+#accounts.account-cockpit-tab .friend-requests,
+#accounts.account-cockpit-tab .friends-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+#accounts.account-cockpit-tab .friends-grid {
+    max-height: 395px;
+    padding: 1px 5px 5px 1px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+#accounts.account-cockpit-tab .friend-card {
+    min-width: 0;
+    min-height: 69px;
+    gap: 10px;
+    margin: 0;
+    padding: 10px;
+    border: 1px solid transparent;
+    border-radius: 15px;
+    background: transparent;
+    box-shadow: none;
+    transition: transform .3s cubic-bezier(.16, 1, .3, 1), border-color .25s ease, background .25s ease;
+}
+#accounts.account-cockpit-tab .friend-card:hover {
+    transform: translateX(-3px);
+    border-color: rgba(129, 140, 248, .15);
+    background: rgba(99, 102, 241, .055);
+}
+#accounts.account-cockpit-tab .friend-avatar { width: 42px; height: 42px; border-radius: 12px; }
+#accounts.account-cockpit-tab .friend-info { min-width: 0; }
+#accounts.account-cockpit-tab .friend-name { overflow: hidden; color: #e9ecfa; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+#accounts.account-cockpit-tab .friend-name .role-badge { padding: 2px 6px; font-size: .45rem; }
+#accounts.account-cockpit-tab .friend-user { color: #747e98; font-size: .57rem; }
+#accounts.account-cockpit-tab .friend-btn { min-width: 28px; width: 28px; height: 28px; padding: 0; border-radius: 8px; }
+#accounts.account-cockpit-tab .friend-req-title { margin: 5px 0 2px; font-size: .56rem; }
+#accounts.account-cockpit-tab .friends-empty { min-height: 235px; padding: 30px 14px; }
+.cockpit-social-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: auto;
+    padding: 13px 2px 1px;
+    color: #69738e;
+    font-size: .55rem;
+    line-height: 1.42;
+    border-top: 1px solid rgba(143, 154, 239, .08);
+}
+.cockpit-social-note i { margin-top: 2px; color: #7180ef; }
+
+/* Light cockpit keeps the same spatial hierarchy with brighter material. */
+body.light-theme .account-cockpit-heading h2 { color: #23274f; }
+body.light-theme .account-cockpit-heading-copy > p { color: #687296; }
+body.light-theme .account-cockpit-kicker { color: #5657ba; }
+body.light-theme .account-cockpit-kicker i { color: #118da7; }
+body.light-theme .account-cockpit-summary {
+    border-color: rgba(79, 70, 229, .13);
+    background: rgba(255, 255, 255, .62);
+    box-shadow: 0 11px 28px rgba(71, 82, 145, .07), inset 0 1px #fff;
+}
+body.light-theme .account-cockpit-summary > span { border-right-color: rgba(79, 70, 229, .09); }
+body.light-theme .account-cockpit-summary b { color: #2b3059; }
+body.light-theme .account-cockpit-summary small { color: #70799a; }
+body.light-theme .identity-cockpit {
+    border-color: rgba(79, 70, 229, .14);
+    background:
+        radial-gradient(600px circle at 49% 43%, rgba(99, 102, 241, .12), transparent 62%),
+        linear-gradient(145deg, rgba(252, 253, 255, .97), rgba(232, 237, 251, .98));
+    box-shadow: 0 29px 78px rgba(64, 76, 139, .17), inset 0 1px #fff;
+}
+body.light-theme .cockpit-rail { background: rgba(255, 255, 255, .18); }
+body.light-theme .cockpit-profile-rail { border-right-color: rgba(79, 70, 229, .09); }
+body.light-theme .cockpit-social-rail { border-left-color: rgba(79, 70, 229, .09); }
+body.light-theme .cockpit-rail-head h3,
+body.light-theme #accounts.account-cockpit-tab .cockpit-rail-head h3 { color: #2c315a; }
+body.light-theme .cockpit-rail-head small,
+body.light-theme .cockpit-rail-hint { color: #707a9a; }
+body.light-theme .cockpit-add-profile { color: #4b50aa; border-color: rgba(79, 70, 229, .18); background: rgba(99, 102, 241, .09); }
+body.light-theme #accounts.account-cockpit-tab .account-card {
+    border-color: rgba(79, 70, 229, .08);
+    background: rgba(255, 255, 255, .48);
+}
+body.light-theme #accounts.account-cockpit-tab .account-card:hover { border-color: rgba(79, 70, 229, .20); background: rgba(99, 102, 241, .06); }
+body.light-theme #accounts.account-cockpit-tab .account-card.is-active { border-color: rgba(79, 70, 229, .34); background: linear-gradient(135deg, rgba(99, 102, 241, .12), rgba(34, 211, 238, .035)); box-shadow: inset 3px 0 #6672dd, 0 9px 23px rgba(70, 79, 149, .07); }
+body.light-theme #accounts.account-cockpit-tab .acc-card-name,
+body.light-theme #accounts.account-cockpit-tab .friend-name { color: #30355f; }
+body.light-theme #accounts.account-cockpit-tab .acc-card-meta,
+body.light-theme #accounts.account-cockpit-tab .friend-user { color: #727b9b; }
+body.light-theme .cockpit-slot-meter { border-top-color: rgba(79, 70, 229, .08); }
+body.light-theme .cockpit-slot-meter > i { background: rgba(79, 70, 229, .08); }
+body.light-theme .cockpit-slot-meter button { color: #655b96; border-color: rgba(109, 40, 217, .12); background: rgba(139, 92, 246, .055); }
+body.light-theme #accounts.account-cockpit-tab .cockpit-core {
+    background:
+        radial-gradient(360px circle at 50% 36%, rgba(83, 100, 231, .14), transparent 60%),
+        linear-gradient(165deg, rgba(255, 255, 255, .28), rgba(226, 232, 250, .16));
+    box-shadow: inset 0 1px rgba(255, 255, 255, .78);
+}
+body.light-theme .cockpit-core-grid { opacity: .55; background-image: linear-gradient(rgba(79, 70, 229, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(79, 70, 229, .045) 1px, transparent 1px); }
+body.light-theme .cockpit-core-rings i { border-color: rgba(79, 70, 229, .13); }
+body.light-theme .cockpit-core-topline span,
+body.light-theme .cockpit-core-topline em { color: #6e7898; }
+body.light-theme #accounts.account-cockpit-tab .active-account-name { color: #272c57; }
+body.light-theme #accounts.account-cockpit-tab .active-account-label { color: #6f7897; }
+body.light-theme #accounts.account-cockpit-tab .active-account-avatar img { border-color: rgba(91, 104, 210, .56); box-shadow: 0 20px 46px rgba(72, 82, 145, .19), 0 0 0 8px rgba(99, 102, 241, .055), 0 0 38px rgba(99, 102, 241, .13); }
+body.light-theme #accounts.account-cockpit-tab .active-account-uuid { color: #566080; border-color: rgba(79, 70, 229, .12); background: rgba(255, 255, 255, .62); box-shadow: inset 0 1px #fff; }
+body.light-theme #accounts.account-cockpit-tab .acc-stat { border-color: rgba(79, 70, 229, .10); background: rgba(255, 255, 255, .56); box-shadow: inset 0 1px #fff; }
+body.light-theme #accounts.account-cockpit-tab .acc-stat span { color: #353a68; }
+body.light-theme #accounts.account-cockpit-tab .acc-stat small { color: #747d9a; }
+body.light-theme #accounts.account-cockpit-tab .account-ready-state { border-color: rgba(22, 163, 74, .12); background: rgba(34, 197, 94, .055); }
+body.light-theme #accounts.account-cockpit-tab .no-accounts-msg b { color: #30355f; }
+body.light-theme #accounts.account-cockpit-tab .no-accounts-msg p { color: #727c9c; }
+body.light-theme #accounts.account-cockpit-tab .cockpit-social-rail .friend-add-input { border-color: rgba(79, 70, 229, .11); background: rgba(255, 255, 255, .58); }
+body.light-theme #accounts.account-cockpit-tab .friend-card { background: transparent; }
+body.light-theme #accounts.account-cockpit-tab .friend-card:hover { border-color: rgba(79, 70, 229, .13); background: rgba(99, 102, 241, .055); }
+body.light-theme .cockpit-social-note { color: #717b9a; border-top-color: rgba(79, 70, 229, .08); }
+
+@media (max-width: 1120px) {
+    .identity-cockpit { grid-template-columns: minmax(230px, .76fr) minmax(360px, 1.35fr) minmax(245px, .82fr); }
+    #accounts.account-cockpit-tab .cockpit-core { padding-inline: 23px; }
+}
+@media (max-width: 980px) {
+    .account-cockpit-heading { grid-template-columns: 1fr; gap: 24px; }
+    .account-cockpit-summary { width: min(520px, 100%); }
+    .identity-cockpit {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-areas: "core core" "profiles social";
+    }
+    #accounts.account-cockpit-tab .cockpit-core { min-height: 570px; border-bottom: 1px solid rgba(143, 154, 239, .09); }
+    .cockpit-profile-rail { border-right: 1px solid rgba(143, 154, 239, .09); }
+    .cockpit-social-rail { border-left: 0; }
+    .cockpit-rail { min-height: 0; }
+    .cockpit-slot-meter,
+    .cockpit-social-note { margin-top: 18px; }
+}
+@media (max-width: 680px) {
+    .account-cockpit-heading h2 { font-size: clamp(2.45rem, 12vw, 3.5rem); }
+    .account-cockpit-summary { min-width: 0; }
+    .account-cockpit-summary > span { grid-template-columns: 18px 1fr; padding-inline: 7px; }
+    .identity-cockpit {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "core" "profiles" "social";
+        border-radius: 24px;
+    }
+    #accounts.account-cockpit-tab .cockpit-core { min-height: 550px; padding: 18px 16px 20px; }
+    .cockpit-profile-rail { border-right: 0; border-bottom: 1px solid rgba(143, 154, 239, .09); }
+    .cockpit-social-rail { border-top: 0; }
+    .cockpit-rail { min-height: 0; padding-inline: 14px; }
+    #accounts.account-cockpit-tab .cockpit-social-rail .friends-grid { max-height: min(395px, 58vh); }
+    #accounts.account-cockpit-tab .active-account-avatar,
+    #accounts.account-cockpit-tab .active-account-avatar img { width: 118px; height: 118px; border-radius: 26px; }
+    #accounts.account-cockpit-tab .account-ready-state { align-items: flex-start; flex-direction: column; }
+    #accounts.account-cockpit-tab .account-ready-state small { max-width: none; text-align: left; }
+}
+@media (max-width: 430px) {
+    .account-cockpit-summary { grid-template-columns: 1fr; gap: 5px; }
+    .account-cockpit-summary > span { grid-template-columns: 24px 1fr; border-right: 0; border-bottom: 1px solid rgba(143, 154, 239, .08); }
+    .account-cockpit-summary > span:last-child { border-bottom: 0; }
+    .cockpit-core-topline em { display: none; }
+    #accounts.account-cockpit-tab .active-account-stats { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .cockpit-core-rings i,
+    .cockpit-core-topline span i,
+    .cockpit-slot-meter > i.is-unlimited > b,
+    .cockpit-core.identity-switching .active-account-left,
+    .cockpit-core.identity-switching .cockpit-identity-code,
+    .cockpit-core.identity-switching .active-account-stats { animation: none !important; }
+    .cockpit-slot-meter > i > b { transition-duration: .01ms !important; }
+}
+html.lite-mode .cockpit-core-rings i:nth-child(n+2),
+html.lite-mode .cockpit-core-grid { display: none !important; }
+

@@ -1,0 +1,415 @@
+/* A restrained workspace language for the signed-in account, roles and admin views. */
+html:has(#dashboardOverlay.open) { overflow: hidden; }
+
+.dashboard-modal.profile-wide.glass-modal {
+  width: min(1380px, calc(100vw - 32px)) !important;
+  max-height: calc(100dvh - 28px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #67739c transparent;
+  border: 1px solid #34425d;
+  border-radius: 22px;
+  background: #0d1525 !important;
+  box-shadow: 0 32px 100px #020711ad, 0 0 0 1px #ffffff0a;
+}
+
+#profileView:not([hidden]) { grid-template-columns: 216px minmax(0,1fr); min-height: min(800px,calc(100dvh - 30px)); }
+.account-hub-head {
+  min-height: 76px;
+  padding: 13px 72px 13px 24px;
+  gap: 14px;
+  background: #172238 !important;
+  border-bottom-color: #34425d;
+  box-shadow: none;
+}
+.account-hub-head::before { height: 2px; background: linear-gradient(90deg,#928cff,#6b9fd5 56%,#72c6b6); }
+.account-hub-mark { width: 42px; height: 42px; flex-basis: 42px; border-radius: 12px; background: #7774db; box-shadow: inset 0 1px #ffffff3d; }
+.account-hub-title small { color: #aab8d0; font-size: 10px; letter-spacing: .1em; }
+.account-hub-title strong { font-size: 19px; font-weight: 720; letter-spacing: -.035em; }
+.account-hub-title>span { color: #aab9d1; font-size: 12px; }
+.account-hub-person { background: #202e46; border-color: #3e5069; }
+.account-hub-person b { font-size: 13px; }
+.account-hub-person small { font-size: 11px; }
+.account-hub-close { top: 17px; right: 19px; width: 40px; height: 40px; border-color: #40506d; background: #253249; }
+.account-hub-close:hover { transform: none; background: #344363; }
+
+.dashboard-modal.profile-wide #profileTabs,
+.dashboard-modal.profile-wide.admin-wide #profileTabs,
+.dashboard-modal.profile-wide.store-wide #profileTabs {
+  top: 76px;
+  height: calc(100dvh - 106px);
+  padding: 22px 12px 16px;
+  background: #121d30;
+  border-right: 1px solid #2d3c56;
+  scrollbar-width: thin;
+  scrollbar-color: #657395 transparent;
+}
+.account-rail-label { padding-left: 10px; color: #92a6c2; }
+.dashboard-modal.profile-wide #profileTabs .profile-tab { min-height: 60px; border-radius: 11px; color: #c4d0e2; }
+.dashboard-modal.profile-wide #profileTabs .profile-tab:hover:not(.active) { transform: none; background: #263750; color: #fff; }
+.dashboard-modal.profile-wide #profileTabs .profile-tab.active {
+  background: #2c3959;
+  border-color: #6f79a5;
+  box-shadow: inset 3px 0 #adabff;
+}
+#profileTabs .profile-tab>i:first-child { width: 35px; height: 35px; border-radius: 10px; background: #2a3a57; color: #c2bfff; box-shadow: none; }
+#profileTabs .profile-tab.active>i:first-child { background: #706bd2; color: #fff; box-shadow: none; }
+#profileTabs .account-tab-copy b { font-size: 14px; }
+#profileTabs .account-tab-copy small { color: #a9b9d0; font-size: 11px; }
+.account-rail-footer { border-top-color: #34425d; }
+.account-rail-footer small { color: #a9b9d0; }
+
+#profileView>.ptab-content { padding: 22px 24px 30px !important; background: #0d1525; }
+#profileView [data-ptab-content="my-profile"] { gap: 14px; grid-template-columns: minmax(0,1.3fr) minmax(300px,.7fr); }
+#profileView [data-ptab-content="my-profile"]>.profile-cover { min-height: 192px; border-radius: 16px; }
+#profileView #profileStatChips { gap: 10px; }
+#profileView #profileStatChips .p-stat-chip { min-height: 72px; border-radius: 13px; background: #151f34; border: 1px solid #2c3a55; box-shadow: none; }
+#profileView #profileStatChips .p-stat-chip :is(strong,b) { font-size: 15px; }
+#profileView #profileStatChips .p-stat-chip :is(small,span) { font-size: 11px; }
+.account-editor,.account-session-card,.profile-preferences,.profile-role-spotlight {
+  border: 1px solid #34415e;
+  border-radius: 16px;
+  background: #151f34;
+  box-shadow: none;
+}
+.account-editor,.account-session-card { padding: 23px; }
+.profile-preferences { padding: 21px; }
+.workspace-section-heading { gap: 13px; margin-bottom: 20px; }
+.workspace-section-heading>span { border-radius: 11px; background: #2b3554; }
+.workspace-section-heading small { font-size: 10px; color: #a9b9d0; }
+.workspace-section-heading h3 { font-size: 22px; }
+.workspace-section-heading p { color: #b1c0d5; font-size: 13px; }
+.account-live-preview { margin-bottom: 20px; border-color: #57618f; background: #202c47; }
+.account-field>span { color: #dce5f5; font-size: 13px; }
+.account-field input,.account-field textarea { border-color: #354461; background: #0d172a; color: #f1f5ff; }
+.account-field input:focus,.account-field textarea:focus { border-color: #a9a4ff; box-shadow: 0 0 0 3px #8983e82b; }
+#profileView .account-save-bar {
+  position: static;
+  margin: 20px 0 0;
+  padding: 16px 0 0;
+  border-radius: 0;
+  background: none;
+}
+#profileView .account-save-bar>span { color: #b1bfd5; }
+.profile-preference-row { min-height: 68px; border-color: #354461; background: #1b2940; }
+.profile-preference-copy strong { font-size: 13px; }
+.profile-preference-copy small { color: #a9b9d0; font-size: 11px; }
+.profile-role-spotlight { min-height: 76px; background: #1a2942; }
+.profile-role-spotlight:hover { transform: translateY(-2px); border-color: #687bb4; box-shadow: 0 12px 27px #0207114d; }
+.account-detail-grid dt { color: #a9b9d0; font-size: 11px; }
+.account-detail-grid dd { font-size: 12px; }
+.account-session-summary p { color: #afbed4; }
+
+.roles-v2-shell,.admin-v2-shell { gap: 14px; }
+.roles-v2-hero,.admin-v2-header {
+  min-height: 0;
+  padding: 26px 30px;
+  border: 1px solid #394a6a;
+  border-radius: 16px;
+  background: linear-gradient(110deg,#202d49,#1b2b43 60%,#164043) !important;
+  box-shadow: none;
+}
+.roles-v2-hero::before,.admin-v2-header::before { width: 3px; }
+.roles-v2-hero h2 { max-width: 17ch; font-size: clamp(29px,3.1vw,38px); line-height: 1.08; }
+.roles-v2-hero p,.admin-v2-header p { font-size: 13px; color: #c3d0e1; }
+.roles-v2-hero-points span { font-size: 11px; }
+.workspace-signal-art { opacity: .42; transform: translateY(-50%) scale(.78); }
+.roles-v2-current { min-width: 200px; border-color: #627096; background: #1b2942; box-shadow: none; }
+.roles-v2-entitlements article,.role-v2-card,.roles-v2-compare,
+.admin-v2-metrics>div,.admin-v2-user,.admin-v2-inspector,.admin-v2-forum article,.admin-v2-audit article,.admin-v2-analytics-grid article {
+  border: 1px solid #34415e;
+  border-radius: 15px;
+  background: #151f34;
+  box-shadow: none;
+}
+.roles-v2-entitlements article { min-height: 115px; padding: 17px; }
+.roles-v2-entitlements article>span { color: #b7c4d8; font-size: 12px; }
+.roles-v2-entitlements em { color: #a7b8d0; font-size: 11px; }
+.roles-v2-preview,.roles-v2-reservation { background: #173238; border-color: #2d6665; }
+.roles-v2-toolbar h3 { font-size: 23px; }
+.roles-v2-toolbar p { font-size: 13px; }
+.roles-v2-cycle { background: #151f34; border-color: #3b4967; }
+.roles-v2-grid { grid-template-columns: repeat(auto-fit,minmax(215px,1fr)); gap: 12px; }
+.role-v2-card { min-height: 345px; padding: 20px; gap: 12px; }
+.role-v2-card.featured { background: #232b4a; }
+.role-v2-card:hover { background: #202c47; }
+.role-v2-card p,.role-v2-card ul { color: #b9c6da; font-size: 12px; }
+.role-v2-card p { min-height: 38px; }
+.role-v2-price { color: #ddd7ff; }
+.role-v2-card button { min-height: 43px; font-size: 12px; }
+.roles-v2-compare { padding: 20px; }
+.roles-v2-compare p { color: #b5c3d9; font-size: 12px; }
+.roles-v2-table-wrap table { font-size: 12px; }
+.roles-v2-table-wrap th,.roles-v2-table-wrap td { padding: 13px 12px; }
+
+.admin-v2-header { min-height: 145px; padding: 24px 30px; }
+.admin-v2-header h2 { font-size: clamp(27px,2.9vw,36px); }
+.admin-v2-header::after { opacity: .45; }
+.admin-v2-connection { color: #a3e2d0; background: #173b42; border-color: #386e6f; font-size: 11px; }
+.admin-v2-metrics>div { min-height: 72px; padding: 14px; }
+.admin-v2-metrics b { font-size: 22px; }
+.admin-v2-metrics small { color: #b2bfd4; font-size: 11px; }
+.admin-v2-nav { padding: 5px; border-color: #34415e; background: #111b2e; }
+.admin-v2-nav button { min-height: 61px; padding: 10px; }
+.admin-v2-nav button.active { background: #2b385a; border-color: #6673a4; box-shadow: inset 0 -2px #aaa5ff; }
+.admin-v2-nav strong { font-size: 13px; }
+.admin-v2-nav small { color: #aebed5; font-size: 11px; }
+.admin-v2-toolbar label,.admin-v2-toolbar select,.admin-v2-forum-tools label { min-height: 44px; background: #172238; border-color: #3b4a68; color: #dce5f4; }
+.admin-v2-toolbar input,.admin-v2-forum-tools input { font-size: 13px; }
+.admin-v2-list-head { color: #b5c2d7; font-size: 11px; }
+.admin-v2-user { min-height: 76px; padding: 12px; }
+.admin-v2-user:hover { background: #202d47; }
+.admin-v2-user.is-inspected { background: #253351; border-color: #7a84b7; }
+.admin-v2-user-copy strong { font-size: 14px; }
+.admin-v2-user-copy span,.admin-v2-user-copy small { color: #b4c2d8; font-size: 11px; }
+.admin-v2-user-action select,.admin-v2-user-action button { min-height: 36px; font-size: 11px; }
+.admin-v2-inspector { padding: 19px; }
+.admin-v2-inspector dl div { color: #b5c2d7; font-size: 11px; }
+.admin-v2-inspector code { overflow-wrap: anywhere; }
+.admin-v2-forum article p,.admin-v2-audit article p,.admin-v2-forum article small,.admin-v2-audit article time { color: #b4c2d8; font-size: 12px; }
+.admin-v2-review { border-color: #7981b0; background: #202b47; }
+.admin-v2-review :is(input,button) { min-height: 40px; font-size: 12px; }
+.admin-v2-section-heading h3 { font-size: 21px; }
+
+body.light-theme .dashboard-modal.profile-wide.glass-modal { background: #f5f7fc !important; border-color: #c4cfe2; box-shadow: 0 28px 80px #29355e38; }
+body.light-theme .account-hub-head { background: #e8edf7 !important; border-bottom-color: #cbd5e6; }
+body.light-theme .account-hub-title small,body.light-theme .account-hub-title>span { color: #566883; }
+body.light-theme .account-hub-person,body.light-theme .account-hub-close { background: #fff; border-color: #c7d2e5; color: #2c3958; }
+body.light-theme .dashboard-modal.profile-wide #profileTabs,
+body.light-theme .dashboard-modal.profile-wide.admin-wide #profileTabs,
+body.light-theme .dashboard-modal.profile-wide.store-wide #profileTabs { background: #e9eef7; border-right-color: #ccd6e7; }
+body.light-theme .dashboard-modal.profile-wide #profileTabs .profile-tab { color: #3d4b66; }
+body.light-theme .dashboard-modal.profile-wide #profileTabs .profile-tab:hover:not(.active) { background: #dce5f3; color: #243250; }
+body.light-theme .dashboard-modal.profile-wide #profileTabs .profile-tab.active { background: #d8dff3; border-color: #a5b1d6; box-shadow: inset 3px 0 #6e6ac7; }
+body.light-theme #profileTabs .profile-tab>i:first-child { background: #d4ddf1; color: #5d5b9f; }
+body.light-theme #profileTabs .profile-tab.active>i:first-child { background: #7774ce; color: #fff; }
+body.light-theme #profileTabs .account-tab-copy small,body.light-theme .account-rail-footer small { color: #566883; }
+body.light-theme #profileView>.ptab-content { background: #f5f7fc; }
+body.light-theme #profileView #profileStatChips .p-stat-chip,
+body.light-theme :is(.account-editor,.account-session-card,.profile-preferences,.profile-role-spotlight,.roles-v2-entitlements article,.role-v2-card,.roles-v2-compare,.admin-v2-metrics>div,.admin-v2-user,.admin-v2-inspector,.admin-v2-forum article,.admin-v2-audit article,.admin-v2-analytics-grid article) { background: #fff; border-color: #d0d9e8; box-shadow: 0 5px 18px #34496e0d; }
+body.light-theme .account-live-preview { background: #eef0fc; border-color: #c0bee9; }
+body.light-theme .account-live-preview small { color: #6257ab; }
+body.light-theme .account-field>span { color: #2e3b57; }
+body.light-theme .account-field>span>i { color: #645bbe; }
+body.light-theme .workspace-section-heading small { color: #586982; }
+body.light-theme .workspace-section-heading p,
+body.light-theme .account-session-summary p,
+body.light-theme #profileView .account-save-bar>span { color: #566781; }
+body.light-theme .account-field input,body.light-theme .account-field textarea { background: #fff; color: #25324c; border-color: #cbd5e7; }
+body.light-theme #profileView .account-save-bar { background: none; }
+body.light-theme .profile-preference-row { background: #f7f9fc; border-color: #d5deeb; }
+body.light-theme .profile-preference-copy small,body.light-theme .account-detail-grid dt { color: #586982; }
+body.light-theme .roles-v2-hero,body.light-theme .admin-v2-header { background: linear-gradient(110deg,#e4eaf8,#eaf0f9 60%,#e0f1ee) !important; border-color: #c3cfe4; }
+body.light-theme .roles-v2-hero p,body.light-theme .admin-v2-header p { color: #52617b; }
+body.light-theme .roles-v2-current { background: #fff; border-color: #c6d0e3; }
+body.light-theme .roles-v2-preview,body.light-theme .roles-v2-reservation { background: #e8f5f2; border-color: #afd3cc; }
+body.light-theme .roles-v2-entitlements article>span,
+body.light-theme .roles-v2-entitlements em,
+body.light-theme .admin-v2-metrics small,
+body.light-theme .admin-v2-nav small,
+body.light-theme .admin-v2-list-head,
+body.light-theme #profileView #profileStatChips .p-stat-chip :is(small,span) { color: #52617b; }
+body.light-theme .admin-v2-metrics>div>i,
+body.light-theme .admin-v2-nav button>i { color: #5c59ae; }
+body.light-theme .roles-v2-cycle,body.light-theme .admin-v2-nav { background: #e8edf7; border-color: #ccd6e7; }
+body.light-theme .role-v2-card.featured { background: #f0effd; border-color: #aaa8da; }
+body.light-theme .role-v2-card p,body.light-theme .role-v2-card ul,body.light-theme .roles-v2-compare p { color: #586982; }
+body.light-theme .admin-v2-nav button.active { background: #d6def4; border-color: #a6b2d5; box-shadow: inset 0 -2px #736fca; }
+body.light-theme .admin-v2-toolbar label,body.light-theme .admin-v2-toolbar select,body.light-theme .admin-v2-forum-tools label { background: #fff; border-color: #cbd5e7; color: #374662; }
+body.light-theme .admin-v2-user:hover,body.light-theme .admin-v2-user.is-inspected { background: #eef1fb; }
+body.light-theme .admin-v2-user-copy span,body.light-theme .admin-v2-user-copy small,body.light-theme .admin-v2-inspector dl div { color: #586982; }
+body.light-theme .admin-v2-forum article p,
+body.light-theme .admin-v2-forum article small,
+body.light-theme .admin-v2-audit article p,
+body.light-theme .admin-v2-audit article time { color: #566781; }
+
+@media (max-width: 900px) {
+  #profileView:not([hidden]) { grid-template-columns: 188px minmax(0,1fr); }
+  #profileView [data-ptab-content="my-profile"] { grid-template-columns: minmax(0,1fr); }
+  #profileView [data-ptab-content="my-profile"]>* { grid-column: 1 !important; grid-row: auto !important; }
+  #profileView [data-ptab-content="my-profile"]>.account-editor { order: 3; }
+  #profileView [data-ptab-content="my-profile"]>.profile-preferences { order: 4; }
+  #profileView [data-ptab-content="my-profile"]>.account-session-card { order: 5; }
+  .admin-v2-toolbar { grid-template-columns: minmax(0,1fr) minmax(130px,1fr); }
+}
+@media (max-width: 680px) {
+  .dashboard-modal.profile-wide.glass-modal { width: calc(100vw - 12px) !important; max-height: calc(100dvh - 12px); border-radius: 16px; }
+  #profileView:not([hidden]) { display: block !important; min-height: 0; }
+  .account-hub-head { top: 0; min-height: 68px; padding: 10px 52px 10px 13px; }
+  .account-hub-mark { width: 36px; height: 36px; flex-basis: 36px; }
+  .account-hub-title strong { font-size: 16px; }
+  .account-hub-title>span { display: none; }
+  .account-hub-person { display: none; }
+  .account-hub-close { top: 14px; right: 10px; width: 36px; height: 36px; }
+  .dashboard-modal.profile-wide #profileTabs,
+  .dashboard-modal.profile-wide.admin-wide #profileTabs,
+  .dashboard-modal.profile-wide.store-wide #profileTabs { position: sticky; top: 68px; z-index: 8; height: auto; padding: 8px; gap: 5px; border-right: 0; border-bottom: 1px solid #33425e; }
+  .dashboard-modal.profile-wide #profileTabs .profile-tab { min-height: 48px; padding: 7px; grid-template-columns: 30px minmax(0,1fr); }
+  #profileTabs .profile-tab>i:first-child { width: 30px; height: 30px; }
+  #profileTabs .account-tab-copy b { font-size: 12px; }
+  #profileTabs .account-tab-copy small,#profileTabs .account-tab-arrow { display: none; }
+  #profileView>.ptab-content { padding: 14px 13px 24px !important; }
+  #profileView #profileStatChips { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .profile-cover .profile-special-art { display: none !important; }
+  .profile-cover .profile-header { position: relative; z-index: 2; }
+  .roles-v2-hero,.admin-v2-header { padding: 21px; }
+  .roles-v2-hero h2 { font-size: 30px; }
+  .roles-v2-current { min-width: 0; }
+  .admin-v2-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .admin-v2-nav button { min-height: 55px; }
+  .admin-v2-nav small { display: none; }
+  .admin-v2-toolbar { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+  .admin-v2-toolbar label { grid-column: 1/-1; }
+  .admin-v2-users { grid-template-columns: minmax(0,1fr); }
+  .admin-v2-inspector { position: static; }
+  .admin-v2-header { display: flex; flex-direction: column; align-items: stretch; gap: 15px; }
+  .admin-v2-header>div:first-child { width: 100%; min-width: 0; }
+  .admin-v2-header h2 { max-width: none; font-size: clamp(27px,7vw,34px); overflow-wrap: normal; word-break: normal; }
+  .admin-v2-header p { max-width: 36ch; }
+  .admin-v2-connection,.admin-v2-refresh { align-self: flex-start; }
+}
+@media (max-width: 430px) {
+  .account-hub-title small { font-size: 8px; }
+  #profileView>.ptab-content { padding-inline: 11px !important; }
+  .account-editor,.account-session-card,.profile-preferences { padding: 17px; }
+  .admin-v2-nav { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .admin-v2-toolbar select { min-width: 0; }
+  .admin-v2-user { grid-template-columns: 22px 42px minmax(0,1fr); }
+  .admin-v2-user-action { grid-column: 2/-1; justify-content: flex-end; }
+  .admin-v2-header h2 { font-size: 28px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-modal.profile-wide * { scroll-behavior: auto !important; }
+}
+
+/* Final material and motion pass: soft depth, clearer accents, quieter movement. */
+.dashboard-modal.profile-wide.glass-modal {
+  border-radius: 26px;
+  border-color: #415070;
+  background: linear-gradient(145deg,#101a30 0%,#0c1629 55%,#0b1425 100%) !important;
+  box-shadow: 0 38px 110px #020615c2, 0 0 0 1px #ffffff0a, inset 0 1px #ffffff0d;
+}
+.account-hub-head {
+  background: linear-gradient(105deg,#202d4b 0%,#1c2944 55%,#183d49 100%) !important;
+  border-bottom-color: #465475;
+}
+.account-hub-head::before {
+  background: linear-gradient(90deg,#947eff 2%,#8ca7f7 52%,#58d3b9 96%);
+}
+.account-hub-mark {
+  background: linear-gradient(145deg,#9a8bff,#665fd2);
+  box-shadow: inset 0 1px #ffffff5c, 0 8px 20px #5e5ad744;
+}
+.dashboard-modal.profile-wide #profileTabs,
+.dashboard-modal.profile-wide.admin-wide #profileTabs,
+.dashboard-modal.profile-wide.store-wide #profileTabs {
+  background: linear-gradient(180deg,#17243b,#111d32 58%,#102039);
+}
+.dashboard-modal.profile-wide #profileTabs .profile-tab {
+  border-radius: 13px;
+  transition: transform .28s cubic-bezier(.2,.8,.2,1),background-color .24s ease,border-color .24s ease,box-shadow .28s ease,color .24s ease;
+}
+.dashboard-modal.profile-wide #profileTabs .profile-tab.active {
+  border-color: #7c82b5;
+  background: linear-gradient(105deg,#43436f,#2c4966);
+  box-shadow: inset 3px 0 #c1aeff, 0 9px 22px #02071838;
+  transform: translateX(2px);
+}
+#profileTabs .profile-tab.active>i:first-child {
+  background: linear-gradient(145deg,#9890f5,#6762c9);
+  box-shadow: 0 5px 13px #776ee34d;
+}
+#profileView>.ptab-content {
+  background: radial-gradient(90% 46% at 75% 0%,#172c3e 0%,transparent 65%),#0d172a;
+}
+#profileView #profileStatChips .p-stat-chip,
+.account-editor,.account-session-card,.profile-preferences,.profile-role-spotlight,
+.roles-v2-entitlements article,.role-v2-card,.roles-v2-compare,
+.admin-v2-metrics>div,.admin-v2-user,.admin-v2-inspector,
+.admin-v2-forum article,.admin-v2-audit article,.admin-v2-analytics-grid article {
+  border-color: #3c4967;
+  border-radius: 18px;
+  background: linear-gradient(145deg,#1a2740,#131e33);
+  box-shadow: inset 0 1px #ffffff0a, 0 8px 25px #03091b24;
+}
+#profileView #profileStatChips .p-stat-chip { border-radius: 15px; }
+.account-live-preview {
+  border-radius: 15px;
+  background: linear-gradient(105deg,#31345b,#1d3450);
+}
+.profile-preference-row { border-radius: 14px; background: linear-gradient(110deg,#23324d,#1b2a44); }
+.profile-role-spotlight { background: linear-gradient(105deg,#253358,#1c3a4b); }
+.roles-v2-hero {
+  border-radius: 21px;
+  background: radial-gradient(circle at 78% 45%,#645cc952,transparent 34%),linear-gradient(110deg,#273359,#202c50 59%,#165051) !important;
+}
+.admin-v2-header {
+  border-radius: 21px;
+  background: radial-gradient(circle at 75% 36%,#52b9aa33,transparent 38%),linear-gradient(110deg,#253655,#1d3150 60%,#164c4e) !important;
+}
+.workspace-signal-art { opacity: .58; }
+.roles-v2-current { border-radius: 16px; background: linear-gradient(130deg,#283858,#1b3452); }
+.role-v2-card.featured {
+  border-color: #8c80c3;
+  background: linear-gradient(150deg,#30375e,#202c4b);
+  box-shadow: inset 0 1px #ffffff1a,0 12px 28px #04091c38;
+}
+.roles-v2-cycle,.admin-v2-nav { border-radius: 15px; background: linear-gradient(120deg,#16243b,#111e33); }
+.roles-v2-cycle button,.roles-v2-compare-tabs button,.admin-v2-nav button { border-radius: 10px; }
+.admin-v2-nav button.active { background: linear-gradient(110deg,#3b4372,#28445f); border-color: #8384bb; }
+.admin-v2-user.is-inspected { background: linear-gradient(115deg,#303a61,#1d3650); border-color: #9290cf; }
+.admin-v2-toolbar :is(label,select),.admin-v2-forum-tools label { border-radius: 13px; }
+.account-field :is(input,textarea) { border-radius: 13px; transition: border-color .2s ease,box-shadow .2s ease,background-color .2s ease; }
+
+@media (hover:hover) {
+  .dashboard-modal.profile-wide #profileTabs .profile-tab:hover:not(.active) { transform: translateX(3px); }
+  #profileTabs .profile-tab:hover>i:first-child { transform: translateY(-2px) scale(1.04); }
+  #profileView #profileStatChips .p-stat-chip,
+  .profile-preference-row,.role-v2-card,.admin-v2-metrics>div,.admin-v2-user {
+    transition: transform .28s cubic-bezier(.2,.8,.2,1),border-color .24s ease,box-shadow .28s ease,background-color .24s ease;
+  }
+  #profileView #profileStatChips .p-stat-chip:hover,
+  .profile-preference-row:hover,.admin-v2-metrics>div:hover { transform: translateY(-2px); border-color: #6e7ab0; box-shadow: 0 13px 30px #02071840; }
+  .role-v2-card:hover { transform: translateY(-4px); box-shadow: 0 19px 38px #02071855; }
+  .admin-v2-user:hover { transform: translateX(3px); box-shadow: 0 11px 26px #0207183b; }
+}
+
+body.light-theme .dashboard-modal.profile-wide.glass-modal { background: linear-gradient(145deg,#f9faff,#eef3fb) !important; border-color: #bdc9e0; box-shadow: 0 32px 90px #38457436; }
+body.light-theme .account-hub-head { background: linear-gradient(105deg,#f0edff,#e9f0fa 60%,#e2f5f0) !important; border-bottom-color: #c4d1e5; }
+body.light-theme .dashboard-modal.profile-wide #profileTabs,
+body.light-theme .dashboard-modal.profile-wide.admin-wide #profileTabs,
+body.light-theme .dashboard-modal.profile-wide.store-wide #profileTabs { background: linear-gradient(180deg,#f0f1fb,#e8edf8 68%,#e7f1f3); }
+body.light-theme .dashboard-modal.profile-wide #profileTabs .profile-tab.active { background: linear-gradient(105deg,#dfdef9,#d4e7f0); border-color: #a7a8d8; box-shadow: inset 3px 0 #8176d9,0 7px 16px #59679b1c; }
+body.light-theme #profileView>.ptab-content { background: radial-gradient(75% 40% at 75% 0%,#e5eff7,transparent 72%),#f4f7fc; }
+body.light-theme #profileView #profileStatChips .p-stat-chip,
+body.light-theme :is(.account-editor,.account-session-card,.profile-preferences,.profile-role-spotlight,.roles-v2-entitlements article,.role-v2-card,.roles-v2-compare,.admin-v2-metrics>div,.admin-v2-user,.admin-v2-inspector,.admin-v2-forum article,.admin-v2-audit article,.admin-v2-analytics-grid article) {
+  background: linear-gradient(145deg,#fff,#f8faff);
+  border-color: #cbd6e9;
+  box-shadow: inset 0 1px #fff,0 8px 24px #56678a12;
+}
+body.light-theme .account-live-preview { background: linear-gradient(105deg,#ecebff,#eaf4fa); }
+body.light-theme .profile-preference-row { background: linear-gradient(110deg,#f8f8ff,#f0f6fb); }
+body.light-theme .profile-role-spotlight { background: linear-gradient(105deg,#eeebff,#e6f4f6); }
+body.light-theme .roles-v2-hero { background: radial-gradient(circle at 78% 45%,#b6acff52,transparent 35%),linear-gradient(110deg,#ebe9ff,#e8effa 62%,#daf3ec) !important; }
+body.light-theme .admin-v2-header { background: radial-gradient(circle at 75% 36%,#8fdbca44,transparent 40%),linear-gradient(110deg,#e9edfc,#e6f0f8 60%,#dcf3ea) !important; }
+body.light-theme .roles-v2-current { background: linear-gradient(130deg,#fff,#f0f5ff); }
+body.light-theme .role-v2-card.featured { background: linear-gradient(145deg,#f3efff,#e9edfc); border-color: #aaa3db; }
+body.light-theme .roles-v2-cycle,body.light-theme .admin-v2-nav { background: linear-gradient(110deg,#eff0fb,#e8f0f8); }
+body.light-theme .admin-v2-nav button.active { background: linear-gradient(110deg,#e0def9,#d7e8f3); border-color: #aaa8d6; }
+body.light-theme .admin-v2-user.is-inspected { background: linear-gradient(110deg,#efedff,#e5f2f6); border-color: #a8a7d3; }
+
+body.theme-switching .dashboard-modal.profile-wide { animation: accountPaletteSettle .46s ease-out both; }
+@keyframes accountPaletteSettle { from { opacity: .82; } to { opacity: 1; } }
+
+@media (max-width:680px) {
+  .dashboard-modal.profile-wide.glass-modal { border-radius: 18px; }
+  .dashboard-modal.profile-wide #profileTabs .profile-tab.active { transform: none; }
+}
+@media (prefers-reduced-motion:reduce) {
+  body.theme-switching .dashboard-modal.profile-wide { animation: none !important; }
+  .dashboard-modal.profile-wide #profileTabs .profile-tab,
+  .dashboard-modal.profile-wide #profileTabs .profile-tab>i:first-child,
+  #profileView #profileStatChips .p-stat-chip,.profile-preference-row,.role-v2-card,.admin-v2-metrics>div,.admin-v2-user,.account-field :is(input,textarea) { transition: none !important; transform: none !important; }
+}

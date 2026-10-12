@@ -1,0 +1,234 @@
+/* ================================================================
+   SPECTRAL MATERIAL + MOTION SYSTEM V4
+   Final shared finish for late-added interface surfaces and controls.
+   ================================================================ */
+:root {
+    --material-panel:
+        linear-gradient(136deg, rgba(255, 255, 255, .055), transparent 31%),
+        linear-gradient(155deg, rgba(20, 24, 48, .84), rgba(7, 10, 24, .91));
+    --material-panel-strong:
+        radial-gradient(520px circle at 8% -10%, rgba(112, 123, 240, .15), transparent 62%),
+        linear-gradient(148deg, rgba(19, 23, 48, .94), rgba(6, 9, 22, .97));
+    --material-inset: rgba(255, 255, 255, .032);
+    --material-rim: rgba(205, 213, 255, .11);
+    --material-rim-hover: rgba(148, 161, 255, .25);
+    --material-specular: inset 0 1px rgba(255, 255, 255, .075);
+    --material-elevation-1: 0 12px 34px rgba(0, 0, 0, .16), var(--material-specular);
+    --material-elevation-2: 0 24px 62px rgba(0, 0, 0, .24), 0 5px 17px rgba(2, 4, 17, .15), var(--material-specular);
+    --material-elevation-hover: 0 28px 68px rgba(0, 0, 0, .28), 0 0 0 1px rgba(129, 140, 248, .055), inset 0 1px rgba(255, 255, 255, .1);
+    --motion-response: 180ms;
+    --motion-settle: 420ms;
+    --motion-spring: cubic-bezier(.16, 1, .3, 1);
+}
+
+body.light-theme {
+    --material-panel:
+        linear-gradient(136deg, rgba(255, 255, 255, .9), transparent 33%),
+        linear-gradient(155deg, rgba(255, 255, 255, .78), rgba(235, 239, 253, .86));
+    --material-panel-strong:
+        radial-gradient(520px circle at 8% -10%, rgba(106, 118, 228, .14), transparent 62%),
+        linear-gradient(148deg, rgba(255, 255, 255, .94), rgba(239, 242, 253, .96));
+    --material-inset: rgba(255, 255, 255, .52);
+    --material-rim: rgba(70, 84, 158, .14);
+    --material-rim-hover: rgba(73, 91, 189, .26);
+    --material-specular: inset 0 1px rgba(255, 255, 255, .96);
+    --material-elevation-1: 0 12px 32px rgba(66, 78, 141, .09), var(--material-specular);
+    --material-elevation-2: 0 23px 58px rgba(65, 77, 139, .14), 0 4px 15px rgba(73, 85, 145, .06), var(--material-specular);
+    --material-elevation-hover: 0 27px 64px rgba(65, 78, 145, .17), 0 0 0 1px rgba(78, 96, 195, .05), inset 0 1px #fff;
+}
+
+/* Large workspaces use the deeper sheet; nested cards use a lighter laminate. */
+:is(
+    #accounts .cockpit-rail,
+    #support .support-diagnostic-workspace,
+    #support.legacy-tab-style .support-knowledge-studio,
+    .dashboard-modal.profile-wide,
+    .role-store-hero,
+    .registration-welcome-card
+) {
+    border-color: var(--material-rim);
+    background: var(--material-panel-strong);
+    background-clip: padding-box;
+    box-shadow: var(--material-elevation-2);
+}
+
+:is(
+    #accounts .account-card,
+    #accounts .friend-card,
+    #support .support-solution,
+    #support .support-channel,
+    .role-store-card,
+    .current-role-card,
+    .profile-identity-studio,
+    .profile-preferences,
+    .profile-settings,
+    .profile-role-spotlight,
+    .admin-user-row,
+    .admin-forum-item
+) {
+    border-color: var(--material-rim);
+    background-color: transparent;
+    background-image: var(--material-panel);
+    background-clip: padding-box;
+    box-shadow: var(--material-elevation-1);
+}
+
+/* Signature canvases retain their art, but share the same crisp rim and depth. */
+:is(
+    #accounts .cockpit-core,
+    #advanced-features .af-hero,
+    #development .dev-hero,
+    #updates .updates-header
+) {
+    border-color: var(--material-rim);
+    box-shadow: var(--material-elevation-2);
+}
+
+:is(
+    .profile-tabs,
+    .admin-subtabs,
+    .updates-filters,
+    .role-store-toolbar,
+    .cockpit-slot-meter,
+    .support-topic-strip
+) {
+    border-color: var(--material-rim);
+    background-color: var(--material-inset);
+    box-shadow: var(--material-specular);
+}
+
+:is(
+    .input-group-animated input,
+    .news-field input,
+    .news-field select,
+    .news-field textarea,
+    .friend-add-input,
+    .updates-search,
+    .admin-search-field,
+    .admin-role-select,
+    .role-store-search
+) {
+    border-color: var(--material-rim);
+    background-color: var(--material-inset);
+    box-shadow: var(--material-specular);
+    transition:
+        border-color var(--motion-response) ease,
+        background-color var(--motion-response) ease,
+        box-shadow var(--motion-response) ease;
+}
+
+:is(
+    .input-group-animated input,
+    .news-field input,
+    .news-field select,
+    .news-field textarea,
+    .friend-add-input,
+    .updates-search,
+    .admin-search-field,
+    .admin-role-select,
+    .role-store-search
+):focus-within {
+    border-color: var(--material-focus);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, .11), var(--material-specular);
+}
+
+/* The active layer hint exists only while pointer-driven movement is running. */
+.magnetic-btn.is-magnetic {
+    will-change: transform;
+}
+
+/* Grid interpolation reveals content without repeatedly animating max-height. */
+.feature-card-extra {
+    display: grid;
+    grid-template-rows: 0fr;
+    max-height: none;
+    transition:
+        grid-template-rows var(--motion-settle) var(--motion-spring),
+        margin-top var(--motion-settle) var(--motion-spring),
+        opacity var(--motion-response) ease,
+        transform var(--motion-settle) var(--motion-spring);
+}
+
+.feature-card-extra-inner {
+    min-height: 0;
+    overflow: hidden;
+}
+
+.feature-card.is-active .feature-card-extra {
+    grid-template-rows: 1fr;
+    max-height: none;
+}
+
+/* Keep hover feedback on precise pointers and on compositor properties only. */
+@media (hover: hover) and (pointer: fine) {
+    :is(
+        #accounts .account-card,
+        #accounts .friend-card,
+        #support .support-channel,
+        .role-store-card,
+        .profile-preference-row,
+        .admin-user-row,
+        .admin-forum-item
+    ) {
+        transition:
+            transform var(--motion-settle) var(--motion-spring),
+            border-color var(--motion-response) ease,
+            box-shadow var(--motion-settle) var(--motion-spring);
+    }
+
+    :is(
+        #accounts .account-card,
+        #accounts .friend-card,
+        #support .support-channel,
+        .role-store-card,
+        .profile-preference-row,
+        .admin-user-row,
+        .admin-forum-item
+    ):hover {
+        border-color: var(--material-rim-hover);
+        box-shadow: var(--material-elevation-hover);
+        transform: translate3d(0, -3px, 0);
+    }
+
+    :is(
+        #accounts .account-card,
+        #accounts .friend-card,
+        #support .support-channel,
+        .role-store-card,
+        .profile-preference-row,
+        .admin-user-row,
+        .admin-forum-item
+    ):active {
+        transform: translate3d(0, -1px, 0);
+        transition-duration: 90ms;
+    }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    :is(.glass, .glass-modal, .nav-links-container.glass, .dashboard-modal.profile-wide) {
+        background-color: var(--material-solid);
+    }
+}
+
+@media (max-width: 620px) {
+    :root {
+        --material-elevation-1: 0 9px 24px rgba(0, 0, 0, .13), var(--material-specular);
+        --material-elevation-2: 0 16px 40px rgba(0, 0, 0, .2), var(--material-specular);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .magnetic-btn {
+        transform: none !important;
+        will-change: auto !important;
+    }
+
+    .feature-card-extra {
+        grid-template-rows: 0fr;
+    }
+
+    .feature-card.is-active .feature-card-extra {
+        grid-template-rows: 1fr;
+    }
+}
+

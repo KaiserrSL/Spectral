@@ -1,0 +1,776 @@
+/* ============================================================
+   LIGHT THEME — proper design, not inversion
+   ============================================================ */
+body.light-theme {
+    --bg-dark:       #dfe3f7;
+    --glass-bg:      rgba(255, 255, 255, 0.82);
+    --glass-border:  rgba(99, 102, 241, 0.16);
+    --text:          #1e1b4b;
+    --text-muted:    #5b5f93;
+    color: var(--text);
+    /* distinct light background: soft diagonal gradient base */
+    background: linear-gradient(155deg, #eaecfc 0%, #dfe4f8 40%, #ece6f9 72%, #e6ecfb 100%);
+    background-attachment: fixed;
+}
+
+/* Colorful aurora mesh — gives depth so white cards pop (different from dark theme) */
+body.light-theme #particles-canvas { opacity: 0.5; }
+body.light-theme .bg-gradient-overlay {
+    background:
+        radial-gradient(42% 50% at 14% 10%, rgba(129,140,248,0.40), transparent 70%),
+        radial-gradient(40% 46% at 88% 16%, rgba(96,165,250,0.34), transparent 70%),
+        radial-gradient(46% 52% at 80% 88%, rgba(236,72,153,0.22), transparent 72%),
+        radial-gradient(42% 48% at 16% 84%, rgba(45,212,191,0.22), transparent 72%);
+    opacity: 1;
+}
+body.light-theme .vignette {
+    background: radial-gradient(circle, transparent 55%, rgba(150,160,220,0.22) 100%);
+}
+body.light-theme .ambient-light { opacity: 0.22; mix-blend-mode: multiply; }
+
+/* ── Light-theme drifting orbs (hidden on dark) ── */
+.light-bg-shapes { display: none; }
+body.light-theme .light-bg-shapes {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+.light-bg-shapes .lbs {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(50px);
+    mix-blend-mode: multiply;
+    opacity: 0.55;
+    will-change: transform;
+}
+.lbs-1 { width: 320px; height: 320px; top: 8%;  left: 6%;  background: radial-gradient(circle at 30% 30%, #a5b4fc, transparent 70%); animation: lbsFloat1 26s ease-in-out infinite; }
+.lbs-2 { width: 380px; height: 380px; top: 50%; left: 70%; background: radial-gradient(circle at 30% 30%, #93c5fd, transparent 70%); animation: lbsFloat2 32s ease-in-out infinite; }
+.lbs-3 { width: 260px; height: 260px; top: 70%; left: 18%; background: radial-gradient(circle at 30% 30%, #f0abfc, transparent 70%); animation: lbsFloat3 29s ease-in-out infinite; }
+.lbs-4 { width: 300px; height: 300px; top: 14%; left: 60%; background: radial-gradient(circle at 30% 30%, #99f6e4, transparent 70%); animation: lbsFloat1 35s ease-in-out infinite reverse; }
+.lbs-5 { width: 220px; height: 220px; top: 38%; left: 36%; background: radial-gradient(circle at 30% 30%, #c4b5fd, transparent 70%); animation: lbsFloat2 24s ease-in-out infinite reverse; }
+.lbs-6 { width: 200px; height: 200px; top: 84%; left: 82%; background: radial-gradient(circle at 30% 30%, #fbcfe8, transparent 70%); animation: lbsFloat3 30s ease-in-out infinite; }
+
+@keyframes lbsFloat1 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33%     { transform: translate(60px,-40px) scale(1.12); }
+    66%     { transform: translate(-30px,50px) scale(0.92); }
+}
+@keyframes lbsFloat2 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    33%     { transform: translate(-70px,30px) scale(0.9); }
+    66%     { transform: translate(40px,-60px) scale(1.15); }
+}
+@keyframes lbsFloat3 {
+    0%,100% { transform: translate(0,0) scale(1); }
+    50%     { transform: translate(50px,40px) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .light-bg-shapes .lbs { animation: none !important; }
+}
+
+/* ── Navbar ── */
+body.light-theme .navbar { background: linear-gradient(to bottom, rgba(243,244,255,0.95), transparent); }
+body.light-theme .nav-links-container.glass {
+    background: rgba(255,255,255,0.90);
+    border-color: rgba(99,102,241,0.18);
+    box-shadow: 0 6px 24px rgba(99,102,241,0.10);
+}
+body.light-theme .nav-btn { color: #6366a0; }
+body.light-theme .nav-btn:hover { color: #1e1b4b; background: rgba(99,102,241,0.07); }
+body.light-theme .nav-btn.active {
+    background: rgba(99,102,241,0.12);
+    color: #4338ca;
+    border-color: rgba(99,102,241,0.22);
+    box-shadow: none;
+}
+body.light-theme .nav-btn.active i { color: #4338ca; }
+body.light-theme .btn-account { color: #1e1b4b; }
+body.light-theme .btn-account:hover { background: rgba(99,102,241,0.07); }
+body.light-theme .avatar-circle { background: #ede9fe; border-color: rgba(99,102,241,0.2); color: #6366f1; }
+body.light-theme #accountText { color: #1e1b4b; }
+body.light-theme .theme-fab { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.28); color: #6366f1; box-shadow: 0 4px 18px rgba(99,102,241,0.15); }
+
+/* ── Typography ── */
+body.light-theme h1,
+body.light-theme h2,
+body.light-theme h3,
+body.light-theme h4 { color: #1e1b4b; }
+body.light-theme p { color: var(--text-muted); }
+body.light-theme .logo-text { color: #1e1b4b; text-shadow: none; }
+
+/* ── Hero ── */
+body.light-theme .status-badge { background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.28); }
+body.light-theme .stats-row .stat-number { color: #1e1b4b; }
+/* ── Launcher mockup — light theme variant ── */
+body.light-theme .launcher-ui {
+    background: linear-gradient(180deg, #ffffff 0%, #eef0fb 100%);
+    border-color: rgba(99,102,241,0.20);
+    box-shadow: 0 30px 70px rgba(99,102,241,0.18), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+body.light-theme .lu-winbar { background: rgba(99,102,241,0.04); }
+body.light-theme .lu-wintitle { color: #6b6f95; }
+body.light-theme .lu-winctl .wc { color: #9aa0c0; }
+body.light-theme .lu-nav-tab { color: #7a7fa6; }
+body.light-theme .lu-nav-tab:hover { color: #4338ca; }
+body.light-theme .lu-nav-tab.active {
+    color: #4338ca;
+    background: linear-gradient(135deg, rgba(99,102,241,0.16), rgba(99,102,241,0.07));
+    border-color: rgba(99,102,241,0.30);
+    box-shadow: 0 6px 16px rgba(99,102,241,0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+}
+body.light-theme .lu-hero-bg {
+    background:
+        radial-gradient(58% 80% at 80% 16%, rgba(99,102,241,0.14), transparent 70%),
+        radial-gradient(54% 74% at 12% 92%, rgba(236,72,153,0.10), transparent 72%);
+}
+body.light-theme .lu-hero-bg::after { background: radial-gradient(rgba(99,102,241,0.12) 1px, transparent 1.5px); background-size: 26px 26px; opacity: 0.6; }
+body.light-theme .lu-hero-title { background: linear-gradient(135deg, #4338ca 0%, #6366f1 45%, #ec4899 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: none; }
+body.light-theme .lu-hero-sub { color: #6366f1; }
+body.light-theme .lu-dock { background: rgba(99,102,241,0.04); border-top-color: rgba(99,102,241,0.14); }
+body.light-theme .lu-dock-account, body.light-theme .lu-dock-instance { border-right-color: rgba(99,102,241,0.12); }
+body.light-theme .lu-dock-label { color: #6366a0; }
+body.light-theme .lu-acc-info b { color: #1e1b4b; }
+body.light-theme .lu-acc-status { color: #6366a0; }
+body.light-theme .lu-select { background: #fff; border-color: rgba(99,102,241,0.20); }
+body.light-theme .lu-select-name { color: #1e1b4b; }
+body.light-theme .lu-select-arrow { color: #8b8fb5; }
+body.light-theme .btn-secondary { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.22); color: #4338ca; }
+body.light-theme .btn-secondary:hover { background: rgba(99,102,241,0.14); }
+
+/* ── Feature cards (Home) ── */
+body.light-theme .feature-card {
+    background: rgba(255,255,255,0.92);
+    border-color: rgba(99,102,241,0.13);
+    box-shadow: 0 2px 14px rgba(99,102,241,0.06);
+}
+body.light-theme .feature-card:hover { border-color: var(--primary); box-shadow: 0 10px 36px rgba(99,102,241,0.14); }
+body.light-theme .feature-card h3 { color: #1e1b4b; }
+body.light-theme .feature-card p { color: #6366a0; }
+
+/* ── Timeline ── */
+body.light-theme .timeline-card {
+    background: rgba(255,255,255,0.95);
+    border-color: rgba(99,102,241,0.12);
+    box-shadow: 0 2px 16px rgba(99,102,241,0.06);
+}
+body.light-theme .timeline-card:hover { box-shadow: 0 8px 32px rgba(99,102,241,0.14); }
+body.light-theme .timeline-card.dimmed { opacity: 0.55; }
+body.light-theme .date-badge { background: #fff; border-color: rgba(99,102,241,0.2); color: #4338ca; }
+body.light-theme .timeline-item:hover .date-badge { background: var(--primary); border-color: var(--primary); color: #fff; }
+body.light-theme .changelog li { color: #3730a3; }
+body.light-theme .card-title h3 { color: #1e1b4b; }
+body.light-theme .dev-write-btn { background: rgba(236,72,153,0.08); border-color: rgba(236,72,153,0.3); }
+body.light-theme .timeline-delete-btn { background: rgba(239,68,68,0.08); }
+
+/* ── Development ── */
+body.light-theme .tech-card {
+    background: rgba(255,255,255,0.85);
+    border-color: rgba(99,102,241,0.12);
+}
+body.light-theme .tech-card h3 { color: #1e1b4b; }
+body.light-theme .tech-card p { color: #6366a0; }
+body.light-theme .arch-diagram { background: rgba(255,255,255,0.8); border-color: rgba(99,102,241,0.12); }
+body.light-theme .arch-title { color: #6366a0; }
+/* Code editor — light variant */
+body.light-theme .code-editor {
+    background:
+        radial-gradient(120% 100% at 50% -20%, rgba(99,102,241,0.08), transparent 55%),
+        linear-gradient(180deg, #ffffff 0%, #f4f5fd 100%);
+    border-color: rgba(99,102,241,0.20);
+    box-shadow: 0 24px 60px rgba(99,102,241,0.12);
+}
+body.light-theme .code-editor:hover { border-color: rgba(99,102,241,0.34); box-shadow: 0 30px 76px rgba(99,102,241,0.18); }
+body.light-theme .code-editor-header { background: rgba(99,102,241,0.05); border-bottom-color: rgba(99,102,241,0.12); }
+body.light-theme .code-tab { color: #6b6f95; }
+body.light-theme .code-tab:hover { background: rgba(99,102,241,0.08); color: #1e1b4b; }
+body.light-theme .code-tab.active { background: linear-gradient(135deg, rgba(99,102,241,0.16), rgba(236,72,153,0.12)); color: #4338ca; box-shadow: inset 0 0 0 1px rgba(99,102,241,0.25); }
+body.light-theme .code-lang { color: #8b8fb5; }
+body.light-theme .code-content pre { color: #3b3f63; }
+body.light-theme .kw { color: #a626a4; }
+body.light-theme .fn { color: #2563eb; }
+body.light-theme .type { color: #b7791f; }
+body.light-theme .comment { color: #9aa0c0; }
+body.light-theme .code-pane--in::after { background: linear-gradient(90deg, transparent, rgba(99,102,241,0.18), transparent); }
+body.light-theme .bm-item { background: rgba(255,255,255,0.85); border-color: rgba(99,102,241,0.12); }
+body.light-theme .bm-val { color: #1e1b4b; }
+body.light-theme .bm-label { color: #6366a0; }
+
+/* ── Advanced Features ── */
+body.light-theme .af-card {
+    background: rgba(255,255,255,0.90);
+    border-color: rgba(99,102,241,0.13);
+}
+body.light-theme .af-card:hover { border-color: rgba(99,102,241,0.35); box-shadow: 0 12px 40px rgba(99,102,241,0.12); }
+body.light-theme .af-card h4 { color: #1e1b4b; }
+body.light-theme .af-card p { color: #6366a0; }
+body.light-theme .af-card-tags span { background: rgba(99,102,241,0.07); border-color: rgba(99,102,241,0.15); color: #6366a0; }
+body.light-theme .af-showcase { background: rgba(255,255,255,0.80); border-color: rgba(99,102,241,0.13); }
+body.light-theme .af-showcase-left h3 { color: #1e1b4b; }
+body.light-theme .af-showcase-left p { color: #6366a0; }
+/* Console — light variant so it matches the light theme instead of a dark box */
+body.light-theme .af-terminal {
+    background: linear-gradient(180deg, #ffffff 0%, #f3f5fd 100%);
+    border-color: rgba(99,102,241,0.22);
+    box-shadow: 0 24px 60px rgba(99,102,241,0.14);
+}
+body.light-theme .af-terminal-bar { background: rgba(99,102,241,0.05); border-bottom-color: rgba(99,102,241,0.12); color: #6b6f95; }
+body.light-theme .af-terminal-body { color: #3b3f63; }
+body.light-theme .af-terminal-body::after { opacity: 0.12; } /* soften scanlines on light */
+body.light-theme .t-text { color: #3b3f63; }
+body.light-theme .t-prompt { color: #6d28d9; text-shadow: none; }
+body.light-theme .t-info { color: #6b7280; }
+body.light-theme .t-ok { color: #059669; }
+body.light-theme .t-success { color: #0e7490; }
+body.light-theme .term-live { color: #059669; }
+body.light-theme .af-stats-strip { background: rgba(255,255,255,0.85); border-color: rgba(99,102,241,0.12); }
+body.light-theme .af-bar-row { color: #6366a0; }
+body.light-theme .af-bar-val { color: #1e1b4b; }
+body.light-theme .af-bar { background: rgba(99,102,241,0.12); }
+/* gradient number text would lose its white half on light cards → darken it */
+body.light-theme .af-stat-num { background: linear-gradient(135deg, #4338ca, #ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* faint white watermark number is invisible on white cards → tint it indigo */
+body.light-theme .af-card-num { color: rgba(99,102,241,0.08); }
+
+/* ── Accounts ── */
+body.light-theme .account-card {
+    background: rgba(255,255,255,0.90);
+    border-color: rgba(99,102,241,0.12);
+}
+body.light-theme .account-card:hover { border-color: rgba(99,102,241,0.35); box-shadow: 0 8px 28px rgba(99,102,241,0.12); }
+body.light-theme .account-card.is-active { border-color: rgba(99,102,241,0.50); }
+body.light-theme .acc-card-name { color: #1e1b4b; }
+body.light-theme .active-account-banner { background: rgba(255,255,255,0.88) !important; border-color: rgba(99,102,241,0.22) !important; }
+body.light-theme .active-account-name { color: #1e1b4b; }
+body.light-theme .active-account-label { color: #6366a0; }
+body.light-theme .acc-stat small { color: #6366a0; }
+body.light-theme .launcher-notice { background: rgba(99,102,241,0.06); border-color: rgba(99,102,241,0.18); }
+body.light-theme .ln-body strong { color: #1e1b4b; }
+
+/* Add-account modal */
+body.light-theme .add-account-modal { background: #f5f4ff; border-color: rgba(99,102,241,0.18); }
+body.light-theme .add-account-modal h3 { color: #1e1b4b; }
+body.light-theme .acc-type-card { background: #ede9fe; border-color: rgba(99,102,241,0.18); color: #6366a0; }
+body.light-theme .acc-type-card span { color: #1e1b4b; }
+body.light-theme .acc-type-card:hover { border-color: var(--primary); background: rgba(99,102,241,0.10); }
+body.light-theme .acc-type-card.active { border-color: var(--primary); background: rgba(99,102,241,0.12); color: var(--primary); }
+body.light-theme .acc-type-card.active span { color: var(--primary); }
+body.light-theme .offline-info { background: rgba(99,102,241,0.06); border-color: rgba(99,102,241,0.18); color: #6366a0; }
+
+/* ── Support ── */
+body.light-theme .support-channel { background: rgba(255,255,255,0.80); border-color: rgba(99,102,241,0.12); }
+body.light-theme .sc-body h4 { color: #1e1b4b; }
+body.light-theme .fix-card { background: rgba(255,255,255,0.88) !important; border-color: rgba(99,102,241,0.12) !important; }
+body.light-theme .fix-card h4 { color: #1e1b4b; }
+body.light-theme .faq-item { background: rgba(255,255,255,0.80); border-color: rgba(99,102,241,0.11); }
+body.light-theme .faq-item.open { background: rgba(99,102,241,0.05); border-color: rgba(99,102,241,0.28); }
+body.light-theme .faq-q { color: #1e1b4b; }
+body.light-theme .faq-a p { color: #6366a0; }
+body.light-theme .support-cta { background: linear-gradient(120deg,rgba(99,102,241,0.07),rgba(99,102,241,0.04)); border-color: rgba(99,102,241,0.20); }
+body.light-theme .support-cta h3 { color: #1e1b4b; }
+body.light-theme .support-cta p { color: #6366a0; }
+body.light-theme .support-subtitle { color: #1e1b4b; }
+
+/* ── Forum ── */
+body.light-theme .forum-section { border-color: rgba(99,102,241,0.12); }
+body.light-theme .forum-post-card { background: rgba(255,255,255,0.88); border-color: rgba(99,102,241,0.12); }
+body.light-theme .fp-title { color: #1e1b4b; }
+body.light-theme .fp-text { color: #6366a0; }
+body.light-theme .fp-author { color: #9ca3af; }
+body.light-theme .fp-upvote { background: rgba(99,102,241,0.05); border-color: rgba(99,102,241,0.15); color: #6366a0; }
+body.light-theme .fp-upvote:hover { color: #4338ca; border-color: rgba(99,102,241,0.35); background: rgba(99,102,241,0.09); }
+body.light-theme .fp-upvote.voted { color: #4338ca; border-color: rgba(99,102,241,0.40); background: rgba(99,102,241,0.12); }
+body.light-theme .fp-date { color: #a5b4fc; }
+/* Light theme — solid amber so the button doesn't wash into the light background */
+body.light-theme .forum-write-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-color: transparent; color: #fff;
+    box-shadow: 0 4px 14px rgba(217,119,6,0.30);
+}
+body.light-theme .forum-write-btn:hover { background: linear-gradient(135deg, #d97706, #b45309); box-shadow: 0 6px 18px rgba(217,119,6,0.38); }
+body.light-theme .forum-login-hint { color: #b45309; }
+
+/* ── Dashboard / modals ── */
+body.light-theme .dashboard-overlay { background: rgba(180,185,220,0.55); backdrop-filter: blur(12px); }
+body.light-theme .dashboard-modal { background: #f5f4ff; border-color: rgba(99,102,241,0.18); }
+body.light-theme .auth-sub { color: #6366a0; }
+body.light-theme .auth-switch { color: #6366a0; }
+body.light-theme .input-group-animated input { background: #edeaff; border-color: rgba(99,102,241,0.20); color: #1e1b4b; }
+body.light-theme .input-group-animated input:focus { border-color: var(--primary); }
+body.light-theme .input-group-animated label { color: #a5b4fc; }
+body.light-theme .input-group-animated input:focus + label,
+body.light-theme .input-group-animated input:not(:placeholder-shown) + label { background: #f5f4ff; color: var(--primary); }
+body.light-theme .profile-tabs { background: rgba(99,102,241,0.06); border-color: rgba(99,102,241,0.12); }
+body.light-theme .profile-tab { color: #6366a0; }
+body.light-theme .profile-tab.active { background: rgba(99,102,241,0.14); color: #4338ca; }
+body.light-theme .profile-header h3 { color: #1e1b4b; }
+body.light-theme .input-group-animated input::placeholder { color: transparent; }
+body.light-theme .admin-user-row { background: rgba(99,102,241,0.04); border-color: rgba(99,102,241,0.10); }
+body.light-theme .admin-user-name { color: #1e1b4b; }
+body.light-theme .admin-subtabs { background: rgba(99,102,241,0.05); border-color: rgba(99,102,241,0.10); }
+body.light-theme .admin-stab { color: #6366a0; }
+body.light-theme .admin-stab:hover { color: #1e1b4b; }
+body.light-theme .admin-search-input { background: #edeaff; border-color: rgba(99,102,241,0.20); color: #1e1b4b; }
+body.light-theme .admin-stat-box { background: rgba(255,255,255,0.85); border-color: rgba(99,102,241,0.12); }
+body.light-theme .admin-stat-label { color: #6366a0; }
+body.light-theme .admin-forum-item { background: rgba(255,255,255,0.80); border-color: rgba(99,102,241,0.10); }
+body.light-theme .admin-forum-title { color: #1e1b4b; }
+
+/* Light theme — small admin/analytics bits that were dark-on-light (low contrast) */
+body.light-theme .admin-role-filter,
+body.light-theme .admin-role-select { background: #edeaff; border: 1px solid rgba(99,102,241,0.20); color: #1e1b4b; }
+body.light-theme .admin-role-select option,
+body.light-theme .admin-role-filter option { background: #fff; color: #1e1b4b; }
+body.light-theme .admin-user-bio,
+body.light-theme .admin-stat-box.sm .admin-stat-label,
+body.light-theme .admin-empty,
+body.light-theme .lead-time,
+body.light-theme .dev-tools-note { color: #6366a0; }
+body.light-theme .dist-bar { background: rgba(99,102,241,0.14); }
+body.light-theme .lead-row { border-bottom-color: rgba(99,102,241,0.12); }
+body.light-theme .lead-name { color: #1e1b4b; }
+body.light-theme .dev-tools-note code { background: rgba(99,102,241,0.10); color: #0f766e; }
+body.light-theme .dev-tool-btn:hover { background: rgba(99,102,241,0.16); }
+body.light-theme .dev-tool-btn.danger { background: rgba(239,68,68,0.10); color: #dc2626; border-color: rgba(239,68,68,0.3); }
+
+/* Light theme — Component Scheme nodes (saturated text on white was washed out) */
+body.light-theme .arch-node { background: #fff; box-shadow: 0 2px 12px rgba(99,102,241,0.08); }
+body.light-theme .arch-ui   { color: #4f46e5; border-color: rgba(99,102,241,0.45); }
+body.light-theme .arch-core { color: #dc2626; border-color: rgba(239,68,68,0.40); }
+body.light-theme .arch-db   { color: #b45309; border-color: rgba(245,158,11,0.45); }
+body.light-theme .arch-auth { color: #047857; border-color: rgba(16,185,129,0.40); }
+body.light-theme .arch-mc   { color: #2563eb; border-color: rgba(59,130,246,0.40); }
+body.light-theme .arch-api  { color: #be185d; border-color: rgba(236,72,153,0.40); }
+body.light-theme .arch-arrow { color: rgba(99,102,241,0.55); }
+body.light-theme .confirm-modal { background: #f5f4ff; border-color: rgba(99,102,241,0.18); }
+body.light-theme .confirm-modal h3 { color: #1e1b4b; }
+body.light-theme .confirm-modal p { color: #6366a0; }
+body.light-theme .confirm-cancel { background: rgba(99,102,241,0.07); color: #6366a0; }
+body.light-theme .confirm-cancel:hover { background: rgba(99,102,241,0.12); color: #1e1b4b; }
+body.light-theme .nie-type,
+body.light-theme .nie-text { background: #edeaff; border-color: rgba(99,102,241,0.20); color: #1e1b4b; }
+body.light-theme #forumPostText { background: #edeaff; border-color: rgba(99,102,241,0.20); color: #1e1b4b; }
+body.light-theme .forum-textarea-label { color: #6366a0; }
+body.light-theme .forum-char-count { color: #6366a0; }
+
+/* ── Footer ── */
+body.light-theme .site-footer { background: rgba(237,235,255,0.75); border-color: rgba(99,102,241,0.14); }
+body.light-theme .footer-name { color: #1e1b4b; }
+body.light-theme .footer-tag { color: #6366a0; }
+body.light-theme .footer-links a { color: #6366a0; }
+body.light-theme .footer-links a:hover { color: #1e1b4b; background: rgba(99,102,241,0.07); }
+body.light-theme .footer-social a { background: rgba(255,255,255,0.75); border-color: rgba(99,102,241,0.16); color: #6366a0; }
+body.light-theme .footer-social a:hover { color: #4338ca; background: rgba(99,102,241,0.10); border-color: rgba(99,102,241,0.35); }
+body.light-theme .footer-bottom { color: #a5b4fc; border-color: rgba(99,102,241,0.10); }
+
+/* Responsive additions */
+@media (max-width: 680px) {
+    .forum-header-row { flex-direction: column; align-items: flex-start; }
+    .launcher-notice { flex-direction: column; align-items: flex-start; }
+    .updates-header > div { min-width: 0; }
+    .admin-stats-grid { grid-template-columns: 1fr; }
+    .dashboard-modal.admin-wide .admin-stats-grid { grid-template-columns: 1fr 1fr; }
+    .forum-posts-list { grid-template-columns: 1fr; }
+}
+
+/* Support / ideas grids collapse on tablet & phone */
+@media (max-width: 880px) {
+    .support-channels { grid-template-columns: 1fr; }
+    .support-fixes { grid-template-columns: 1fr; }
+    .forum-posts-list { grid-template-columns: 1fr; }
+}
+
+
+
+
+/* ── Navbar centering fix (grid override) ── */
+.navbar { display: grid !important; grid-template-columns: 1fr auto 1fr !important; }
+.navbar .btn-account { justify-self: end; }
+.nav-links-container { margin: 0 auto; }
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE / HAMBURGER NAVIGATION
+   ════════════════════════════════════════════════════════════ */
+.nav-burger {
+    display: none;
+    position: relative;
+    z-index: 1101;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 44px; height: 44px;
+    padding: 0 10px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.05);
+    cursor: pointer;
+}
+.nav-burger span {
+    display: block; height: 2px; width: 100%;
+    background: #fff; border-radius: 2px;
+    transition: transform 0.3s var(--ease-out-back), opacity 0.2s ease;
+}
+.navbar.nav-open .nav-burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.navbar.nav-open .nav-burger span:nth-child(2) { opacity: 0; }
+.navbar.nav-open .nav-burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+body.light-theme .nav-burger { background: rgba(99,102,241,0.07); border-color: rgba(99,102,241,0.2); }
+body.light-theme .nav-burger span { background: #1e1b4b; }
+
+.nav-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(3px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 990;
+}
+.nav-backdrop.show { opacity: 1; pointer-events: auto; }
+
+@media (max-width: 1180px) {
+    /* navbar → simple flex bar with burger on the right */
+    .navbar {
+        display: flex !important;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 5%;
+    }
+    .logo-container { margin-right: auto; }
+    .btn-account { order: 2; justify-self: auto !important; }
+    .nav-burger { display: flex; order: 3; margin-left: 12px; }
+
+    /* nav links → slide-down dropdown panel */
+    .nav-links-container.glass {
+        position: fixed;
+        top: 74px; left: 4%; right: 4%;
+        margin: 0 !important;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px;
+        border-radius: 18px;
+        background: rgba(12,12,18,0.97);
+        backdrop-filter: blur(20px);
+        box-shadow: 0 22px 55px rgba(0,0,0,0.55);
+        transform: translateY(-14px) scale(0.98);
+        opacity: 0; pointer-events: none;
+        transition: transform 0.3s var(--ease-out-back), opacity 0.25s ease;
+        z-index: 1100;
+        max-height: 78vh; overflow-y: auto;
+    }
+    .navbar.nav-open .nav-links-container.glass {
+        transform: translateY(0) scale(1);
+        opacity: 1; pointer-events: auto;
+    }
+    .nav-links-container .nav-btn {
+        width: 100%;
+        justify-content: flex-start;
+        padding: 14px 18px;
+        border-radius: 12px;
+        font-size: 1rem;
+    }
+    .nav-links-container .nav-btn span { display: inline !important; }
+    body.light-theme .nav-links-container.glass { background: rgba(244,244,255,0.98); }
+
+    .btn-account span { display: none; }
+    .content-wrapper { margin-top: 96px; padding: 0 4% 50px; }
+
+    /* tighten big section headers */
+    .accounts-header h2 { font-size: 2rem; }
+}
+
+@media (max-width: 540px) {
+    h1 { font-size: 2rem; line-height: 1.12; }
+    .af-hero h2, .dev-header h2, .updates-header h2,
+    .support-hero h2 { font-size: 1.8rem; }
+    .section-title { font-size: 1.7rem; }
+    p { font-size: 1.02rem; }
+
+    /* account cards */
+    .accounts-grid { grid-template-columns: 1fr; }
+    .acc-card-actions { flex-wrap: wrap; }
+    .acc-active-tag { top: 12px; right: 44px; font-size: 0.6rem; padding: 2px 8px; }
+    .account-card { padding: 20px; gap: 14px; }
+
+    /* active banner pieces stack cleanly */
+    .active-account-banner { padding: 26px 22px; }
+    .active-account-stats { gap: 22px; }
+    .active-account-uuid { max-width: 100%; }
+
+    /* admin rows wrap */
+    .admin-user-row { flex-wrap: wrap; }
+    .admin-role-select { margin-left: 50px; }
+
+    /* news editor rows wrap */
+    .news-item-row { flex-wrap: wrap; }
+    .nie-type, .nie-text { width: 100%; }
+
+    /* modals */
+    .dashboard-modal { padding: 32px 22px; }
+    .add-account-modal { padding: 30px 20px; }
+
+    /* timeline → full width, line to the left */
+    .updates-timeline { max-width: 100%; padding: 28px 4px 8px; overflow: hidden; }
+    .timeline-line { left: 14px; }
+    .timeline-item { justify-content: flex-start; margin-bottom: 44px; }
+    .timeline-card { width: calc(100% - 34px); margin-left: 34px; padding: 22px 18px; }
+    .date-badge { left: 34px; right: auto; top: -14px; transform: none; max-width: calc(100% - 40px); white-space: nowrap; }
+    .timeline-item:hover .date-badge { transform: scale(1.04); }
+    .timeline-item:hover .timeline-card { transform: none; }
+    .card-title { flex-wrap: wrap; }
+
+    /* FABs */
+    .theme-fab { width: 44px; height: 44px; bottom: 78px; right: 16px; font-size: 1rem; }
+    .scroll-to-top { width: 44px; height: 44px; right: 16px; bottom: 22px; }
+
+    /* support + forum */
+    .support-channels, .support-fixes { grid-template-columns: 1fr; }
+    .forum-post-card { padding: 18px; }
+
+    /* DEV "Write Update" button: flow below the header instead of overlapping it */
+    #devWriteNewsBtn { position: static !important; transform: none !important; margin-top: 14px; }
+    .updates-header { text-align: center; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE PERFORMANCE + POLISH
+   ════════════════════════════════════════════════════════════ */
+/* Touch devices: trim GPU-heavy background effects (blur is costly on phones) */
+@media (hover: none), (pointer: coarse) {
+    .light-bg-shapes .lbs { filter: blur(40px); opacity: 0.46; }
+    .lbs-5, .lbs-6 { display: none; }
+    .ambient-light { filter: blur(120px); opacity: 0.16; }
+    #particles-canvas { opacity: 0.55; }
+}
+
+@media (max-width: 820px) {
+    /* lighter nav blur + tidier hero rhythm */
+    .nav-links-container.glass { backdrop-filter: blur(16px); }
+    .hero-container { min-height: auto; padding-top: 8px; }
+    .launcher-ui { border-radius: 16px; }
+    .lu-hero { padding: 24px 22px; }
+    .lu-hero-title { font-size: 2.6rem; letter-spacing: 6px; }
+    .lu-dock-cell { padding: 12px 14px; }
+    .lu-play { padding: 11px 28px; }
+    .status-badge { margin-bottom: 1.4rem; }
+    h1 { letter-spacing: -0.5px; }
+    .cta-group { margin-top: 26px; }
+    .features-section { margin-top: 70px; }
+    .af-hero, .dev-header, .updates-header, .support-hero { margin-bottom: 36px; }
+}
+
+@media (max-width: 540px) {
+    /* Launcher mockup — stack the dock so account / instance / play never cram */
+    .lu-nav { flex-wrap: wrap; gap: 4px; }
+    .lu-nav-tab { padding: 7px 12px; letter-spacing: 1.2px; }
+    .lu-hero { min-height: 130px; padding: 22px 20px; }
+    .lu-hero-title { font-size: 2.1rem; letter-spacing: 4px; }
+    .lu-dock { flex-wrap: wrap; }
+    .lu-dock-account { flex: 1; border-right: none; }
+    .lu-dock-launch { justify-content: center; }
+    .lu-dock-instance { order: 3; flex-basis: 100%; border-right: none; border-top: 1px solid rgba(255,255,255,0.06); }
+    .lu-select { max-width: none; }
+    body.light-theme .lu-dock-instance { border-top-color: rgba(99,102,241,0.12); }
+
+    /* refined cards, banner & tap targets */
+    .active-account-name { font-size: 1.5rem; }
+    .active-account-avatar img { width: 68px; height: 68px; }
+    .acc-avatar img { width: 52px; height: 52px; }
+    .acc-card-name { font-size: 0.98rem; }
+    .acc-card-meta { gap: 12px; }
+    .btn-add-account { padding: 12px 22px; font-size: 0.92rem; }
+    .accounts-header { gap: 14px; }
+    .acc-btn-select, .acc-btn-delete { padding: 9px 14px; }
+    .faq-q { padding: 16px 18px; font-size: 0.95rem; }
+    .footer-inner { padding: 28px 22px 18px; gap: 18px; }
+    .footer-links { justify-content: center; }
+    /* keep hero heading from getting too tall */
+    h1 { font-size: 1.95rem; }
+    .hero-text-block p { font-size: 0.98rem; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   TOAST
+   ════════════════════════════════════════════════════════════ */
+.toast-host {
+    position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%);
+    z-index: 6000; display: flex; flex-direction: column; gap: 10px;
+    align-items: center; pointer-events: none;
+}
+.toast {
+    display: inline-flex; align-items: center; gap: 11px;
+    padding: 13px 20px; border-radius: 14px;
+    background: rgba(17,18,30,0.92); border: 1px solid rgba(99,102,241,0.30);
+    color: #e6e9ff; font-size: 0.9rem; font-weight: 600;
+    box-shadow: 0 16px 44px rgba(5,6,20,0.55); backdrop-filter: blur(14px);
+    opacity: 0; transform: translateY(16px) scale(0.97);
+    transition: opacity 0.4s var(--ease-smooth), transform 0.45s var(--ease-out-back);
+}
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
+.toast i { color: #818cf8; font-size: 1.05rem; }
+body.light-theme .toast {
+    background: rgba(255,255,255,0.96); border-color: rgba(99,102,241,0.25);
+    color: #1e1b4b; box-shadow: 0 16px 44px rgba(99,102,241,0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LIGHTWEIGHT MODE  (applied via <html class="lite-mode">)
+   Strips the GPU/CPU-heavy effects for weak devices so the page
+   stays smooth and doesn't glitch.
+   ═══════════════════════════════════════════════════════════ */
+/* Kill the decorative background layers entirely */
+html.lite-mode #particles-canvas,
+html.lite-mode .bg-gradient-overlay,
+html.lite-mode .vignette,
+html.lite-mode .ambient-light,
+html.lite-mode .light-bg-shapes {
+    display: none !important;
+}
+
+/* Remove blur compositing and continuous animations everywhere */
+html.lite-mode *,
+html.lite-mode *::before,
+html.lite-mode *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+    background-attachment: scroll !important;
+    will-change: auto !important;
+}
+
+/* Keep functional loading spinners turning (cheap GPU transform) */
+html.lite-mode .spin-loader {
+    animation: spin 0.8s linear infinite !important;
+}
+
+/* Drop expensive blur() filters (glows, soft shadows via filter) */
+html.lite-mode .af-card-glow,
+html.lite-mode .lu-hero-bg,
+html.lite-mode .hero-visual-block::before,
+html.lite-mode .hero-visual-block::after {
+    filter: none !important;
+    opacity: 0.5 !important;
+}
+
+/* Glass panels lose their blur, so give them a readable solid fill */
+html.lite-mode .glass,
+html.lite-mode .glass-nav,
+html.lite-mode .navbar {
+    background: rgba(18, 18, 24, 0.95) !important;
+}
+html.lite-mode body.light-theme .glass,
+html.lite-mode body.light-theme .glass-nav,
+html.lite-mode body.light-theme .navbar {
+    background: rgba(248, 249, 255, 0.97) !important;
+}
+
+/* Trim heavy transition work down to quick, cheap fades */
+html.lite-mode .animate-on-scroll {
+    transition: opacity 0.25s ease !important;
+    transform: none !important;
+}
+html.lite-mode .animate-on-scroll.visible { transform: none !important; }
+
+/* The 3D tilt/magnetic transforms are disabled in JS; neutralise any
+   inline transform left behind */
+html.lite-mode .tilt-card-lg,
+html.lite-mode .tilt-card-sm,
+html.lite-mode .magnetic-btn {
+    transform: none !important;
+}
+
+/* ── Lightweight-mode warning banner ──────────────────────── */
+.lite-banner {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%) translateY(140%);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: min(560px, calc(100vw - 32px));
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: rgba(18, 18, 24, 0.96);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: #f8fafc;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+    transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s ease;
+    opacity: 0;
+}
+.lite-banner.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.lite-banner .lite-banner-icon { color: #f59e0b; font-size: 1.15rem; flex-shrink: 0; }
+.lite-banner .lite-banner-text { flex: 1; }
+.lite-banner .lite-banner-text strong { color: #fbbf24; }
+.lite-banner .lite-banner-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.lite-banner button {
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 9px;
+    border: 1px solid transparent;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.lite-banner .lite-banner-full {
+    padding: 7px 12px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #1a1206;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.lite-banner .lite-banner-full:hover { filter: brightness(1.08); }
+.lite-banner .lite-banner-close {
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+    color: #9ca3af;
+    border-color: rgba(255, 255, 255, 0.12);
+}
+.lite-banner .lite-banner-close:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+body.light-theme .lite-banner {
+    background: rgba(255, 255, 255, 0.98);
+    color: #1e1b4b;
+    box-shadow: 0 14px 40px rgba(99, 102, 241, 0.18);
+}
+body.light-theme .lite-banner .lite-banner-close { color: #6b7280; border-color: rgba(0,0,0,0.12); }
+
+/* ── Lightweight-mode toggle FAB ──────────────────────────── */
+.lite-fab {
+    position: fixed;
+    bottom: 154px;
+    right: 30px;
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: rgba(99,102,241,0.18);
+    border: 1px solid rgba(99,102,241,0.35);
+    color: #a5b4fc;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    z-index: 998;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.25);
+    transition: transform 0.35s var(--ease-out-back), background 0.25s ease, box-shadow 0.25s ease, color 0.25s ease;
+}
+.lite-fab:hover {
+    background: rgba(99,102,241,0.3);
+    transform: scale(1.12);
+    box-shadow: 0 6px 28px rgba(99,102,241,0.4);
+}
+/* When lite mode is active, light up the FAB so its state is obvious */
+html.lite-mode .lite-fab {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.28);
+}
+body.light-theme .lite-fab { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.28); color: #6366f1; box-shadow: 0 4px 18px rgba(99,102,241,0.15); }
+html.lite-mode body.light-theme .lite-fab { background: rgba(245,158,11,0.16); border-color: rgba(245,158,11,0.4); color: #b45309; }
+
+@media (max-width: 768px) {
+    .lite-fab { width: 44px; height: 44px; bottom: 134px; right: 16px; font-size: 1rem; }
+    .lite-banner { font-size: 0.82rem; padding: 10px 12px; gap: 8px; }
+    .lite-banner .lite-banner-full { padding: 6px 10px; }
+}
+

@@ -1,0 +1,551 @@
+/* ============================================================
+   SPECTRAL MATERIAL SYSTEM
+   One surface language for navigation, cards, forms and dialogs.
+   ============================================================ */
+:root {
+    color-scheme: dark;
+    --material-canvas: #070914;
+    --material-surface-a: rgba(22, 26, 53, .76);
+    --material-surface-b: rgba(7, 10, 25, .84);
+    --material-surface-strong-a: rgba(18, 22, 46, .92);
+    --material-surface-strong-b: rgba(6, 9, 22, .96);
+    --material-surface-soft: rgba(255, 255, 255, .035);
+    --material-control: rgba(5, 8, 22, .48);
+    --material-solid: #0d1122;
+    --material-border: rgba(201, 209, 255, .105);
+    --material-border-strong: rgba(145, 158, 255, .24);
+    --material-highlight: rgba(255, 255, 255, .075);
+    --material-focus: rgba(129, 140, 248, .58);
+    --material-shadow: 0 26px 72px rgba(0, 0, 0, .28), 0 5px 18px rgba(1, 3, 16, .18), inset 0 1px var(--material-highlight);
+    --material-shadow-soft: 0 16px 42px rgba(0, 0, 0, .18), inset 0 1px rgba(255, 255, 255, .055);
+    --material-shadow-hover: 0 30px 78px rgba(0, 0, 0, .32), 0 0 0 1px rgba(129, 140, 248, .055), inset 0 1px rgba(255, 255, 255, .1);
+    --material-blur: blur(24px) saturate(140%);
+    --material-blur-strong: blur(34px) saturate(150%);
+    --material-radius-xl: 30px;
+    --material-radius-lg: 22px;
+    --material-radius-md: 15px;
+    --glass-bg: var(--material-surface-a);
+    --glass-border: var(--material-border);
+}
+
+body.light-theme {
+    color-scheme: light;
+    --material-canvas: #e8ebf8;
+    --material-surface-a: rgba(255, 255, 255, .74);
+    --material-surface-b: rgba(237, 241, 255, .78);
+    --material-surface-strong-a: rgba(255, 255, 255, .92);
+    --material-surface-strong-b: rgba(241, 244, 255, .94);
+    --material-surface-soft: rgba(255, 255, 255, .52);
+    --material-control: rgba(255, 255, 255, .64);
+    --material-solid: #f7f8ff;
+    --material-border: rgba(73, 88, 165, .145);
+    --material-border-strong: rgba(76, 94, 192, .25);
+    --material-highlight: rgba(255, 255, 255, .92);
+    --material-focus: rgba(79, 70, 229, .42);
+    --material-shadow: 0 25px 65px rgba(65, 76, 139, .14), 0 4px 16px rgba(76, 88, 151, .07), inset 0 1px var(--material-highlight);
+    --material-shadow-soft: 0 14px 38px rgba(70, 82, 145, .1), inset 0 1px rgba(255, 255, 255, .88);
+    --material-shadow-hover: 0 28px 68px rgba(66, 79, 148, .17), 0 0 0 1px rgba(78, 96, 195, .05), inset 0 1px #fff;
+    --glass-bg: var(--material-surface-a);
+    --glass-border: var(--material-border);
+}
+
+body {
+    background-color: var(--material-canvas);
+    background-image:
+        radial-gradient(900px circle at 12% -10%, rgba(92, 99, 230, .105), transparent 62%),
+        radial-gradient(760px circle at 92% 12%, rgba(35, 154, 198, .055), transparent 66%),
+        linear-gradient(155deg, #070914, #050711 52%, #080a16);
+    background-attachment: fixed;
+}
+
+body.light-theme {
+    background-image:
+        radial-gradient(850px circle at 8% -10%, rgba(112, 124, 235, .24), transparent 64%),
+        radial-gradient(760px circle at 96% 12%, rgba(73, 177, 216, .14), transparent 68%),
+        linear-gradient(155deg, #eff1fc, #e4e8f8 54%, #ececf9);
+}
+
+/* True frosted glass: translucent body, crisp rim and internal light. */
+.glass,
+.glass-nav,
+.glass-modal {
+    border-color: var(--material-border);
+    background:
+        linear-gradient(135deg, var(--material-highlight), transparent 34%),
+        linear-gradient(155deg, var(--material-surface-a), var(--material-surface-b));
+    box-shadow: var(--material-shadow);
+    -webkit-backdrop-filter: var(--material-blur);
+    backdrop-filter: var(--material-blur);
+}
+
+.glass-modal {
+    background:
+        radial-gradient(520px circle at 8% 0%, rgba(99, 102, 241, .13), transparent 60%),
+        linear-gradient(145deg, var(--material-surface-strong-a), var(--material-surface-strong-b));
+    -webkit-backdrop-filter: var(--material-blur-strong);
+    backdrop-filter: var(--material-blur-strong);
+}
+
+.navbar {
+    background: linear-gradient(to bottom, rgba(7, 9, 20, .82), rgba(7, 9, 20, .34) 66%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(135%);
+    backdrop-filter: blur(18px) saturate(135%);
+}
+
+body.light-theme .navbar {
+    background: linear-gradient(to bottom, rgba(239, 242, 253, .86), rgba(239, 242, 253, .4) 68%, transparent);
+}
+
+.nav-links-container.glass {
+    border-color: var(--material-border);
+    background:
+        linear-gradient(135deg, var(--material-highlight), transparent 38%),
+        linear-gradient(150deg, var(--material-surface-strong-a), var(--material-surface-strong-b));
+    box-shadow: var(--material-shadow-soft);
+}
+
+/* Primary section surfaces share the same depth and rim. */
+.updates-header,
+.dev-hero,
+.af-showcase,
+.support-cta,
+.active-account-banner {
+    border-color: var(--material-border);
+    box-shadow: var(--material-shadow);
+}
+
+.updates-header {
+    background:
+        radial-gradient(650px circle at 7% -15%, rgba(99, 102, 241, .25), transparent 60%),
+        radial-gradient(440px circle at 100% 110%, rgba(41, 174, 220, .13), transparent 60%),
+        linear-gradient(145deg, var(--material-surface-strong-a), var(--material-surface-strong-b));
+}
+
+.dev-hero {
+    background:
+        radial-gradient(700px circle at 10% 3%, rgba(99, 102, 241, .26), transparent 62%),
+        radial-gradient(520px circle at 94% 92%, rgba(46, 180, 214, .13), transparent 62%),
+        linear-gradient(145deg, var(--material-surface-strong-a), var(--material-surface-strong-b));
+}
+
+.af-showcase,
+.support-cta,
+.active-account-banner {
+    background:
+        radial-gradient(440px circle at 90% 0%, rgba(99, 102, 241, .14), transparent 64%),
+        linear-gradient(150deg, var(--material-surface-a), var(--material-surface-b));
+    -webkit-backdrop-filter: var(--material-blur);
+    backdrop-filter: var(--material-blur);
+}
+
+/* Cards and work surfaces use a common two-layer laminate. */
+.feature-card,
+.account-card,
+.acc-panel,
+.accounts-stats-strip,
+.support-channel,
+.fix-card,
+.faq-item,
+.forum-post-card,
+.forum-empty-state,
+.af-card,
+.tech-card,
+.dev-pipeline,
+.dev-profile,
+.dev-system-panel,
+.dev-code-notes,
+.code-editor,
+.timeline-card,
+.updates-toolbar,
+.updates-featured,
+.profile-preferences,
+.admin-command-head,
+.admin-user-inspector,
+.admin-user-row,
+.admin-forum-item,
+.admin-stat-box,
+.admin-overview > div {
+    border-color: var(--material-border);
+    background:
+        linear-gradient(140deg, rgba(255, 255, 255, .045), transparent 34%),
+        linear-gradient(155deg, var(--material-surface-a), var(--material-surface-b));
+    box-shadow: var(--material-shadow-soft);
+}
+
+.acc-panel,
+.accounts-stats-strip,
+.dev-pipeline,
+.dev-system-panel,
+.dev-code-notes,
+.code-editor,
+.updates-toolbar,
+.profile-preferences,
+.admin-command-head,
+.admin-user-inspector {
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
+    backdrop-filter: blur(18px) saturate(130%);
+}
+
+.feature-card,
+.account-card,
+.support-channel,
+.fix-card,
+.forum-post-card,
+.af-card,
+.tech-card,
+.timeline-card {
+    transition: transform .38s var(--motion-fluid), border-color .28s ease, background .3s ease, box-shadow .38s ease;
+}
+
+.feature-card:hover,
+.account-card:hover,
+.support-channel:hover,
+.fix-card:hover,
+.forum-post-card:hover,
+.af-card:hover,
+.tech-card:hover,
+.timeline-card:hover {
+    border-color: var(--material-border-strong);
+    box-shadow: var(--material-shadow-hover);
+}
+
+.feature-card:hover,
+.account-card:hover,
+.support-channel:hover,
+.fix-card:hover,
+.forum-post-card:hover,
+.af-card:hover {
+    transform: translateY(-4px);
+}
+
+.timeline-card.is-current,
+.feature-card.is-active,
+.tech-card.active,
+.account-card.is-active {
+    border-color: rgba(129, 140, 248, .32);
+    box-shadow: 0 24px 65px rgba(6, 8, 27, .25), 0 0 0 1px rgba(129, 140, 248, .07), inset 0 1px rgba(255, 255, 255, .085);
+}
+
+/* Smaller inset surfaces and tags are made from the same soft material. */
+.updates-overview div,
+.acc-stat,
+.p-stat-chip,
+.release-version,
+.release-change-count,
+.release-action,
+.af-card-tags span,
+.dev-stage small,
+.dev-system-contract,
+.admin-inspector-access,
+.admin-inspector-stats > div,
+.profile-preference-row,
+.acc-type-card {
+    border-color: var(--material-border);
+    background: var(--material-surface-soft);
+    box-shadow: inset 0 1px rgba(255, 255, 255, .035);
+}
+
+.f-icon,
+.sc-icon,
+.fix-icon,
+.updates-featured-icon,
+.news-editor-icon,
+.profile-preference-icon,
+.auth-icon-box,
+.ln-icon,
+.tech-icon {
+    box-shadow: inset 0 1px rgba(255, 255, 255, .1), 0 9px 24px rgba(1, 3, 16, .15);
+}
+
+/* Segmented controls, search and form controls now feel related. */
+.profile-tabs,
+.admin-subtabs,
+.updates-filters,
+.admin-forum-filters {
+    border: 1px solid var(--material-border);
+    background: rgba(5, 8, 22, .3);
+    box-shadow: inset 0 1px rgba(255, 255, 255, .035);
+}
+
+.input-group-animated input,
+#forumPostText,
+.news-field input,
+.news-field select,
+.news-field textarea,
+.nie-type,
+.nie-text,
+.friend-add-input,
+.updates-search,
+.admin-search-field,
+.admin-users-toolbar .admin-role-filter,
+.admin-role-select,
+.admin-bulk-bar select {
+    border-color: var(--material-border);
+    background-color: var(--material-control);
+    box-shadow: inset 0 1px rgba(255, 255, 255, .035);
+}
+
+.input-group-animated input:focus,
+#forumPostText:focus,
+.news-field input:focus,
+.news-field select:focus,
+.news-field textarea:focus,
+.nie-type:focus,
+.nie-text:focus,
+.friend-add-input:focus-within,
+.updates-search:focus-within,
+.admin-search-field:focus-within,
+.admin-role-select:focus,
+.admin-role-filter:focus {
+    outline: none;
+    border-color: var(--material-focus);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, .1), inset 0 1px rgba(255, 255, 255, .055);
+}
+
+.input-group-animated input:focus + label,
+.input-group-animated input:not(:placeholder-shown) + label {
+    border-radius: 6px;
+    background: var(--material-solid);
+}
+
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid rgba(165, 180, 252, .88);
+    outline-offset: 3px;
+}
+
+.btn-primary,
+.btn-submit-login,
+.btn-save-profile,
+.dev-primary-action,
+.ln-signin-btn {
+    box-shadow: 0 13px 30px rgba(72, 76, 205, .24), inset 0 1px rgba(255, 255, 255, .2);
+}
+
+.btn-secondary,
+.dev-secondary-action,
+.updates-featured-open,
+.release-action {
+    border-color: var(--material-border);
+    background: var(--material-surface-soft);
+    box-shadow: inset 0 1px rgba(255, 255, 255, .05);
+}
+
+.site-footer {
+    border-top-color: var(--material-border);
+    background: linear-gradient(to bottom, rgba(8, 11, 27, .62), rgba(5, 7, 17, .86));
+    -webkit-backdrop-filter: blur(20px) saturate(130%);
+    backdrop-filter: blur(20px) saturate(130%);
+}
+
+.footer-social a {
+    border-color: var(--material-border);
+    background: var(--material-surface-soft);
+    box-shadow: inset 0 1px rgba(255, 255, 255, .045);
+}
+
+/* Light materials keep translucency and depth instead of turning flat white. */
+body.light-theme .updates-header,
+body.light-theme .dev-hero {
+    border-color: var(--material-border);
+    box-shadow: var(--material-shadow);
+}
+
+body.light-theme .updates-header {
+    background:
+        radial-gradient(620px circle at 5% -15%, rgba(111, 124, 237, .2), transparent 60%),
+        radial-gradient(430px circle at 100% 105%, rgba(67, 177, 216, .13), transparent 62%),
+        linear-gradient(145deg, var(--material-surface-strong-a), var(--material-surface-strong-b));
+}
+
+body.light-theme .dev-hero {
+    background:
+        radial-gradient(690px circle at 9% 0%, rgba(111, 124, 237, .2), transparent 62%),
+        radial-gradient(500px circle at 94% 92%, rgba(67, 177, 216, .12), transparent 62%),
+        linear-gradient(145deg, var(--material-surface-strong-a), var(--material-surface-strong-b));
+}
+
+body.light-theme .af-showcase,
+body.light-theme .support-cta,
+body.light-theme .active-account-banner,
+body.light-theme .dashboard-modal.admin-wide {
+    border-color: var(--material-border);
+    background:
+        radial-gradient(460px circle at 90% 0%, rgba(99, 102, 241, .12), transparent 64%),
+        linear-gradient(150deg, var(--material-surface-a), var(--material-surface-b));
+    box-shadow: var(--material-shadow);
+}
+
+body.light-theme .feature-card,
+body.light-theme .account-card,
+body.light-theme .acc-panel,
+body.light-theme .accounts-stats-strip,
+body.light-theme .support-channel,
+body.light-theme .fix-card,
+body.light-theme .faq-item,
+body.light-theme .forum-post-card,
+body.light-theme .forum-empty-state,
+body.light-theme .af-card,
+body.light-theme .tech-card,
+body.light-theme .dev-pipeline,
+body.light-theme .dev-profile,
+body.light-theme .dev-system-panel,
+body.light-theme .dev-code-notes,
+body.light-theme .code-editor,
+body.light-theme .timeline-card,
+body.light-theme .updates-toolbar,
+body.light-theme .updates-featured,
+body.light-theme .profile-preferences,
+body.light-theme .admin-command-head,
+body.light-theme .admin-user-inspector,
+body.light-theme .admin-user-row,
+body.light-theme .admin-forum-item,
+body.light-theme .admin-stat-box,
+body.light-theme .admin-overview > div {
+    border-color: var(--material-border);
+    background:
+        linear-gradient(140deg, rgba(255, 255, 255, .72), transparent 36%),
+        linear-gradient(155deg, var(--material-surface-a), var(--material-surface-b));
+    box-shadow: var(--material-shadow-soft);
+}
+
+body.light-theme .profile-tabs,
+body.light-theme .admin-subtabs,
+body.light-theme .updates-filters,
+body.light-theme .admin-forum-filters {
+    border-color: var(--material-border);
+    background: rgba(255, 255, 255, .48);
+}
+
+body.light-theme .nav-links-container.glass {
+    border-color: var(--material-border);
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, .9), transparent 38%),
+        linear-gradient(150deg, var(--material-surface-strong-a), var(--material-surface-strong-b));
+    box-shadow: var(--material-shadow-soft);
+}
+
+body.light-theme .dashboard-modal.glass-modal,
+body.light-theme .add-account-modal.glass-modal,
+body.light-theme .friend-info-modal.glass-modal,
+body.light-theme .confirm-modal.glass-modal {
+    border-color: var(--material-border);
+    background:
+        radial-gradient(520px circle at 8% 0%, rgba(99, 102, 241, .11), transparent 60%),
+        linear-gradient(145deg, var(--material-surface-strong-a), var(--material-surface-strong-b));
+    box-shadow: var(--material-shadow);
+}
+
+body.light-theme .active-account-banner.glass,
+body.light-theme .fix-card.glass {
+    border-color: var(--material-border) !important;
+    background:
+        linear-gradient(140deg, rgba(255, 255, 255, .72), transparent 36%),
+        linear-gradient(155deg, var(--material-surface-a), var(--material-surface-b)) !important;
+}
+
+body.light-theme .site-footer {
+    background: linear-gradient(to bottom, rgba(244, 246, 255, .68), rgba(235, 238, 250, .9));
+}
+
+/* Mobile glass is a little calmer so text stays crisp on small screens. */
+@media (max-width: 620px) {
+    :root {
+        --material-blur: blur(17px) saturate(128%);
+        --material-blur-strong: blur(22px) saturate(134%);
+        --material-shadow: 0 18px 48px rgba(0, 0, 0, .24), inset 0 1px var(--material-highlight);
+        --material-shadow-soft: 0 11px 30px rgba(0, 0, 0, .15), inset 0 1px rgba(255, 255, 255, .05);
+        --material-radius-xl: 24px;
+        --material-radius-lg: 19px;
+    }
+
+    .updates-header,
+    .dev-hero,
+    .af-showcase,
+    .support-cta,
+    .active-account-banner { border-radius: var(--material-radius-xl); }
+
+    .feature-card,
+    .account-card,
+    .acc-panel,
+    .support-channel,
+    .fix-card,
+    .af-card,
+    .timeline-card,
+    .dev-pipeline,
+    .dev-system-panel { border-radius: var(--material-radius-lg); }
+}
+
+/* Lightweight mode keeps the hierarchy, but removes GPU-heavy optics. */
+html.lite-mode {
+    --material-surface-a: #111522;
+    --material-surface-b: #0d111c;
+    --material-surface-strong-a: #121725;
+    --material-surface-strong-b: #0d111c;
+    --material-control: #0b0f19;
+    --material-shadow: none;
+    --material-shadow-soft: none;
+    --material-shadow-hover: none;
+}
+
+html.lite-mode body.light-theme {
+    --material-surface-a: #f7f8fd;
+    --material-surface-b: #eef1f9;
+    --material-surface-strong-a: #fafbff;
+    --material-surface-strong-b: #f1f3fa;
+    --material-control: #fff;
+}
+
+html.lite-mode .glass,
+html.lite-mode .glass-nav,
+html.lite-mode .glass-modal,
+html.lite-mode .updates-header,
+html.lite-mode .dev-hero,
+html.lite-mode .af-showcase,
+html.lite-mode .support-cta,
+html.lite-mode .active-account-banner,
+html.lite-mode .feature-card,
+html.lite-mode .account-card,
+html.lite-mode .acc-panel,
+html.lite-mode .accounts-stats-strip,
+html.lite-mode .support-channel,
+html.lite-mode .fix-card,
+html.lite-mode .faq-item,
+html.lite-mode .forum-post-card,
+html.lite-mode .af-card,
+html.lite-mode .tech-card,
+html.lite-mode .dev-pipeline,
+html.lite-mode .dev-profile,
+html.lite-mode .dev-system-panel,
+html.lite-mode .dev-code-notes,
+html.lite-mode .code-editor,
+html.lite-mode .timeline-card,
+html.lite-mode .updates-toolbar,
+html.lite-mode .updates-featured,
+html.lite-mode .profile-preferences,
+html.lite-mode .admin-command-head,
+html.lite-mode .admin-user-inspector,
+html.lite-mode .admin-user-row,
+html.lite-mode .admin-forum-item,
+html.lite-mode .admin-stat-box {
+    background-image: none !important;
+    background-color: var(--material-surface-a) !important;
+    box-shadow: none !important;
+}
+
+html.lite-mode .navbar,
+html.lite-mode .site-footer {
+    background-image: none !important;
+    background-color: var(--material-surface-b) !important;
+    box-shadow: none !important;
+}
+
+html.lite-mode body.light-theme .navbar,
+html.lite-mode body.light-theme .site-footer {
+    background-color: var(--material-surface-b) !important;
+}
+

@@ -1,0 +1,83 @@
+/* Account workspace follows the site's charcoal, indigo and magenta palette. */
+.dashboard-modal.profile-wide.glass-modal {
+  --workspace-edge: rgba(145, 142, 245, .21);
+  --workspace-ink: #f5f4ff;
+  --workspace-muted: #a9a9c3;
+  border-color: var(--workspace-edge);
+  background: linear-gradient(145deg, rgba(17, 17, 38, .96), rgba(7, 8, 22, .97)) !important;
+  -webkit-backdrop-filter: blur(30px) saturate(120%);
+  backdrop-filter: blur(30px) saturate(120%);
+  box-shadow: 0 34px 110px rgba(1, 2, 12, .78), inset 0 1px rgba(255, 255, 255, .07);
+}
+.account-hub-head {
+  background: linear-gradient(105deg, rgba(39, 36, 91, .88), rgba(17, 19, 48, .88) 63%, rgba(46, 21, 67, .82)) !important;
+  border-bottom-color: rgba(151, 143, 250, .17);
+}
+.account-hub-head::before { background: linear-gradient(90deg, #7775ff, #aa75f3 62%, #eb63b1); }
+.account-hub-mark { background: linear-gradient(145deg, #8582ff, #5a4cc9); }
+.account-hub-person, .account-hub-close {
+  border-color: rgba(177, 171, 255, .22);
+  background: rgba(12, 13, 35, .52);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.dashboard-modal.profile-wide #profileTabs,
+.dashboard-modal.profile-wide.admin-wide #profileTabs,
+.dashboard-modal.profile-wide.store-wide #profileTabs {
+  border-right-color: rgba(143, 136, 235, .16);
+  background: linear-gradient(180deg, rgba(27, 26, 65, .86), rgba(10, 11, 31, .94)) !important;
+}
+.dashboard-modal.profile-wide #profileTabs .profile-tab.active {
+  border-color: rgba(151, 137, 252, .46);
+  background: linear-gradient(105deg, rgba(91, 83, 198, .32), rgba(126, 67, 163, .13));
+  box-shadow: inset 3px 0 #a99aff, 0 8px 20px rgba(4, 3, 25, .32);
+}
+#profileTabs .profile-tab>i:first-child { background: rgba(102, 100, 210, .18); color: #b6adff; }
+#profileTabs .profile-tab.active>i:first-child { background: linear-gradient(145deg, #8882ff, #6054ca); }
+#profileView>.ptab-content {
+  background: radial-gradient(70% 48% at 82% 0%, rgba(97, 75, 207, .11), transparent 72%), rgba(6, 7, 20, .74) !important;
+}
+#profileView #profileStatChips .p-stat-chip,
+.account-editor, .account-session-card, .profile-preferences, .profile-role-spotlight,
+.roles-v2-entitlements article, .role-v2-card, .roles-v2-compare,
+.admin-v2-metrics>div, .admin-v2-user, .admin-v2-inspector,
+.admin-v2-forum article, .admin-v2-audit article, .admin-v2-analytics-grid article {
+  border-color: rgba(147, 142, 239, .18);
+  background: linear-gradient(150deg, rgba(34, 32, 73, .72), rgba(16, 17, 40, .84));
+  box-shadow: inset 0 1px rgba(255, 255, 255, .065), 0 12px 32px rgba(2, 2, 15, .2);
+}
+.profile-preference-row { border-color: rgba(147, 142, 239, .17); background: rgba(28, 28, 63, .64); }
+.account-live-preview, .profile-role-spotlight { background: linear-gradient(110deg, rgba(80, 72, 160, .29), rgba(35, 33, 82, .73)); }
+.account-field input, .account-field textarea { border-color: rgba(147, 142, 239, .23); background: rgba(8, 9, 28, .68); }
+.roles-v2-hero, .admin-v2-header {
+  border-color: rgba(151, 137, 251, .28);
+  background: radial-gradient(circle at 79% 30%, rgba(144, 83, 230, .24), transparent 36%), linear-gradient(112deg, rgba(55, 47, 125, .8), rgba(24, 24, 62, .91) 60%, rgba(56, 27, 78, .75)) !important;
+}
+.roles-v2-current { border-color: rgba(168, 154, 251, .32); background: rgba(15, 15, 41, .56); }
+.roles-v2-cycle, .admin-v2-nav { border-color: rgba(145, 139, 235, .19); background: rgba(12, 13, 34, .65); }
+.role-v2-card.featured { border-color: rgba(176, 142, 255, .45); background: linear-gradient(150deg, rgba(84, 62, 150, .52), rgba(30, 27, 69, .84)); }
+.admin-v2-nav button.active { border-color: rgba(161, 147, 250, .49); background: linear-gradient(110deg, rgba(105, 88, 216, .38), rgba(112, 61, 162, .23)); box-shadow: inset 0 -2px #ab8fff; }
+.admin-v2-user.is-inspected { border-color: rgba(164, 149, 255, .5); background: rgba(79, 68, 158, .25); }
+.admin-v2-toolbar :is(label, select), .admin-v2-forum-tools label { border-color: rgba(153, 143, 237, .26); background: rgba(17, 17, 43, .76); }
+.roles-v2-hero p, .admin-v2-header p, .workspace-section-heading p,
+.profile-preference-copy small, .account-session-summary p { color: var(--workspace-muted); }
+
+/* Daylight workspace keeps transparent surfaces, while role scenes retain their identity. */
+body.light-theme .dashboard-modal.profile-wide.glass-modal { --workspace-muted:#566084; border-color:rgba(91, 83, 173, .19); background:linear-gradient(145deg,rgba(249,248,255,.97),rgba(239,241,252,.97)) !important; }
+body.light-theme .account-hub-head { background:linear-gradient(105deg,rgba(235,232,255,.95),rgba(246,244,255,.94) 64%,rgba(250,234,249,.9)) !important; border-bottom-color:rgba(105,95,184,.15); }
+body.light-theme .dashboard-modal.profile-wide #profileTabs,
+body.light-theme .dashboard-modal.profile-wide.admin-wide #profileTabs,
+body.light-theme .dashboard-modal.profile-wide.store-wide #profileTabs { border-right-color:rgba(105,95,184,.15); background:linear-gradient(180deg,rgba(238,235,253,.92),rgba(246,246,253,.94)) !important; }
+body.light-theme .dashboard-modal.profile-wide #profileTabs .profile-tab.active { border-color:rgba(114,99,208,.37); background:linear-gradient(105deg,rgba(140,127,239,.22),rgba(215,151,218,.13)); box-shadow:inset 3px 0 #7d6ce4; }
+body.light-theme #profileView>.ptab-content { background:radial-gradient(70% 45% at 82% 0%,rgba(130,110,222,.1),transparent 73%),rgba(249,248,255,.86) !important; }
+body.light-theme #profileView #profileStatChips .p-stat-chip,
+body.light-theme :is(.account-editor,.account-session-card,.profile-preferences,.profile-role-spotlight,.roles-v2-entitlements article,.role-v2-card,.roles-v2-compare,.admin-v2-metrics>div,.admin-v2-user,.admin-v2-inspector,.admin-v2-forum article,.admin-v2-audit article,.admin-v2-analytics-grid article) { border-color:rgba(112,105,187,.17); background:linear-gradient(145deg,rgba(255,255,255,.89),rgba(248,247,255,.85)); }
+body.light-theme .profile-preference-row { background:rgba(250,249,255,.82); border-color:rgba(112,105,187,.16); }
+body.light-theme .account-live-preview, body.light-theme .profile-role-spotlight { background:linear-gradient(110deg,rgba(227,223,255,.83),rgba(245,237,253,.83)); }
+body.light-theme .roles-v2-hero, body.light-theme .admin-v2-header { border-color:rgba(122,107,207,.25); background:radial-gradient(circle at 79% 30%,rgba(161,127,241,.17),transparent 38%),linear-gradient(112deg,#e9e5fb,#f6f3fe 62%,#f8e9f6) !important; }
+body.light-theme .roles-v2-current { background:rgba(255,255,255,.65); border-color:rgba(122,107,207,.23); }
+body.light-theme .roles-v2-cycle, body.light-theme .admin-v2-nav { background:rgba(236,233,251,.78); border-color:rgba(112,105,187,.16); }
+body.light-theme .role-v2-card.featured { border-color:rgba(139,104,205,.4); background:linear-gradient(145deg,rgba(234,225,255,.93),rgba(247,239,255,.89)); }
+body.light-theme .admin-v2-nav button.active { border-color:rgba(123,103,207,.39); background:linear-gradient(110deg,rgba(185,172,248,.3),rgba(223,183,228,.22)); }
+body.light-theme .admin-v2-user.is-inspected { border-color:rgba(123,103,207,.38); background:rgba(233,226,253,.75); }
+

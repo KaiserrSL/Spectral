@@ -1,0 +1,189 @@
+/* Account, roles and administration share one Spectral control language. */
+:root{
+  --account-ink:#f2f5ff;
+  --account-dim:#abb9d3;
+  --account-violet:#a99cff;
+  --account-mint:#70dfd0;
+  --account-stroke:rgba(179,196,239,.2);
+  --account-ease:cubic-bezier(.22,1,.36,1);
+}
+
+/* Authentication: a clear entry point in either theme. */
+.dashboard-modal.glass-modal:not(.profile-wide){
+  overflow:hidden;
+  border-radius:25px;
+  background:radial-gradient(circle at 50% -12%,rgba(144,132,255,.23),transparent 48%),linear-gradient(165deg,#18243d,#0d1429 65%,#0b1223)!important;
+}
+.dashboard-modal:not(.profile-wide)::before{
+  content:"";position:absolute;inset:0 0 auto;height:3px;
+  background:linear-gradient(90deg,transparent 6%,var(--account-violet) 43%,var(--account-mint) 71%,transparent 94%);
+  opacity:.82;pointer-events:none;
+}
+.dashboard-modal:not(.profile-wide) .auth-icon-box{transform:rotate(-5deg);animation:accountMarkIn .55s var(--account-ease) both}
+.dashboard-modal:not(.profile-wide) :is(.input-group-animated input,.btn-google,.btn-submit-login){transition:transform .2s var(--account-ease),box-shadow .25s ease,border-color .2s ease,background-color .2s ease}
+.dashboard-modal:not(.profile-wide) :is(.btn-google,.btn-submit-login):active{transform:translateY(1px) scale(.99)}
+.dashboard-modal:not(.profile-wide) .close-dashboard{border-radius:12px;transition:transform .25s var(--account-ease),background-color .2s ease}
+.dashboard-modal:not(.profile-wide) .close-dashboard:hover{transform:rotate(90deg)}
+#authView:has(#googleLoginBtn[hidden]) .auth-divider,
+#registerView:has(#googleRegisterBtn[hidden]) .auth-divider{display:none}
+
+/* A quieter frame lets the profile artwork and controls carry the identity. */
+.dashboard-modal.profile-wide.glass-modal{border-color:var(--account-stroke);border-radius:25px;box-shadow:0 35px 100px rgba(2,6,22,.54),0 0 0 1px rgba(255,255,255,.035)}
+.account-hub-head{min-height:82px;background:linear-gradient(110deg,#202b49,#17233d 62%,#133640)!important}
+.account-hub-head::before{height:3px;background:linear-gradient(90deg,var(--account-violet),#8d9bf9 47%,var(--account-mint) 82%,transparent)}
+.account-hub-mark{background:linear-gradient(145deg,#9187ff,#625fe5);box-shadow:0 9px 25px rgba(91,80,210,.3)}
+.account-hub-title strong{font-size:21px;letter-spacing:-.045em}
+.account-hub-title>span{color:#b7c5df;font-size:12px}
+.account-hub-person{border-color:var(--account-stroke);background:rgba(255,255,255,.08)}
+.dashboard-modal.profile-wide #profileTabs,
+.dashboard-modal.profile-wide.admin-wide #profileTabs,
+.dashboard-modal.profile-wide.store-wide #profileTabs{background:linear-gradient(180deg,#172540,#101b31 72%,#102137)}
+.account-rail-label{color:#91a8c9;font-size:10px}
+.dashboard-modal.profile-wide #profileTabs .profile-tab{min-height:66px;border-radius:14px}
+.dashboard-modal.profile-wide #profileTabs .profile-tab.active{
+  background:linear-gradient(105deg,rgba(133,121,242,.36),rgba(76,99,164,.15));
+  border-color:rgba(185,174,255,.46);box-shadow:inset 3px 0 #d0bfff,0 12px 25px rgba(3,8,29,.18);
+}
+.dashboard-modal.profile-wide #profileTabs .profile-tab:hover:not(.active){background:rgba(150,169,225,.12)}
+#profileTabs .profile-tab>i:first-child{width:36px;height:36px;border-radius:11px;background:#334465;color:#cec7ff}
+#profileTabs .profile-tab.active>i:first-child{background:#6c68ba;box-shadow:0 5px 14px rgba(3,7,24,.23)}
+#profileTabs .account-tab-copy b{font-size:14px}
+#profileTabs .account-tab-copy small{font-size:11px;color:#b0bed5}
+.account-rail-footer>span{font-size:12px}.account-rail-footer small{font-size:11px;line-height:1.55}
+#profileView>.ptab-content{background:#0f1a2e}
+
+/* Profile settings: visible focus, touchable choices and consistent surfaces. */
+.account-editor,.account-session-card,.profile-preferences,.profile-role-spotlight{border-color:var(--account-stroke);box-shadow:0 10px 28px rgba(3,8,26,.12)}
+.workspace-section-heading h3{font-size:22px}
+.workspace-section-heading p{font-size:13px}
+.account-field>span{font-size:13px}
+.account-field input,.account-field textarea{min-height:46px;border-radius:12px}
+.account-status-presets button{min-height:36px!important;font-size:11px!important}
+.profile-preference-row{min-height:64px}
+.profile-role-spotlight:hover{box-shadow:0 16px 35px rgba(5,10,31,.23);transform:translateY(-2px)}
+
+/* The signal sculpture echoes the profile's prism without competing with copy. */
+.roles-v2-hero{min-height:248px;padding:32px 35px;isolation:isolate;background:radial-gradient(circle at 74% 50%,rgba(124,123,244,.2),transparent 38%),linear-gradient(115deg,#202b50,#14213e 70%,#123c43)!important}
+.roles-v2-hero::before,.admin-v2-header::before{width:3px;background:linear-gradient(var(--account-violet) 0 45%,var(--account-mint) 45% 100%)}
+.roles-v2-hero::after{display:none}
+.roles-v2-hero-copy,.roles-v2-current{position:relative;z-index:2}
+.roles-v2-hero h2{max-width:14ch;font-size:clamp(32px,3.6vw,47px);line-height:1.02}
+.roles-v2-hero h2 em{color:#c9c0ff}
+.roles-v2-hero p{max-width:54ch;font-size:14px;line-height:1.6;color:#bdc9df}
+.roles-v2-current{min-width:215px;padding:16px;border-color:rgba(184,178,248,.28);background:rgba(27,36,66,.78);box-shadow:0 12px 30px rgba(3,8,26,.18)}
+.roles-v2-current strong{font-size:17px}
+.roles-v2-hero-points span{padding:8px 11px;color:#e0def9;font-size:11px}
+.workspace-signal-art{position:absolute;z-index:1;right:15%;top:50%;width:170px;height:170px;transform:translateY(-50%);pointer-events:none;opacity:.78}
+.signal-orbit{position:absolute;inset:4px;border:1px solid rgba(176,181,255,.38);border-radius:35%;transform:rotate(45deg);box-shadow:0 0 30px rgba(132,117,239,.09),inset 0 0 25px rgba(130,117,240,.08);animation:signalOrbit 24s linear infinite}
+.signal-orbit::after{content:"";position:absolute;inset:20px;border:1px solid rgba(125,228,214,.34);border-radius:35%}
+.signal-core{position:absolute;inset:39px;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);background:linear-gradient(135deg,rgba(214,199,255,.85),rgba(96,184,221,.6) 48%,rgba(87,237,206,.85));filter:drop-shadow(0 0 20px rgba(135,168,255,.38));animation:signalBreathe 5s ease-in-out infinite alternate}
+.signal-core::after{content:"";position:absolute;inset:9px;clip-path:inherit;background:linear-gradient(125deg,#34427b,#1a576a)}
+.signal-trace{position:absolute;left:-70px;right:-70px;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(165,151,253,.4),rgba(123,226,219,.5),transparent);transform:rotate(-24deg)}
+.roles-v2-entitlements article,.role-v2-card,.roles-v2-compare{border-color:var(--account-stroke);box-shadow:0 8px 24px rgba(3,8,26,.1)}
+.roles-v2-entitlements article{padding:19px;gap:10px}.roles-v2-entitlements strong{font-size:24px}.roles-v2-entitlements em{font-size:11px}
+.roles-v2-toolbar h3{font-size:24px}.roles-v2-toolbar p{font-size:13px}
+.roles-v2-cycle button,.roles-v2-compare-tabs button{min-height:38px;font-size:12px;font-weight:650;transition:background-color .2s ease,color .2s ease,transform .2s var(--account-ease)}
+.roles-v2-cycle button:hover,.roles-v2-compare-tabs button:hover{transform:translateY(-1px)}
+.role-v2-card{overflow:hidden;min-height:345px;padding:21px;border-radius:20px}
+.role-v2-card::before{left:0;right:0;border-radius:0;background:linear-gradient(90deg,var(--role-color),transparent);opacity:.85}
+.role-v2-card:hover{transform:translateY(-5px);box-shadow:0 20px 40px rgba(2,6,22,.26),0 0 0 1px color-mix(in srgb,var(--role-color) 22%,transparent)}
+.role-v2-card-top>span{width:46px;height:46px;border-radius:14px;box-shadow:0 9px 20px color-mix(in srgb,var(--role-color) 22%,transparent)}
+.role-v2-card p,.role-v2-card ul{font-size:12px;line-height:1.55}.role-v2-card button{min-height:45px;font-size:12px}
+.roles-v2-compare-tabs button[aria-selected=true]{background:rgba(136,122,239,.3)}
+
+/* Administration: larger data labels and distinct command states. */
+.admin-v2-header{min-height:178px;padding:29px 34px;isolation:isolate;background:radial-gradient(circle at 78% 30%,rgba(114,220,208,.16),transparent 31%),linear-gradient(110deg,#1d2c4d,#172744 73%,#163b45)!important}
+.admin-v2-header::after{content:"";position:absolute;z-index:0;right:22%;top:-48px;width:230px;height:230px;border:1px solid rgba(122,211,219,.18);border-radius:32%;transform:rotate(28deg);box-shadow:inset 0 0 0 25px rgba(119,164,223,.025),0 0 55px rgba(108,219,209,.07);pointer-events:none;animation:adminContour 12s ease-in-out infinite alternate}
+.admin-v2-header>div{position:relative;z-index:1}
+.admin-v2-header h2{font-size:clamp(30px,3.1vw,41px)}
+.admin-v2-header p{max-width:54ch;color:#bfd0e1;font-size:14px}
+.admin-v2-metrics{gap:12px}
+.admin-v2-metrics>div{min-height:83px;padding:17px;border-color:var(--account-stroke);box-shadow:0 8px 22px rgba(3,8,26,.09)}
+.admin-v2-metrics>div>i{width:39px;height:39px;border-radius:12px;font-size:16px}
+.admin-v2-metrics b{font-size:24px;letter-spacing:-.04em}.admin-v2-metrics small{font-size:11px}
+.admin-v2-nav{gap:7px;padding:7px;border-color:var(--account-stroke)}
+.admin-v2-nav button{min-height:72px;padding:12px;border-radius:12px}
+.admin-v2-nav button.active{box-shadow:inset 0 -3px #bbadff,0 7px 16px rgba(4,9,27,.14)}
+.admin-v2-nav button.active b{display:block}
+.admin-v2-nav strong{font-size:13px}.admin-v2-nav small{font-size:11px}
+.admin-v2-toolbar{gap:10px;margin-top:18px}
+.admin-v2-toolbar label,.admin-v2-toolbar select,.admin-v2-forum-tools label{min-height:44px;border-color:var(--account-stroke);border-radius:11px}
+.admin-v2-toolbar input,.admin-v2-toolbar select,.admin-v2-forum-tools input{font-size:13px}
+.admin-v2-toolbar :is(label,select):focus-within,.admin-v2-forum-tools label:focus-within{border-color:var(--account-violet);box-shadow:0 0 0 3px rgba(169,156,255,.15)}
+.admin-v2-list-head{margin:15px 0 11px;font-size:11px}
+.admin-v2-user{min-height:76px;padding:13px;border-color:var(--account-stroke);border-radius:14px}
+.admin-v2-user:hover,.admin-v2-user.is-inspected{border-color:rgba(183,171,255,.6);box-shadow:0 9px 25px rgba(3,8,26,.16)}
+.admin-v2-user-copy strong{font-size:14px}.admin-v2-user-copy span,.admin-v2-user-copy small{font-size:11px}
+.admin-v2-user-action select,.admin-v2-user-action button{min-height:36px;font-size:11px}
+.admin-v2-inspector{padding:20px;border-color:var(--account-stroke);box-shadow:0 10px 25px rgba(3,8,26,.1)}
+.admin-v2-inspector-top h3{font-size:21px}.admin-v2-inspector dl div{font-size:11px}.admin-v2-inspector-actions button{min-height:38px;font-size:11px}
+.admin-v2-forum article,.admin-v2-audit article,.admin-v2-analytics-grid article{padding:18px;border-color:var(--account-stroke)}
+.admin-v2-forum article strong,.admin-v2-audit article strong{font-size:13px}
+.admin-v2-forum article p,.admin-v2-audit article p,.admin-v2-forum article small,.admin-v2-audit article time{font-size:11px;line-height:1.55}
+.admin-v2-section-heading h3{font-size:21px}
+.admin-v2-forum-tools button,.admin-v2-forum-actions button,.admin-v2-inspector-actions button,.admin-v2-pages button{transition:transform .2s var(--account-ease),border-color .2s ease,background-color .2s ease}
+.admin-v2-forum-tools button:hover,.admin-v2-forum-actions button:hover,.admin-v2-inspector-actions button:hover,.admin-v2-pages button:hover:not(:disabled){transform:translateY(-2px)}
+
+/* The Accounts page uses the same material and feedback as the workspace. */
+#accounts .account-cockpit-summary{border-color:var(--account-stroke);box-shadow:0 13px 30px rgba(3,8,26,.15),inset 0 1px rgba(255,255,255,.08)}
+#accounts .identity-cockpit{border-color:var(--account-stroke);box-shadow:0 35px 85px rgba(2,6,22,.32),inset 0 1px rgba(255,255,255,.07)}
+#accounts :is(.cockpit-add-profile,.active-account-uuid,.account-card button,.cockpit-rail button){transition:transform .23s var(--account-ease),box-shadow .23s ease,border-color .2s ease,background-color .2s ease}
+#accounts :is(.cockpit-add-profile,.active-account-uuid,.account-card button,.cockpit-rail button):hover{transform:translateY(-2px)}
+
+/* Theme parity, especially for forms that previously kept dark fields. */
+body.light-theme{--account-ink:#252b46;--account-dim:#55627e;--account-stroke:rgba(86,102,153,.19)}
+body.light-theme .dashboard-modal.glass-modal:not(.profile-wide){background:radial-gradient(circle at 50% -15%,rgba(137,126,240,.16),transparent 55%),linear-gradient(165deg,#fbfcff,#eef2fc)!important;border-color:#cbd4eb;box-shadow:0 28px 75px rgba(52,68,115,.22)}
+body.light-theme .dashboard-modal:not(.profile-wide) .input-group-animated input{background:#fff;color:#27304d;border-color:#c9d3e9;box-shadow:0 2px 8px rgba(58,75,121,.05)}
+body.light-theme .dashboard-modal:not(.profile-wide) .input-group-animated input:focus{background:#fff;border-color:#7768d8;box-shadow:0 0 0 3px rgba(112,94,217,.16)}
+body.light-theme .dashboard-modal:not(.profile-wide) .input-group-animated input::placeholder{color:#697792}
+body.light-theme .dashboard-modal:not(.profile-wide) .input-group-animated label{color:#5c6882}
+body.light-theme .dashboard-modal:not(.profile-wide) .auth-provider-hint{color:#64728c}
+body.light-theme #registerForm #regEmailHint{color:#52617e!important;opacity:1!important}
+body.light-theme .account-hub-head{background:linear-gradient(110deg,#e6e9fb,#edf2fc 62%,#e5f4f3)!important}
+body.light-theme .account-hub-title>span{color:#5b6983}
+body.light-theme .dashboard-modal.profile-wide #profileTabs,
+body.light-theme .dashboard-modal.profile-wide.admin-wide #profileTabs,
+body.light-theme .dashboard-modal.profile-wide.store-wide #profileTabs{background:linear-gradient(180deg,#eaf0fb,#e7edfa)}
+body.light-theme .dashboard-modal.profile-wide #profileTabs .profile-tab.active{background:#dfe2f9;border-color:#b9b6ec;box-shadow:inset 3px 0 #766cce,0 7px 17px rgba(74,77,144,.09)}
+body.light-theme #profileTabs .profile-tab>i:first-child{background:#dce2f7;color:#5f54ad}
+body.light-theme #profileTabs .profile-tab.active>i:first-child{background:#bbb7eb;color:#352d78}
+body.light-theme #profileTabs .account-tab-copy small{color:#53627d}
+body.light-theme #profileView>.ptab-content{background:#f3f6fc}
+body.light-theme .roles-v2-hero{background:radial-gradient(circle at 74% 50%,rgba(132,119,220,.11),transparent 38%),linear-gradient(115deg,#e9eafa,#eef2fc 70%,#e3f4f1)!important}
+body.light-theme .roles-v2-hero p,body.light-theme .admin-v2-header p{color:#53617d}
+body.light-theme .roles-v2-hero-points span{color:#4d477a}
+body.light-theme .roles-v2-current{background:rgba(255,255,255,.82);box-shadow:0 11px 26px rgba(69,78,138,.11)}
+body.light-theme .signal-orbit{border-color:rgba(99,94,189,.27)}
+body.light-theme .admin-v2-header{background:radial-gradient(circle at 78% 30%,rgba(97,189,180,.12),transparent 31%),linear-gradient(110deg,#e9edfa,#eef3fc 73%,#e2f3f1)!important}
+body.light-theme .admin-v2-header::after{border-color:rgba(93,125,188,.17)}
+body.light-theme .admin-v2-metrics>div,body.light-theme .role-v2-card,body.light-theme .roles-v2-entitlements article,body.light-theme .admin-v2-user{box-shadow:0 8px 23px rgba(64,75,127,.07)}
+body.light-theme .admin-v2-nav button.active{box-shadow:inset 0 -3px #776acf,0 7px 14px rgba(70,75,135,.08)}
+body.light-theme .admin-v2-toolbar :is(label,select),body.light-theme .admin-v2-forum-tools label{border-color:#cad4e8}
+body.light-theme .admin-v2-user:hover,body.light-theme .admin-v2-user.is-inspected{background:#f2f3fe;box-shadow:0 9px 22px rgba(61,68,126,.12)}
+
+@keyframes accountMarkIn{from{opacity:0;transform:translateY(12px) rotate(-16deg) scale(.84)}to{opacity:1;transform:translateY(0) rotate(-5deg) scale(1)}}
+@keyframes signalOrbit{to{transform:rotate(405deg)}}
+@keyframes signalBreathe{to{transform:scale(1.09);opacity:.72}}
+@keyframes adminContour{to{transform:rotate(46deg) translateY(9px)}}
+@media(max-width:900px){.workspace-signal-art{right:10%;opacity:.45}.roles-v2-hero{min-height:220px}.admin-v2-header{min-height:160px}}
+@media(max-width:680px){
+  .account-hub-head{min-height:70px}
+  .dashboard-modal.profile-wide #profileTabs .profile-tab,
+  .dashboard-modal.profile-wide.admin-wide #profileTabs .profile-tab,
+  .dashboard-modal.profile-wide.store-wide #profileTabs .profile-tab{min-height:48px}
+  #profileTabs .account-tab-copy b{font-size:12px}
+  .roles-v2-hero,.admin-v2-header{padding:23px;min-height:0}
+  .roles-v2-hero h2{font-size:clamp(29px,7vw,40px)}
+  .roles-v2-hero p,.admin-v2-header p{font-size:13px}
+  .workspace-signal-art{right:-20px;top:30%;transform:translateY(-50%) scale(.7);opacity:.22}
+  .admin-v2-header::after{right:-60px;opacity:.45}
+  .admin-v2-metrics>div{min-height:70px;padding:13px}
+  .admin-v2-metrics b{font-size:20px}
+  .admin-v2-nav button{min-height:60px}
+  .admin-v2-nav small{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .workspace-signal-art *,.admin-v2-header::after,.dashboard-modal:not(.profile-wide) .auth-icon-box{animation:none!important}
+  .role-v2-card:hover,.admin-v2-user:hover,.profile-role-spotlight:hover,#accounts :is(.cockpit-add-profile,.active-account-uuid,.account-card button,.cockpit-rail button):hover{transform:none!important}
+}
+html.lite-mode .workspace-signal-art *,html.lite-mode .admin-v2-header::after{animation:none!important}

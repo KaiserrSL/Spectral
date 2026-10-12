@@ -1,0 +1,163 @@
+        <section id="development" class="tab-content development-premium">
+            <div class="dev-layout">
+                <header class="dev-hero animate-on-scroll">
+                    <div class="dev-hero-copy">
+                        <span class="dev-eyebrow"><i class="fas fa-code-branch"></i> Under the hood</span>
+                        <h2>Every launch should be <span class="text-gradient">explainable.</span></h2>
+                        <p>Spectral shows the decisions behind each launch, so a failed process leaves a useful trail instead of a silent exit.</p>
+                        <div class="dev-hero-actions">
+                            <button type="button" class="dev-primary-action" data-dev-scroll="dev-pipeline"><span>Trace a launch</span><i class="fas fa-arrow-down"></i></button>
+                            <button type="button" class="dev-secondary-action" data-dev-target="updates"><span>Release notes</span><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                    <div class="dev-profile" aria-label="Spectral build profile">
+                        <div class="dev-profile-bar">
+                            <span><i></i><i></i><i></i></span>
+                            <code>spectral.build.profile</code>
+                            <b><i class="fas fa-circle-check"></i> mapped</b>
+                        </div>
+                        <div class="dev-profile-body">
+                            <div class="dev-profile-rail" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                            <div class="dev-profile-layer is-ui"><span><i class="fas fa-window-maximize"></i></span><div><small>Interface layer</small><strong>Qt 6 Widgets</strong><em>Tabs · dialogs · animations · i18n</em></div></div>
+                            <div class="dev-profile-layer is-core"><span><i class="fas fa-code"></i></span><div><small>Orchestration</small><strong>LauncherCore</strong><em>Command building · process state</em></div></div>
+                            <div class="dev-profile-layer is-services"><span><i class="fas fa-cubes"></i></span><div><small>Services</small><strong>Java · Versions · Mods</strong><em>Resolve · install · update</em></div></div>
+                            <div class="dev-profile-layer is-runtime"><span><i class="fas fa-gamepad"></i></span><div><small>Runtime</small><strong>Minecraft JVM</strong><em>Logs · exit code · diagnostics</em></div></div>
+                        </div>
+                    </div>
+                    <div class="dev-hero-orbit" aria-hidden="true"></div>
+                </header>
+                <nav class="dev-document-index animate-on-scroll" aria-label="Development chapters">
+                    <span><i class="fas fa-book-open"></i> Technical contents</span>
+                    <a href="#dev-pipeline"><b>01</b> Launch pipeline</a>
+                    <a href="#dev-systems"><b>02</b> Subsystems</a>
+                    <a href="#dev-source"><b>03</b> Source paths</a>
+                </nav>
+                <section class="dev-section dev-pipeline animate-on-scroll delay-1" id="dev-pipeline">
+                    <div class="dev-section-heading">
+                        <div><span>Launch pipeline</span><h3>From Play to process</h3></div>
+                        <p>Pick a step to see what goes in, what the launcher does, and what you can check when it stops.</p>
+                    </div>
+                    <div class="dev-pipeline-experience">
+                        <div class="dev-pipeline-rail">
+                            <div class="dev-pipeline-progress"><span>Launch sequence</span><strong id="devPipelineProgress">01 / 05</strong></div>
+                            <div class="dev-pipeline-track" role="tablist" aria-label="Launch steps">
+                                <button type="button" class="dev-stage active" id="devStageTabProfile" role="tab" aria-selected="true" aria-controls="devStagePanel" tabindex="0" data-dev-stage="profile"><span class="dev-stage-number">01</span><i class="fas fa-sliders" aria-hidden="true"></i><span><strong>Read profile</strong><small>Instance &amp; account</small></span></button>
+                                <button type="button" class="dev-stage" id="devStageTabVersion" role="tab" aria-selected="false" aria-controls="devStagePanel" tabindex="-1" data-dev-stage="version"><span class="dev-stage-number">02</span><i class="fas fa-cubes-stacked" aria-hidden="true"></i><span><strong>Resolve version</strong><small>Libraries &amp; assets</small></span></button>
+                                <button type="button" class="dev-stage" id="devStageTabJava" role="tab" aria-selected="false" aria-controls="devStagePanel" tabindex="-1" data-dev-stage="java"><span class="dev-stage-number">03</span><i class="fas fa-mug-hot" aria-hidden="true"></i><span><strong>Match Java</strong><small>Compatible runtime</small></span></button>
+                                <button type="button" class="dev-stage" id="devStageTabCommand" role="tab" aria-selected="false" aria-controls="devStagePanel" tabindex="-1" data-dev-stage="command"><span class="dev-stage-number">04</span><i class="fas fa-list-check" aria-hidden="true"></i><span><strong>Assemble launch</strong><small>Command &amp; natives</small></span></button>
+                                <button type="button" class="dev-stage" id="devStageTabResult" role="tab" aria-selected="false" aria-controls="devStagePanel" tabindex="-1" data-dev-stage="result"><span class="dev-stage-number">05</span><i class="fas fa-wave-square" aria-hidden="true"></i><span><strong>Observe result</strong><small>Console &amp; errors</small></span></button>
+                            </div>
+                        </div>
+                        <div class="dev-stage-panel" id="devStagePanel" role="tabpanel" aria-labelledby="devStageTabProfile" aria-live="polite" style="--stage-rgb:139,124,255">
+                            <div class="dev-stage-panel-top"><span class="dev-stage-kicker"><i class="fas fa-circle-nodes" aria-hidden="true"></i> Step <b id="devStageNumber">01</b> / 05</span><span class="dev-stage-state"><i></i> Ready to inspect</span></div>
+                            <div class="dev-stage-visual" aria-hidden="true"><span class="dev-stage-visual-node"><i id="devStageIcon" class="fas fa-sliders"></i></span><span class="dev-stage-visual-line"></span><span class="dev-stage-visual-node is-output"><i class="fas fa-arrow-right"></i></span></div>
+                            <h4 id="devStageTitle">Read the selected profile</h4>
+                            <p id="devStageDescription">Spectral gathers the instance, account, memory, window and launch preferences before touching the game files.</p>
+                            <div class="dev-stage-details"><div><small>Input</small><strong id="devStageInput">Selected instance + player profile</strong></div><div><small>Output</small><strong id="devStageOutput">One validated GameSettings object</strong></div></div>
+                            <div class="dev-stage-insight"><i class="fas fa-lightbulb" aria-hidden="true"></i><span id="devStageInsight">If the wrong instance opens, check the selection and account before changing Java or mods.</span></div>
+                            <div class="dev-stage-controls"><button type="button" id="devStagePrev" aria-label="Previous launch step"><i class="fas fa-arrow-left"></i></button><span id="devStageCounter">1 of 5</span><button type="button" id="devStageNext" aria-label="Next launch step"><i class="fas fa-arrow-right"></i></button></div>
+                        </div>
+                    </div>
+                    <div class="dev-principle"><i class="fas fa-shield-heart"></i><span><b>Engineering principle</b> If a launch fails, the last successful stage and the real process error should remain visible.</span></div>
+                </section>
+
+                <section class="dev-section dev-systems animate-on-scroll delay-2" id="dev-systems">
+                    <div class="dev-section-heading">
+                        <div><span>Subsystem atlas</span><h3>Choose a layer</h3></div>
+                        <div class="dev-systems-heading-meta"><span><i></i> Launcher architecture</span><p>Inspect each layer's responsibilities and the data it passes on.</p></div>
+                    </div>
+                    <div class="dev-systems-layout">
+                        <div class="tech-stack-grid" role="tablist" aria-label="Launcher subsystems">
+                            <button type="button" class="tech-card active" id="devSystemTabUi" role="tab" aria-selected="true" aria-controls="devSystemPanel" tabindex="0" data-dev-system="ui"><span class="tech-icon"><i class="fas fa-window-maximize"></i></span><span class="tech-card-copy"><small>Presentation</small><strong>Qt 6 Widgets</strong><em>UI, motion and translation</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabCore" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="core"><span class="tech-icon"><i class="fas fa-code"></i></span><span class="tech-card-copy"><small>Orchestration</small><strong>Launcher Core</strong><em>Launch state and arguments</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabJava" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="java"><span class="tech-icon"><i class="fas fa-mug-hot"></i></span><span class="tech-card-copy"><small>Runtime</small><strong>Java Manager</strong><em>Discovery and matching</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabContent" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="content"><span class="tech-icon"><i class="fas fa-box-open"></i></span><span class="tech-card-copy"><small>Content</small><strong>Versions &amp; Mods</strong><em>Install, browse and update</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabAccounts" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="accounts"><span class="tech-icon"><i class="fas fa-user-shield"></i></span><span class="tech-card-copy"><small>Identity</small><strong>Accounts</strong><em>Profiles, UUIDs and skins</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                            <button type="button" class="tech-card" id="devSystemTabDiagnostics" role="tab" aria-selected="false" aria-controls="devSystemPanel" tabindex="-1" data-dev-system="diagnostics"><span class="tech-icon"><i class="fas fa-terminal"></i></span><span class="tech-card-copy"><small>Observability</small><strong>Console &amp; Logs</strong><em>Search, export and failures</em></span><i class="fas fa-arrow-right tech-card-arrow"></i></button>
+                        </div>
+                        <aside class="dev-system-panel" id="devSystemPanel" role="tabpanel" aria-labelledby="devSystemTabUi" aria-live="polite" data-system-code="01">
+                            <div class="dev-system-panel-head"><span id="devSystemIcon"><i class="fas fa-window-maximize"></i></span><div><small>Layer <span id="devSystemNumber">01</span> / 06</small><h4 id="devSystemTitle">Qt 6 Widgets</h4></div><b id="devSystemKind">Presentation</b></div>
+                            <div class="dev-layer-diagram" aria-label="Switch launcher layer"><button type="button" data-layer-node="ui" class="active" aria-label="Show interface layer"><i class="fas fa-window-maximize"></i><small>UI</small></button><button type="button" data-layer-node="core" aria-label="Show core layer"><i class="fas fa-code"></i><small>Core</small></button><button type="button" data-layer-node="java" aria-label="Show Java layer"><i class="fas fa-mug-hot"></i><small>Java</small></button><button type="button" data-layer-node="content" aria-label="Show content layer"><i class="fas fa-box-open"></i><small>Content</small></button><button type="button" data-layer-node="accounts" aria-label="Show identity layer"><i class="fas fa-user-shield"></i><small>Identity</small></button><button type="button" data-layer-node="diagnostics" aria-label="Show diagnostics layer"><i class="fas fa-terminal"></i><small>Logs</small></button></div>
+                            <div class="dev-system-content">
+                                <div class="dev-system-overview">
+                                    <p id="devSystemDescription">The desktop surface for Play, Library, Accounts, Console, settings and dialog flows, with shared styling and RU / EN translation.</p>
+                                    <div class="dev-system-tags" id="devSystemTags" aria-label="Technologies"><span>QWidget</span><span>Signals</span><span>Qt Linguist</span></div>
+                                    <ul id="devSystemTasks"><li><i class="fas fa-check"></i> Keeps product surfaces visually consistent</li><li><i class="fas fa-check"></i> Translates state into clear player actions</li><li><i class="fas fa-check"></i> Delivers accessible feedback and dialogs</li></ul>
+                                </div>
+                                <div class="dev-system-map" aria-label="Subsystem signal path">
+                                    <div class="dev-system-map-head"><span><i class="fas fa-route"></i> Signal path</span><b><i></i> Connected</b></div>
+                                    <div class="dev-signal-path">
+                                        <div class="dev-signal-node"><small>Input</small><strong id="devSystemFlowInput">Player action</strong></div>
+                                        <span class="dev-signal-link" aria-hidden="true"><i></i></span>
+                                        <div class="dev-signal-node is-focus"><small>Handled by</small><strong id="devSystemFlowCore">Qt event</strong></div>
+                                        <span class="dev-signal-link" aria-hidden="true"><i></i></span>
+                                        <div class="dev-signal-node"><small>Output</small><strong id="devSystemFlowOutput">LauncherCore</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dev-system-contract">
+                                <div><small>Owns</small><strong id="devSystemOwns">Tabs · dialogs · interaction</strong></div>
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                <div><small>Connects to</small><strong id="devSystemConnects">LauncherCore · managers</strong></div>
+                            </div>
+                        </aside>
+                    </div>
+                </section>
+
+                <section class="dev-section dev-source animate-on-scroll delay-3" id="dev-source">
+                    <div class="dev-section-heading">
+                        <div><span>Source walkthrough</span><h3>Read the critical paths</h3></div>
+                        <p>Switch files to see how the launcher separates process control, runtime choice and account identity.</p>
+                    </div>
+                    <div class="dev-workbench">
+                <div class="code-editor">
+                    <div class="code-editor-header">
+                        <div class="dots"><span></span><span></span><span></span></div>
+                        <div class="code-tabs" role="tablist" aria-label="Source examples">
+                            <button type="button" class="code-tab active" id="codeTabLaunch" role="tab" aria-selected="true" aria-controls="codePaneLaunch" tabindex="0" data-tab="launch">LauncherCore.cpp</button>
+                            <button type="button" class="code-tab" id="codeTabJava" role="tab" aria-selected="false" aria-controls="codePaneJava" tabindex="-1" data-tab="java">JavaManager.cpp</button>
+                            <button type="button" class="code-tab" id="codeTabAuth" role="tab" aria-selected="false" aria-controls="codePaneAuth" tabindex="-1" data-tab="auth">AccountsTab.cpp</button>
+                        </div>
+                        <div class="code-lang">C++ / Qt</div>
+                    </div>
+                    <div class="code-panes">
+                        <div class="code-content code-pane active" id="codePaneLaunch" role="tabpanel" aria-labelledby="codeTabLaunch" data-pane="launch"><pre><code><span class="kw">void</span> <span class="type">LauncherCore</span>::<span class="fn">launchGame</span>(<span class="kw">const</span> <span class="type">GameSettings</span>&amp; settings,
+                      <span class="kw">const</span> <span class="type">Account</span>&amp; account) {
+    <span class="comment">// Resolve metadata before starting the Minecraft process</span>
+    <span class="kw">auto</span> command = <span class="fn">buildLaunchCommand</span>(settings, account);
+    <span class="fn">prepareNatives</span>(settings.versionId);
+    <span class="fn">startProcess</span>(settings.javaPath, command);
+}</code></pre></div>
+                        <div class="code-content code-pane" id="codePaneJava" role="tabpanel" aria-labelledby="codeTabJava" aria-hidden="true" data-pane="java" style="display:none"><pre><code><span class="type">JavaVersion</span> <span class="type">JavaManager</span>::<span class="fn">findSuitableJava</span>(<span class="kw">const</span> <span class="type">QString</span>&amp; mcVersion,
+                                              <span class="type">bool</span> allowDownload) {
+    <span class="kw">const</span> <span class="type">int</span> required = <span class="fn">requiredJavaMajor</span>(mcVersion);
+    <span class="kw">auto</span> installed = <span class="fn">scanInstalledJava</span>();
+    <span class="kw">return</span> <span class="fn">bestMatchingRuntime</span>(installed, required, allowDownload);
+}</code></pre></div>
+                        <div class="code-content code-pane" id="codePaneAuth" role="tabpanel" aria-labelledby="codeTabAuth" aria-hidden="true" data-pane="auth" style="display:none"><pre><code><span class="type">QString</span> <span class="type">AccountsTab</span>::<span class="fn">generateOfflineUuid</span>(<span class="kw">const</span> <span class="type">QString</span>&amp; username) <span class="kw">const</span> {
+    <span class="comment">// Vanilla-compatible OfflinePlayer UUID (MD5 v3 + RFC variant bits)</span>
+    <span class="kw">return</span> <span class="fn">minecraftOfflineUuid</span>(
+        <span class="type">QString</span>(<span class="type">"OfflinePlayer:%1"</span>).arg(username));
+}</code></pre></div>
+                    </div>
+                </div>
+                        <aside class="dev-code-notes">
+                            <span><i class="fas fa-book-open"></i> File focus</span>
+                            <h4 id="devCodeTitle">Launch orchestration</h4>
+                            <p id="devCodeDescription">Turns validated settings and an account into a prepared Minecraft process while keeping failure signals available to the UI.</p>
+                            <div class="dev-code-path"><small>Responsibility</small><code id="devCodeResponsibility">metadata → arguments → QProcess</code></div>
+                            <ul id="devCodeTasks"><li>Build the classpath and game arguments</li><li>Prepare native libraries</li><li>Forward output and failures to Console</li></ul>
+                        </aside>
+                    </div>
+                </section>
+
+                <div class="build-metrics animate-on-scroll delay-4" aria-label="Architecture qualities">
+                    <div class="bm-item"><div class="bm-icon"><i class="fas fa-folder-tree"></i></div><div class="bm-info"><div class="bm-label">Instances</div><div class="bm-val">Isolated folders</div></div></div>
+                    <div class="bm-item"><div class="bm-icon"><i class="fas fa-hard-drive"></i></div><div class="bm-info"><div class="bm-label">Data model</div><div class="bm-val">Local-first</div></div></div>
+                    <div class="bm-item"><div class="bm-icon"><i class="fas fa-language"></i></div><div class="bm-info"><div class="bm-label">Localization</div><div class="bm-val">RU / EN</div></div></div>
+                    <div class="bm-item"><div class="bm-icon"><i class="fas fa-bug-slash"></i></div><div class="bm-info"><div class="bm-label">Diagnostics</div><div class="bm-val">Explicit errors</div></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ ADVANCED FEATURES ══════════════ -->

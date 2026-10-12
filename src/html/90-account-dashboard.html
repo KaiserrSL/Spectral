@@ -1,0 +1,328 @@
+    <!-- ══════════════ SITE ACCOUNT DASHBOARD ══════════════ -->
+    <div id="dashboardOverlay" class="dashboard-overlay" role="dialog" aria-modal="true" aria-label="Spectral account" aria-hidden="true" inert>
+        <div class="dashboard-modal glass-modal">
+            <button type="button" class="close-dashboard" id="closeDashboardBtn" aria-label="Close account panel">&times;</button>
+
+            <!-- AUTH VIEW -->
+            <div id="authView" class="view-section">
+                <div class="auth-icon-box"><i class="fas fa-fingerprint"></i></div>
+                <h2 style="text-align:center;margin-bottom:8px;">Site Account</h2>
+                <p class="auth-sub">Sign in to manage your Minecraft profiles and access community features</p>
+                <p class="auth-mode-note" id="authModeNote"><i class="fas fa-hard-drive" aria-hidden="true"></i><span>Local demo mode: account data stays in this browser. Do not reuse a password from another service.</span></p>
+                <button type="button" class="btn-google" id="googleLoginBtn">
+                    <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.2-5.6l-6.6-5.4C29.6 34.7 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.6l6.6 5.4C40.9 36.7 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+                    <span>Continue with Google</span>
+                </button>
+                <p class="auth-provider-hint" id="authProviderHint">Used Google before? Sign in here, even if your profile has a username.</p>
+                <div class="auth-divider"><span>or</span></div>
+                <form id="loginForm">
+                    <div class="input-group-animated"><input type="text" id="loginInput" required placeholder=" " autocomplete="username" aria-describedby="loginError loginNote"><label for="loginInput">Email or username</label></div>
+                    <div class="input-group-animated"><input type="password" id="passwordInput" required placeholder=" " maxlength="128" autocomplete="current-password" aria-describedby="loginError loginNote"><label for="passwordInput">Password</label></div>
+                    <div class="auth-error" id="loginError" role="alert" style="display:none;"></div>
+                    <div class="auth-note" id="loginNote" role="status" aria-live="polite" style="display:none;"></div>
+                    <button type="submit" class="btn-submit-login"><span>Sign In</span></button>
+                </form>
+                <div class="auth-switch"><button type="button" class="link-btn" id="forgotPasswordBtn">Forgot password?</button></div>
+                <div class="auth-switch">No account? <button type="button" class="link-btn" id="switchToRegisterBtn">Create one</button></div>
+            </div>
+
+            <!-- REGISTER VIEW -->
+            <div id="registerView" class="view-section" style="display:none;">
+                <div class="auth-icon-box" style="background:rgba(16,185,129,0.1);"><i class="fas fa-user-plus" style="color:#10b981;"></i></div>
+                <h2 style="text-align:center;margin-bottom:8px;">Create Account</h2>
+                <p class="auth-sub">Choose a username and password. Email is optional.</p>
+                <div class="veteran-registration-note" id="veteranRegistrationNote">
+                    <span class="veteran-registration-icon"><i class="fas fa-shield-halved"></i><i class="fas fa-wand-magic-sparkles"></i></span>
+                    <span><b>Founder's window is open</b><small>Accounts created before 2027 receive the permanent Veteran role automatically.</small></span>
+                </div>
+                <button type="button" class="btn-google" id="googleRegisterBtn">
+                    <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.2-5.6l-6.6-5.4C29.6 34.7 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.6l6.6 5.4C40.9 36.7 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+                    <span>Sign up with Google</span>
+                </button>
+                <div class="auth-divider"><span>or</span></div>
+                <form id="registerForm">
+                    <div class="input-group-animated"><input type="text" id="regUsername" required placeholder=" " minlength="3" maxlength="20" autocomplete="username" aria-describedby="registerError registerNote"><label for="regUsername">Username (3–20 chars)</label></div>
+                    <div class="input-group-animated"><input type="email" id="regEmail" placeholder=" " autocomplete="email" aria-describedby="regEmailHint registerError registerNote"><label for="regEmail">Email saved only on this device</label></div>
+                    <div id="regEmailHint" style="font-size:0.8rem;line-height:1.4;margin:-4px 2px 12px;opacity:0.72;"><i class="fas fa-circle-info" style="margin-right:6px;opacity:0.8;"></i><span id="regEmailHintText">Without configured cloud authentication, this creates a device-local demo account only.</span></div>
+                    <div class="input-group-animated"><input type="password" id="regPassword" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="regPasswordHint registerError registerNote"><label for="regPassword">Password</label></div>
+                    <p class="auth-field-hint" id="regPasswordHint">Use at least 10 characters and do not reuse another account password.</p>
+                    <div class="input-group-animated"><input type="password" id="regPasswordConfirm" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="registerError registerNote"><label for="regPasswordConfirm">Confirm Password</label></div>
+                    <div class="auth-error" id="registerError" role="alert" style="display:none;"></div>
+                    <div class="auth-note" id="registerNote" role="status" aria-live="polite" style="display:none;"></div>
+                    <button type="submit" class="btn-submit-login" style="background:linear-gradient(135deg,#10b981,#059669);"><span>Create Account</span></button>
+                </form>
+                <div class="auth-switch">Already registered? <button type="button" class="link-btn" id="switchToLoginBtn">Sign In</button></div>
+            </div>
+
+            <!-- PASSWORD RECOVERY VIEW (set new password after email link) -->
+            <div id="recoveryView" class="view-section" style="display:none;">
+                <div class="auth-icon-box" style="background:rgba(99,102,241,0.12);"><i class="fas fa-key" style="color:#818cf8;"></i></div>
+                <h2 style="text-align:center;margin-bottom:8px;">Set a new password</h2>
+                <p class="auth-sub">Enter a new password for your account</p>
+                <form id="recoveryForm">
+                    <div class="input-group-animated"><input type="password" id="recoveryPassword" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="recoveryError recoveryNote"><label for="recoveryPassword">New password</label></div>
+                    <div class="input-group-animated"><input type="password" id="recoveryPasswordConfirm" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="recoveryError recoveryNote"><label for="recoveryPasswordConfirm">Confirm new password</label></div>
+                    <div class="auth-error" id="recoveryError" role="alert" style="display:none;"></div>
+                    <div class="auth-note" id="recoveryNote" role="status" aria-live="polite" style="display:none;"></div>
+                    <button type="submit" class="btn-submit-login"><span>Update password</span></button>
+                </form>
+            </div>
+
+            <!-- PROFILE VIEW -->
+            <div id="profileView" class="view-section" style="display:none;">
+                <header class="account-hub-head" aria-label="Account workspace">
+                    <span class="account-hub-mark"><i class="fas fa-bolt" aria-hidden="true"></i></span>
+                    <div class="account-hub-title"><small>SPECTRAL / ACCOUNT</small><strong id="accountHubTitle">Your space</strong><span id="accountHubSubtitle">Everything about your identity in one place</span></div>
+                    <div class="account-hub-person"><img id="accountHubAvatar" src="" alt="" width="40" height="40"><span><b id="accountHubName">Player</b><small id="accountHubRole">Account</small></span></div>
+                    <button type="button" class="account-hub-close" id="closeAccountHubBtn" aria-label="Close account panel"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+                </header>
+                <!-- Tabs -->
+                <div class="profile-tabs" id="profileTabs" role="tablist" aria-label="Account menu">
+                    <span class="account-rail-label">WORKSPACE</span>
+                    <button type="button" class="profile-tab active" id="profileTabMain" role="tab" aria-selected="true" aria-controls="profilePanelMain" tabindex="0" data-ptab="my-profile"><i class="fas fa-user-astronaut"></i><span class="account-tab-copy"><b>Profile</b><small>Identity &amp; settings</small></span><i class="fas fa-chevron-right account-tab-arrow"></i></button>
+                    <button type="button" class="profile-tab" id="profileTabRoles" role="tab" aria-selected="false" aria-controls="profilePanelRoles" tabindex="-1" data-ptab="role-store"><i class="fas fa-gem"></i><span class="account-tab-copy"><b>Roles</b><small>Plans &amp; perks</small></span><i class="fas fa-chevron-right account-tab-arrow"></i></button>
+                    <button type="button" class="profile-tab" role="tab" aria-selected="false" aria-controls="profilePanelAdmin" tabindex="-1" data-ptab="admin-panel" id="adminPanelTab" style="display:none;"><i class="fas fa-shield-halved"></i><span class="account-tab-copy"><b>Admin</b><small>People &amp; activity</small></span><i class="fas fa-chevron-right account-tab-arrow"></i></button>
+                    <div class="account-rail-footer"><span><i class="fas fa-circle" aria-hidden="true"></i> <b id="accountHubMode">Local demo</b></span><small id="accountRailHint">Changes to your profile are saved when you press Save.</small></div>
+                </div>
+
+                <!-- Profile sub-view -->
+                <div class="ptab-content active" id="profilePanelMain" role="tabpanel" aria-labelledby="profileTabMain" data-ptab-content="my-profile">
+                    <section class="profile-cover" id="profileCover" data-header="nebula">
+                        <div class="profile-cover-scene" aria-hidden="true"><i></i><i></i><i></i><span></span><b></b></div>
+                        <div class="profile-cover-top">
+                            <span class="profile-cover-label"><i class="fas fa-wave-square" id="profileHeaderIcon"></i> <span id="profileHeaderTitle">Nebula Drift</span><em id="profileHeaderTier">Core collection</em></span>
+                            <button type="button" class="profile-cover-customize" id="openHeaderStudioBtn"><i class="fas fa-wand-magic-sparkles"></i> Customize</button>
+                        </div>
+                        <div class="profile-header">
+                            <div class="profile-avatar-wrapper">
+                                <img id="profileAvatarImg" src="https://minotar.net/avatar/steve/100" alt="Avatar" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                <label for="avatarUpload" class="avatar-upload-btn" aria-label="Upload avatar"><i class="fas fa-camera"></i></label>
+                                <input type="file" id="avatarUpload" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                            </div>
+                            <div class="profile-header-copy">
+                                <span class="profile-presence"><i></i> Online identity</span>
+                                <h3 id="profileUsername">Username</h3>
+                                <span class="badge-pro" id="profileRoleBadge">USER</span>
+                            </div>
+                            <div class="profile-cover-signal"><small>Profile signal</small><b id="profileSignalName">Soft reveal</b><em id="profileHeaderAccess">1 header unlocked</em></div>
+                        </div>
+                    </section>
+                    <div class="profile-stat-chips" id="profileStatChips"></div>
+                    <button type="button" class="profile-role-spotlight" id="openRoleStoreBtn">
+                        <span class="profile-role-spotlight-icon" id="profileRoleSpotlightIcon"><i class="fas fa-user"></i></span>
+                        <span class="profile-role-spotlight-copy"><small>Your access</small><b id="profileRoleSpotlightTitle">Player role</b><em id="profileRoleSpotlightText">Explore role perks and profile styles</em></span>
+                        <span class="profile-role-spotlight-action">View roles <i class="fas fa-arrow-right"></i></span>
+                    </button>
+                    <section class="profile-identity-studio" id="profileIdentityStudio" hidden>
+                        <div class="profile-identity-studio-head">
+                            <span class="profile-identity-studio-icon"><i class="fas fa-palette"></i></span>
+                            <div><small>Identity studio</small><h4>Animated profile headers</h4><p>Choose a role-powered scene and the way your account menu appears.</p></div>
+                            <button type="button" id="closeHeaderStudioBtn" aria-label="Close identity studio"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="profile-header-options" id="profileHeaderOptions"></div>
+                        <div class="profile-entrance-picker">
+                            <div><small>Menu entrance</small><b id="profileEntranceTitle">Soft signal</b></div>
+                            <div class="profile-entrance-options" id="profileEntranceOptions"></div>
+                        </div>
+                    </section>
+                    <section class="profile-preferences" aria-labelledby="profilePreferencesTitle">
+                        <div class="profile-preferences-head">
+                            <span><i class="fas fa-sliders"></i></span>
+                            <div><h4 id="profilePreferencesTitle">Appearance &amp; performance</h4><p>Device preferences are saved locally in this browser.</p></div>
+                        </div>
+                        <div class="profile-preference-list">
+                            <label class="profile-preference-row" for="profileThemeToggle">
+                                <span class="profile-preference-icon theme"><i class="fas fa-moon" id="profileThemeIcon"></i></span>
+                                <span class="profile-preference-copy"><strong>Light theme</strong><small id="profileThemeState">Dark palette is active</small></span>
+                                <input type="checkbox" id="profileThemeToggle" class="profile-preference-input">
+                                <span class="profile-preference-switch" aria-hidden="true"><i></i></span>
+                            </label>
+                            <label class="profile-preference-row" for="profileLiteToggle">
+                                <span class="profile-preference-icon performance"><i class="fas fa-gauge-high" id="profileLiteIcon"></i></span>
+                                <span class="profile-preference-copy"><strong>Lightweight mode</strong><small id="profileLiteState">Full visual quality</small></span>
+                                <input type="checkbox" id="profileLiteToggle" class="profile-preference-input">
+                                <span class="profile-preference-switch" aria-hidden="true"><i></i></span>
+                            </label>
+                        </div>
+                        <p class="profile-performance-note" id="profilePerformanceNote"><i class="fas fa-circle-info"></i><span>Reduces motion, blur, particles and decorative rendering. The page reloads once when this setting changes.</span></p>
+                    </section>
+                    <section class="account-editor" aria-labelledby="accountEditorTitle">
+                        <header class="workspace-section-heading"><span><i class="fas fa-pen-nib" aria-hidden="true"></i></span><div><small>YOUR PUBLIC IDENTITY</small><h3 id="accountEditorTitle">Make yourself known</h3><p>Your display name, status and bio appear on your profile.</p></div></header>
+                        <div class="account-live-preview" aria-label="Profile preview"><img id="accountPreviewAvatar" src="" alt="" width="56" height="56"><div><small>LIVE PREVIEW</small><strong id="accountPreviewName">Your name</strong><span id="accountPreviewStatus">Your status appears here</span></div><i class="fas fa-sparkles" aria-hidden="true"></i></div>
+                        <form id="profileEditForm" class="profile-settings">
+                            <label class="account-field" for="profileDisplayName"><span><i class="fas fa-signature"></i> Display name <output id="profileDisplayNameCount">0 / 24</output></span><input type="text" id="profileDisplayName" maxlength="24" required autocomplete="nickname"></label>
+                            <label class="account-field" for="profileStatus"><span><i class="fas fa-comment-dots"></i> Status <output id="profileStatusCount">0 / 100</output></span><input type="text" id="profileStatus" maxlength="100" placeholder="What are you working on?"></label>
+                            <div class="account-status-presets" role="group" aria-label="Quick status ideas"><button type="button" data-account-status="Exploring new worlds">Exploring new worlds</button><button type="button" data-account-status="Building something new">Building something new</button><button type="button" data-account-status="Ready to play">Ready to play</button></div>
+                            <label class="account-field" for="profileBio"><span><i class="fas fa-align-left"></i> About you <output id="profileBioCount">0 / 120</output></span><textarea id="profileBio" maxlength="120" rows="3" placeholder="A little about your Minecraft world…"></textarea></label>
+                            <div class="account-avatar-tools"><button type="button" id="changeAvatarBtn"><i class="fas fa-camera"></i> Change photo</button><button type="button" id="removeAvatarBtn"><i class="fas fa-eraser"></i> Reset photo</button><small>PNG, JPEG or WebP · up to 1 MB</small></div>
+                            <div class="account-save-bar"><span id="profileSaveState" role="status">All changes saved</span><button type="button" id="resetProfileBtn" disabled>Discard</button><button type="submit" class="btn-save-profile" id="saveProfileBtn" disabled><i class="fas fa-check"></i> Save profile</button></div>
+                        </form>
+                    </section>
+                    <section class="account-session-card" aria-labelledby="accountSessionTitle">
+                        <header class="workspace-section-heading"><span><i class="fas fa-fingerprint"></i></span><div><small>SESSION &amp; DATA</small><h3 id="accountSessionTitle">Your account, explained</h3></div></header>
+                        <div id="accountSessionDetails"></div>
+                        <div class="account-session-actions"><button type="button" id="exportOwnAccount"><i class="fas fa-download"></i> Export my data</button><button type="button" id="accountRecoveryBtn" hidden><i class="fas fa-key"></i> Send password reset</button></div>
+                    </section>
+                    <div class="profile-actions">
+                        <button type="button" class="p-btn logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                    </div>
+                </div>
+
+                <!-- Role store sub-view -->
+                <div class="ptab-content role-store-view" id="profilePanelRoles" role="tabpanel" aria-labelledby="profileTabRoles" aria-hidden="true" data-ptab-content="role-store" style="display:none;">
+                    <header class="role-store-hero" id="roleStoreHero">
+                        <div class="role-store-orbit orbit-one"></div>
+                        <div class="role-store-orbit orbit-two"></div>
+                        <div class="role-store-hero-copy">
+                            <span class="role-store-eyebrow"><i class="fas fa-wand-magic-sparkles"></i> Spectral roles</span>
+                            <h2>Make your account <span>unmistakable.</span></h2>
+                            <p>Unlock more launcher profiles, rare identity effects and a badge that follows you across the community.</p>
+                        </div>
+                        <div class="current-role-card">
+                            <span class="current-role-icon" id="currentRoleIcon"><i class="fas fa-user"></i></span>
+                            <div><small id="currentRoleEyebrow">Current role</small><b id="currentRoleName">Player</b><em id="currentRoleSince">Standard access</em></div>
+                        </div>
+                    </header>
+
+                    <section id="accountEntitlements" class="account-entitlements" aria-label="Your current limits"></section>
+                    <section id="roleReservation" class="role-reservation" hidden aria-live="polite"></section>
+                    <section class="developer-role-lab" id="developerRoleLab" hidden></section>
+
+                    <div class="role-store-toolbar">
+                        <div><small>Choose your signal</small><h3>Role collection</h3></div>
+                        <div class="role-billing-toggle" role="group" aria-label="Billing period">
+                            <button type="button" data-role-billing="monthly">Monthly</button>
+                            <button type="button" class="active" data-role-billing="yearly">Yearly <span>-20%</span></button>
+                        </div>
+                    </div>
+
+                    <div class="role-store-grid" id="roleStoreGrid"></div>
+
+                    <section class="role-comparison" aria-labelledby="roleCompareTitle">
+                        <header class="workspace-section-heading"><span><i class="fas fa-table-cells-large"></i></span><div><small>COMPARE THE DETAILS</small><h3 id="roleCompareTitle">Find your fit</h3><p>Compare capacity, appearance and staff permissions separately.</p></div></header>
+                        <div class="role-compare-controls" role="group" aria-label="Compare role features"><button type="button" data-compare="capacity" aria-pressed="true"><i class="fas fa-cubes"></i> Capacity</button><button type="button" data-compare="appearance" aria-pressed="false"><i class="fas fa-palette"></i> Appearance</button><button type="button" data-compare="permissions" aria-pressed="false"><i class="fas fa-shield-halved"></i> Permissions</button></div>
+                        <div id="roleComparisonGrid" class="role-comparison-scroll" tabindex="0" aria-label="Role comparison, scroll horizontally on small screens"></div>
+                        <p class="workspace-note"><i class="fas fa-circle-info"></i> Saving a launch choice does not activate a role. Staff roles are assigned by authorized administrators.</p>
+                    </section>
+
+                    <aside class="role-checkout-sheet" id="roleCheckoutSheet" hidden aria-live="polite">
+                        <button type="button" class="role-checkout-close" id="roleCheckoutClose" aria-label="Close checkout"><i class="fas fa-times"></i></button>
+                        <div class="role-checkout-icon" id="roleCheckoutIcon"><i class="fas fa-star"></i></div>
+                        <div class="role-checkout-copy">
+                            <span>Local launch choice</span>
+                            <h3 id="roleCheckoutTitle">Reserve Pro</h3>
+                            <p id="roleCheckoutDescription">Your choice will be saved for the payment launch. No payment is taken now.</p>
+                            <p class="workspace-note"><i class="fas fa-hard-drive"></i> Saved in this browser. No email is sent and no subscription starts.</p>
+                        </div>
+                        <div class="role-checkout-total"><small id="roleCheckoutCycle">Yearly plan</small><b id="roleCheckoutPrice">$0</b><em>No charge today</em></div>
+                        <button type="button" class="role-checkout-submit" id="roleCheckoutSubmit"><span>Save launch choice</span><i class="fas fa-arrow-right"></i></button>
+                    </aside>
+                </div>
+
+                <!-- Admin Panel sub-view -->
+                <div class="ptab-content" id="profilePanelAdmin" role="tabpanel" aria-labelledby="adminPanelTab" aria-hidden="true" data-ptab-content="admin-panel" style="display:none;">
+                    <div class="admin-panel-wrap">
+                        <header class="admin-command-head">
+                            <div class="admin-command-copy">
+                                <span class="admin-command-icon"><i class="fas fa-shield-halved"></i></span>
+                                <div><small>Administration</small><h2>Control center</h2><p>Review accounts, understand access and track every local management change.</p></div>
+                            </div>
+                            <div class="admin-command-access"><span id="adminAccessBadge"><i class="fas fa-key"></i> Moderator access</span><b id="adminCloudState"><i></i> Local mode</b></div>
+                            <div class="admin-overview" aria-label="Administration overview">
+                                <div><span><i class="fas fa-users"></i></span><b id="adminOverviewUsers">0</b><small>Users</small></div>
+                                <div><span><i class="fas fa-bolt"></i></span><b id="adminOverviewActive">0</b><small>Active 7d</small></div>
+                                <div><span><i class="fas fa-inbox"></i></span><b id="adminOverviewPending">0</b><small>Pending</small></div>
+                                <div><span><i class="fas fa-user-slash"></i></span><b id="adminOverviewBanned">0</b><small>Banned</small></div>
+                            </div>
+                        </header>
+                        <p class="workspace-note admin-mode-note" id="adminModeNote"></p>
+                        <div class="admin-subtabs" id="adminSubtabs" role="tablist" aria-label="Administration">
+                            <button type="button" class="admin-stab active" data-stab="users"><span class="admin-stab-icon"><i class="fas fa-users"></i></span><span class="admin-stab-copy"><strong>Users</strong><small>Accounts &amp; access</small></span><b id="adminUsersTabCount">0</b></button>
+                            <button type="button" class="admin-stab" data-stab="forum"><span class="admin-stab-icon"><i class="fas fa-comments"></i></span><span class="admin-stab-copy"><strong>Forum</strong><small>Community queue</small></span><b id="adminForumTabCount">0</b></button>
+                            <button type="button" class="admin-stab" data-stab="activity"><span class="admin-stab-icon"><i class="fas fa-clock-rotate-left"></i></span><span class="admin-stab-copy"><strong>Activity</strong><small>Change history</small></span></button>
+                            <button type="button" class="admin-stab" data-stab="site-stats"><span class="admin-stab-icon"><i class="fas fa-chart-line"></i></span><span class="admin-stab-copy"><strong>Analytics</strong><small>Usage overview</small></span></button>
+                        </div>
+                        <section class="admin-review" id="adminActionReview" hidden aria-labelledby="adminReviewTitle">
+                            <header class="workspace-section-heading"><span><i class="fas fa-code-compare"></i></span><div><small>REVIEW BEFORE APPLYING</small><h3 id="adminReviewTitle">Review change</h3></div></header>
+                            <div id="adminReviewDiff"></div>
+                            <label class="account-field" for="adminActionReason"><span>Reason for this change</span><input id="adminActionReason" maxlength="160" placeholder="Add context for the activity log" required></label>
+                            <p id="adminActionError" role="alert"></p>
+                            <div class="admin-review-actions"><button type="button" id="adminCancelAction">Cancel</button><button type="button" id="adminConfirmAction"><i class="fas fa-check"></i> Apply change</button></div>
+                        </section>
+                        <div class="admin-stab-content" data-stab-content="activity" style="display:none;"><header class="workspace-section-heading"><span><i class="fas fa-clock-rotate-left"></i></span><div><small>CHANGE HISTORY</small><h3>Activity log</h3><p>Role and access changes, with the actor and reason. Local history is stored on this device.</p></div></header><div id="adminAuditList" class="admin-audit-list"></div></div>
+                        <div class="admin-stab-content active" data-stab-content="users">
+                            <div class="admin-users-toolbar">
+                                <label class="admin-search-field" for="adminUserSearch"><i class="fas fa-search"></i><input type="search" id="adminUserSearch" placeholder="Search name, username or bio..." class="admin-search-input" autocomplete="off"><kbd>Ctrl K</kbd></label>
+                                <select id="adminRoleFilter" class="admin-role-filter" aria-label="Filter by role">
+                                    <option value="">All roles</option>
+                                    <option value="DEV">Developer</option>
+                                    <option value="ADMIN">Admin</option>
+                                    <option value="MODERATOR">Moderator</option>
+                                    <option value="SPECTRAL">Spectral</option>
+                                    <option value="LEGEND">Legend</option>
+                                    <option value="PRO">Pro</option>
+                                    <option value="VETERAN">Veteran</option>
+                                    <option value="USER">Player</option>
+                                </select>
+                                <select id="adminStatusFilter" class="admin-role-filter" aria-label="Filter by status">
+                                    <option value="">All statuses</option>
+                                    <option value="online">Online now</option>
+                                    <option value="active">Active this week</option>
+                                    <option value="banned">Banned</option>
+                                    <option value="inactive">Inactive 30d+</option>
+                                </select>
+                                <select id="adminUserSort" class="admin-role-filter" aria-label="Sort users">
+                                    <option value="role">Highest role</option>
+                                    <option value="recent">Recently active</option>
+                                    <option value="joined">Newest users</option>
+                                    <option value="time">Most time</option>
+                                    <option value="name">Name A–Z</option>
+                                </select>
+                            </div>
+                            <div class="admin-users-summary">
+                                <label id="adminSelectAllWrap"><input type="checkbox" id="adminSelectAllUsers"><span><i class="fas fa-check"></i></span> Select visible</label>
+                                <p id="adminUserResultCount">0 users</p>
+                                <button type="button" id="adminResetUserFilters"><i class="fas fa-filter-circle-xmark"></i> Reset filters</button>
+                            </div>
+                            <div class="admin-bulk-bar" id="adminBulkBar" hidden>
+                                <div><span><i class="fas fa-check-double"></i></span><p><b id="adminSelectedCount">0 selected</b><small>Bulk actions only affect manageable users</small></p></div>
+                                <select id="adminBulkRole" aria-label="Bulk role"><option value="">Choose role...</option></select>
+                                <button type="button" id="adminBulkApplyRole"><i class="fas fa-id-badge"></i> Apply role</button>
+                                <button type="button" id="adminBulkBan" class="warn"><i class="fas fa-ban"></i> Ban</button>
+                                <button type="button" id="adminBulkUnban" class="good"><i class="fas fa-unlock"></i> Unban</button>
+                                <button type="button" id="adminBulkExport"><i class="fas fa-file-export"></i> Export</button>
+                                <button type="button" id="adminBulkClear" class="icon" aria-label="Clear selection"><i class="fas fa-times"></i></button>
+                            </div>
+                            <nav id="adminPagination" class="admin-pagination" aria-label="User pages"></nav>
+                            <div class="admin-users-layout">
+                                <div class="admin-users-list" id="adminUsersList"></div>
+                                <aside class="admin-user-inspector" id="adminUserInspector" aria-live="polite">
+                                    <div class="admin-inspector-empty"><span><i class="fas fa-user-gear"></i></span><h3>Select a user</h3><p>Open any account to inspect its activity, identities and access level.</p></div>
+                                </aside>
+                            </div>
+                        </div>
+                        <div class="admin-stab-content" data-stab-content="forum" style="display:none;">
+                            <div class="admin-section-head"><div><small>Community moderation</small><h3>Idea review queue</h3><p>Approve useful suggestions, reject unsuitable posts or restore them later.</p></div><span id="adminForumResultCount">0 ideas</span></div>
+                            <div class="admin-forum-toolbar">
+                                <label class="admin-search-field" for="adminForumSearch"><i class="fas fa-search"></i><input type="search" id="adminForumSearch" placeholder="Search ideas or authors..." autocomplete="off"></label>
+                                <div class="admin-forum-filters" id="adminForumFilters" role="group" aria-label="Filter ideas">
+                                    <button type="button" class="active" data-admin-forum-filter="all">All</button>
+                                    <button type="button" data-admin-forum-filter="pending">Pending</button>
+                                    <button type="button" data-admin-forum-filter="approved">Approved</button>
+                                    <button type="button" data-admin-forum-filter="rejected">Rejected</button>
+                                </div>
+                            </div>
+                            <div class="admin-forum-list" id="adminForumList"></div>
+                        </div>
+                        <div class="admin-stab-content" data-stab-content="site-stats" style="display:none;">
+                            <div class="admin-section-head admin-analytics-head"><div><small>Live overview</small><h3>Site analytics</h3><p>Accounts, engagement, Minecraft profiles and community activity.</p></div><button type="button" id="adminAnalyticsRefresh"><i class="fas fa-rotate"></i><span>Refresh</span></button></div>
+                            <div class="admin-stats-grid" id="adminStatsGrid"></div>
+                            <div id="adminStatsExtra"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ FRIEND INFO ══════════════ -->

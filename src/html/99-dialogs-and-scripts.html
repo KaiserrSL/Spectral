@@ -1,0 +1,121 @@
+    <!-- Account creation celebration -->
+    <div class="registration-welcome-overlay" id="registrationWelcomeOverlay" role="dialog" aria-modal="true" aria-labelledby="registrationWelcomeTitle" aria-hidden="true" inert>
+        <div class="registration-welcome-card" id="registrationWelcomeCard">
+            <div class="welcome-confetti" aria-hidden="true">
+                <i style="--x:7%;--d:.05s;--c:#5eead4"></i><i style="--x:16%;--d:.35s;--c:#818cf8"></i><i style="--x:28%;--d:.12s;--c:#fbbf24"></i><i style="--x:41%;--d:.5s;--c:#f472b6"></i><i style="--x:54%;--d:.2s;--c:#2dd4bf"></i><i style="--x:67%;--d:.42s;--c:#a78bfa"></i><i style="--x:79%;--d:.08s;--c:#f59e0b"></i><i style="--x:91%;--d:.28s;--c:#38bdf8"></i>
+            </div>
+            <button type="button" class="welcome-close" id="registrationWelcomeClose" aria-label="Close"><i class="fas fa-times"></i></button>
+            <span class="welcome-kicker"><i class="fas fa-check"></i> Account created</span>
+            <div class="welcome-role-emblem" id="welcomeRoleEmblem"><span><i class="fas fa-shield-halved"></i></span></div>
+            <h2 id="registrationWelcomeTitle">Welcome to Spectral, <span id="welcomeUsername">Player</span>.</h2>
+            <p id="welcomeLead">Your identity is ready. We also found something special for you.</p>
+            <div class="welcome-role-reveal">
+                <small>Your starting role</small>
+                <strong id="welcomeRoleName">Veteran</strong>
+                <span id="welcomeRoleReason">Unlocked forever for joining before 2027</span>
+            </div>
+            <div class="welcome-perks" id="welcomePerks"></div>
+            <div class="welcome-actions">
+                <button type="button" class="welcome-primary" id="welcomeContinueBtn">Enter my account <i class="fas fa-arrow-right"></i></button>
+                <button type="button" class="welcome-secondary" id="welcomeExploreRolesBtn"><i class="fas fa-gem"></i> Explore roles</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="friend-info-overlay" id="friendInfoOverlay" role="dialog" aria-modal="true" aria-label="Friend profile" aria-hidden="true" inert>
+        <div class="friend-info-modal glass-modal" tabindex="-1">
+            <button type="button" class="close-dashboard" id="closeFriendInfoBtn" aria-label="Close friend profile">&times;</button>
+            <div id="friendInfoBody"></div>
+        </div>
+    </div>
+
+    <!-- ══════════════ DELETE CONFIRM ══════════════ -->
+    <div class="confirm-overlay" id="confirmOverlay" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText" aria-hidden="true" inert>
+        <div class="confirm-modal glass-modal">
+            <div class="confirm-icon"><i class="fas fa-trash-alt"></i></div>
+            <h3 id="confirmTitle">Delete?</h3>
+            <p id="confirmText">This action is permanent.</p>
+            <div class="confirm-actions">
+                <button type="button" class="confirm-cancel" id="confirmCancel">Cancel</button>
+                <button type="button" class="confirm-delete" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ NEWS EDITOR MODAL ══════════════ -->
+    <div class="dashboard-overlay" id="newsEditorOverlay" role="dialog" aria-modal="true" aria-labelledby="newsEditorTitle" aria-hidden="true" inert style="z-index:4000;">
+        <div class="dashboard-modal glass-modal news-editor-modal">
+            <button type="button" class="close-dashboard" id="closeNewsEditorBtn" aria-label="Close editor">&times;</button>
+            <div class="news-editor-heading">
+                <span class="news-editor-icon"><i class="fas fa-pen-nib"></i></span>
+                <div><span id="newsEditorModeLabel">New release</span><h2 id="newsEditorTitle">Update editor</h2><p>Compose, preview and publish without leaving the page.</p></div>
+            </div>
+            <form id="newsEditorFormV2" class="news-editor-layout">
+                <div class="news-editor-fields">
+                    <div class="news-field-grid">
+                        <label class="news-field news-field-title"><span>Release title</span><input type="text" id="newsTitle" required placeholder="Library &amp; Mod Manager refresh"></label>
+                        <label class="news-field"><span>Version</span><input type="text" id="newsVersion" placeholder="v0.9.4"></label>
+                        <label class="news-field"><span>Date</span><input type="text" id="newsDate" required placeholder="Jun 27, 2026"></label>
+                        <label class="news-field"><span>Channel</span><select id="newsChannel"><option value="stable">Stable</option><option value="beta">Beta</option><option value="dev">Development</option><option value="website">Website</option></select></label>
+                        <label class="news-field"><span>Release icon</span><select id="newsIcon"><option value="bolt">Bolt</option><option value="puzzle-piece">Mods</option><option value="robot">SpectrAI</option><option value="gauge-high">Performance</option><option value="language">Localization</option><option value="terminal">Console</option><option value="palette">Interface</option><option value="globe">Website</option><option value="cubes">Launcher core</option><option value="shield-halved">Security</option></select></label>
+                    </div>
+                    <label class="news-field"><span>Short summary</span><textarea id="newsSummary" rows="2" maxlength="220" placeholder="A short overview shown before the full changelog."></textarea></label>
+                    <label class="news-current-toggle"><input type="checkbox" id="newsIsCurrent" checked><span><i class="fas fa-thumbtack"></i></span><b>Mark as current release</b><small>Highlights this update at the top of the timeline.</small></label>
+                <div class="news-items-editor" id="newsItemsEditor">
+                    <div class="nie-editor-head"><div><span>Changelog</span><small>Use **bold**, `code` and [links](https://…)</small></div><span id="newsItemCount">1 item</span></div>
+                    <div class="nie-quick-add" role="group" aria-label="Add changelog item">
+                        <button type="button" data-add-news-type="add"><i class="fas fa-plus"></i> Feature</button>
+                        <button type="button" data-add-news-type="imp"><i class="fas fa-arrow-up"></i> Improvement</button>
+                        <button type="button" data-add-news-type="fix"><i class="fas fa-wrench"></i> Fix</button>
+                        <button type="button" data-add-news-type="breaking"><i class="fas fa-triangle-exclamation"></i> Important</button>
+                        <button type="button" data-add-news-type="security"><i class="fas fa-shield-halved"></i> Security</button>
+                    </div>
+                    <div id="newsItemRows">
+                        <div class="news-item-row">
+                            <select class="nie-type" aria-label="Change type"><option value="add">+ Added</option><option value="imp">↑ Improved</option><option value="fix">✧ Fixed</option></select>
+                            <textarea class="nie-text" rows="2" placeholder="Describe the change..." aria-label="Changelog item"></textarea>
+                            <button type="button" class="nie-remove" title="Remove" aria-label="Remove changelog item"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                </div>
+                    <div class="news-editor-actions-secondary">
+                        <button type="button" id="saveNewsDraftBtn"><i class="fas fa-floppy-disk"></i> Save draft</button>
+                        <button type="button" id="copyNewsMarkdownBtn"><i class="fab fa-markdown"></i> Copy Markdown</button>
+                        <button type="button" id="clearNewsEditorBtn" class="danger"><i class="fas fa-eraser"></i> Clear</button>
+                    </div>
+                    <div class="news-publish-row">
+                        <span id="newsDraftStatus"><i class="fas fa-circle-check"></i> Changes saved locally</span>
+                        <button type="submit" class="btn-submit-login"><span id="newsPublishLabel">Publish Update</span><i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </div>
+                <aside class="news-preview-pane">
+                    <div class="news-preview-head"><span><i class="fas fa-eye"></i> Live preview</span><b>Updates</b></div>
+                    <div id="newsLivePreview" class="news-live-preview"></div>
+                </aside>
+            </form>
+        </div>
+    </div>
+
+    <!-- ══════════════ FORUM POST MODAL ══════════════ -->
+    <div class="dashboard-overlay" id="forumPostOverlay" role="dialog" aria-modal="true" aria-labelledby="forumPostDialogTitle" aria-hidden="true" inert style="z-index:4000;">
+        <div class="dashboard-modal glass-modal" style="max-width:500px;width:95%;">
+            <button type="button" class="close-dashboard" id="closeForumPostBtn" aria-label="Close idea form">&times;</button>
+            <h2 id="forumPostDialogTitle" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><i class="fas fa-lightbulb" style="color:#f59e0b;font-size:1.4rem;"></i> Share Your Idea</h2>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1.5rem;">Ideas are reviewed before appearing publicly. Inappropriate content is automatically filtered.</p>
+            <form id="forumPostForm">
+                <div class="input-group-animated"><input type="text" id="forumPostTitle" required placeholder=" " maxlength="80" aria-describedby="forumPostError"><label for="forumPostTitle">Idea title (max 80 chars)</label></div>
+                <div class="forum-textarea-wrap">
+                    <label class="forum-textarea-label" for="forumPostText">Description (max 500 chars)</label>
+                    <textarea id="forumPostText" required maxlength="500" placeholder="Describe your idea in detail..." aria-describedby="forumCharCountDescription forumPostError"></textarea>
+                    <div class="forum-char-count" id="forumCharCountDescription"><span id="forumCharCount">0</span>/500</div>
+                </div>
+                <div class="auth-error" id="forumPostError" role="alert" style="display:none;"></div>
+                <button type="submit" class="btn-submit-login" style="margin-top:1rem;background:linear-gradient(135deg,#f59e0b,#d97706);"><span>Submit Idea</span></button>
+            </form>
+        </div>
+    </div>
+
+    <button type="button" id="scrollToTop" class="scroll-to-top" aria-label="Scroll to top"><i class="fas fa-arrow-up"></i></button>
+    <script defer src="script.min.js?v=50"></script>
+</body>
+</html>

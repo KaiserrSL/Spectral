@@ -1,0 +1,427 @@
+/* ═══════════════════════════════════════════════════════════
+   Секция особенностей
+   ═══════════════════════════════════════════════════════════ */
+.features-section {
+    margin-top: 120px;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    margin-bottom: 50px;
+    text-align: center;
+    position: relative;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--primary), transparent);
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.feature-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    padding: 35px;
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.35s ease, box-shadow 0.45s var(--ease-smooth), transform 0.45s var(--ease-smooth);
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(99, 102, 241, 0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.feature-card:hover::before {
+    opacity: 1;
+}
+
+.feature-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 15px 50px rgba(99,102,241,0.4);
+    transform: translateY(-5px);
+}
+
+.f-icon {
+    font-size: 2.2rem;
+    color: var(--primary);
+    margin-bottom: 25px;
+    transition: transform 0.6s var(--ease-out-back);
+    display: inline-block;
+}
+
+.feature-card:hover .f-icon {
+    transform: rotate(360deg) scale(1.1);
+}
+
+.feature-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+}
+
+.feature-card p {
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Продвинутые функции — новый дизайн
+   ═══════════════════════════════════════════════════════════ */
+.af-wrapper {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-top: 20px;
+}
+
+.af-hero {
+    text-align: center;
+    margin-bottom: 70px;
+}
+
+.af-hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    border-radius: 50px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 1.5rem;
+    letter-spacing: 1px;
+}
+
+.af-hero h2 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1.2rem;
+    letter-spacing: -1px;
+}
+
+.af-hero p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Большая карточка-витрина */
+.af-showcase {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+    background: rgba(14,14,18,0.7);
+    border: 1px solid var(--glass-border);
+    border-radius: 28px;
+    padding: 50px;
+    margin-bottom: 50px;
+    position: relative;
+    overflow: hidden;
+}
+
+.af-showcase::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 0% 50%, rgba(99,102,241,0.08), transparent 60%);
+    pointer-events: none;
+}
+
+.af-showcase-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(99,102,241,0.15);
+    color: var(--primary);
+    border: 1px solid rgba(99,102,241,0.3);
+    padding: 5px 14px;
+    border-radius: 30px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 18px;
+}
+
+.af-showcase-left h3 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 14px;
+    line-height: 1.2;
+}
+
+.af-showcase-left p {
+    color: var(--text-muted);
+    font-size: 1rem;
+    margin-bottom: 30px;
+    line-height: 1.7;
+}
+
+/* Полосы производительности */
+.af-perf-bars { display: flex; flex-direction: column; gap: 14px; }
+
+.af-bar-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 40px;
+    align-items: center;
+    gap: 14px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.af-bar {
+    height: 6px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.af-bar-fill {
+    height: 100%;
+    background: var(--bar-color, var(--primary));
+    border-radius: 10px;
+    width: 0%;
+    transition: width 1.5s cubic-bezier(0.23,1,0.32,1);
+    box-shadow: 0 0 8px var(--bar-color, var(--primary));
+}
+
+.af-bar-val {
+    font-weight: 700;
+    color: white;
+    text-align: right;
+}
+
+/* Терминал */
+.af-terminal {
+    position: relative;
+    background:
+        radial-gradient(120% 100% at 50% -20%, rgba(99,102,241,0.10), transparent 55%),
+        linear-gradient(180deg, #0b0c14 0%, #08090f 100%);
+    border: 1px solid rgba(99,102,241,0.18);
+    border-radius: 16px;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    box-shadow: 0 30px 80px rgba(5,6,20,0.6);
+}
+
+.af-terminal::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 3;
+    background: linear-gradient(90deg, var(--primary), var(--secondary) 55%, transparent);
+}
+
+.af-terminal-bar {
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 0.78rem;
+    color: #7a83a6;
+}
+
+.af-terminal-body {
+    position: relative;
+    padding: 22px 22px 28px;
+    min-height: 232px;   /* reserve space so typing doesn't reflow the layout */
+}
+/* faint CRT scanlines */
+.af-terminal-body::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.022) 0 1px, transparent 1px 3px);
+    opacity: 0.5;
+}
+
+/* "live" badge in the title bar */
+.term-live {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+    color: #34d399;
+}
+.term-live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #34d399;
+    box-shadow: 0 0 8px #34d399; animation: glow 1.6s infinite alternate;
+}
+
+.t-line {
+    position: relative;
+    font-size: 0.82rem;
+    line-height: 1.9;
+    transition: opacity 0.4s ease;
+}
+
+.t-prompt { color: #818cf8; margin-right: 8px; font-weight: 700; text-shadow: 0 0 10px rgba(99,102,241,0.5); }
+.t-info { color: #9ca3af; }
+.t-ok { color: #10b981; }
+.t-success { color: #22d3ee; font-weight: 700; }
+
+/* typewriter caret — solid block while typing, blinking on the ready prompt */
+.t-line.typing .t-text::after {
+    content: '▋'; margin-left: 1px; color: #818cf8; font-weight: 400;
+}
+.t-cursorline { opacity: 0; }
+.t-cursorline .t-caret::after {
+    content: '▋'; color: #818cf8;
+    animation: caretBlink 1s steps(1, end) infinite;
+}
+@keyframes caretBlink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+
+/* Сетка функций */
+.af-features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+    margin-bottom: 50px;
+}
+
+.af-card {
+    background: rgba(12,12,16,0.8);
+    border: 1px solid var(--glass-border);
+    border-radius: 22px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: transform 0.35s var(--ease-out-back), border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.af-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(99,102,241,0.4);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.af-card-glow {
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--card-color, var(--primary));
+    filter: blur(50px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.af-card:hover .af-card-glow { opacity: 0.15; }
+
+.af-card-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+    transition: transform 0.4s var(--ease-out-back), color 0.3s ease;
+}
+
+.af-card:hover .af-card-icon { transform: scale(1.08) translateY(-2px); }
+
+.af-card[data-color="#6366f1"] .af-card-icon { color: #6366f1; }
+.af-card[data-color="#10b981"] .af-card-icon { color: #10b981; }
+.af-card[data-color="#ec4899"] .af-card-icon { color: #ec4899; }
+.af-card[data-color="#f59e0b"] .af-card-icon { color: #f59e0b; }
+.af-card[data-color="#3b82f6"] .af-card-icon { color: #3b82f6; }
+.af-card[data-color="#8b5cf6"] .af-card-icon { color: #8b5cf6; }
+
+.af-card-num {
+    position: absolute;
+    top: 22px;
+    right: 26px;
+    font-size: 3.5rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.04);
+    line-height: 1;
+    pointer-events: none;
+}
+
+.af-card h4 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: white;
+}
+
+.af-card p {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 16px;
+}
+
+.af-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.af-card-tags span {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-muted);
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+/* Полоса статистики */
+.af-stats-strip {
+    background: rgba(14,14,18,0.8);
+    border: 1px solid var(--glass-border);
+    border-radius: 22px;
+    padding: 36px 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 20px;
+}
+
+.af-stat-item { text-align: center; }
+
+.af-stat-num {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: white;
+    line-height: 1;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, white, var(--primary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.af-stat-label {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.af-stat-divider {
+    width: 1px;
+    height: 50px;
+    background: var(--glass-border);
+}
+
