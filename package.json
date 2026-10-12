@@ -9,7 +9,7 @@
     "test": "node --test",
     "build:css": "lightningcss --minify style.css -o style.min.css",
     "build:js": "terser boot.js --compress passes=2 --mangle --comments false -o boot.min.js && terser script.js --compress passes=2 --mangle --comments false -o script.min.js",
-    "build": "pnpm run compose && pnpm run build:css && pnpm run build:js",
+    "build": "pnpm run compose && pnpm run build:css && pnpm run build:js && node tools/prepare-public.mjs",
     "check": "pnpm run check:source && pnpm run lint && pnpm test && pnpm run build"
   },
   "devDependencies": {
