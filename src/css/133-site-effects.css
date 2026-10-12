@@ -1,0 +1,157 @@
+/* Site-wide motion: quick feedback, calm entrances, and no moving selection. */
+:root {
+    --site-fx-ease: cubic-bezier(.22, .8, .28, 1);
+    --site-fx-fast: 180ms;
+    --site-fx-medium: 300ms;
+    --site-fx-enter: 480ms;
+}
+
+/* Native fragment restoration must leave the route title below the fixed bar. */
+#accounts, #updates, #development, #advanced-features, #support { scroll-margin-top: 120px; }
+
+.animate-on-scroll {
+    transform: translate3d(0, 13px, 0);
+    transition: opacity 520ms ease, transform 580ms var(--site-fx-ease);
+}
+.delay-1 { transition-delay: 45ms; }
+.delay-2 { transition-delay: 90ms; }
+.delay-3 { transition-delay: 135ms; }
+.delay-4 { transition-delay: 180ms; }
+
+.tab-content.route-enter { animation: siteRouteIn 340ms ease-out both; }
+@keyframes siteRouteIn { from { opacity: .91; } to { opacity: 1; } }
+
+/* Lead copy and its companion arrive at different depths on every route. */
+#home.route-enter .hero-text-block,
+#accounts.route-enter .account-cockpit-heading-copy,
+#updates.route-enter .updates-heading-copy,
+#development.route-enter .dev-hero-copy,
+#advanced-features.route-enter .af-hero h2,
+#support.route-enter .support-hero-copy {
+    animation: siteLeadIn var(--site-fx-enter) var(--site-fx-ease) both;
+}
+#home.route-enter .hero-visual-block,
+#accounts.route-enter .account-cockpit-summary,
+#updates.route-enter .updates-featured,
+#development.route-enter .dev-profile,
+#advanced-features.route-enter .af-hero > p,
+#support.route-enter .support-response-card {
+    animation: siteCompanionIn 540ms 55ms var(--site-fx-ease) both;
+}
+@keyframes siteLeadIn {
+    from { opacity: .62; transform: translate3d(0, 11px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes siteCompanionIn {
+    from { opacity: .55; transform: translate3d(0, 15px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+/* Primary actions acknowledge a press without springing away from the pointer. */
+:is(
+    #home .cta-group a,
+    #home .home-wayfinder-link,
+    #accounts .ln-signin-btn,
+    #updates .updates-featured-open,
+    #updates .updates-filter,
+    #development .dev-hero-actions button,
+    #development .dev-stage-controls button,
+    #advanced-features .af-primary-action,
+    #advanced-features .af-secondary-action,
+    #support .support-route-button,
+    #support .support-topic-strip button,
+    #support .support-solution-actions button
+):active { transform: scale(.985); transition-duration: 100ms; }
+
+:is(
+    #home .home-wayfinder-link,
+    #home .feature-card,
+    #accounts .ln-signin-btn,
+    #updates .updates-filter,
+    #updates .release-expand,
+    #development .dev-stage,
+    #development .tech-card,
+    #development .code-tab,
+    #advanced-features .af-primary-action,
+    #advanced-features .af-secondary-action,
+    #support .support-symptom,
+    #support .faq-q,
+    #support .support-topic-strip button
+):focus-visible {
+    outline: 2px solid #acb7ff;
+    outline-offset: 3px;
+}
+
+/* Keep selected filters fixed in place; only the pointer hover moves. */
+#updates .updates-filter.active,
+#support .support-topic-strip button.active,
+#development .dev-layer-diagram button.active { transform: none; }
+
+#home .features-grid .feature-card.visible {
+    transition: flex-grow 470ms var(--site-fx-ease), opacity 520ms ease,
+        border-color 240ms ease, box-shadow 340ms ease,
+        transform 340ms var(--site-fx-ease), background-color 240ms ease;
+}
+#home .feature-card-extra {
+    transition: max-height 470ms var(--site-fx-ease), margin 350ms ease,
+        opacity 260ms ease, transform 370ms var(--site-fx-ease);
+}
+
+/* Small directional cues give links and CTAs the same feel across sections. */
+#home .home-wayfinder-link > i,
+#updates .updates-featured-open > i,
+#development .dev-hero-actions button > i,
+#advanced-features .af-primary-action > i,
+#advanced-features .af-secondary-action > i,
+#support .support-route-button > i {
+    transition: transform var(--site-fx-medium) var(--site-fx-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+    #home .home-wayfinder-link:hover > i,
+    #updates .updates-featured-open:hover > i,
+    #development .dev-hero-actions button:hover > i,
+    #advanced-features .af-primary-action:hover > i,
+    #advanced-features .af-secondary-action:hover > i,
+    #support .support-route-button:hover > i { transform: translate3d(3px, 0, 0); }
+    #development .dev-primary-action:hover > i { transform: translate3d(0, 3px, 0); }
+    #support .support-channel .sc-icon { transition: transform 320ms var(--site-fx-ease), border-color 200ms ease; }
+    #support .support-channel:hover .sc-icon { transform: translate3d(0, -2px, 0) scale(1.04); }
+    #updates .timeline-card:hover .release-icon { transform: translate3d(0, -2px, 0); }
+}
+#updates .release-icon { transition: transform var(--site-fx-medium) var(--site-fx-ease); }
+
+/* Release expansion responds promptly even when entries are switched quickly. */
+#updates .release-details { transition: grid-template-rows 410ms var(--site-fx-ease); }
+#updates .release-details .changelog li { transition: opacity 260ms ease, transform 320ms var(--site-fx-ease); }
+#updates .timeline-card.expanded .release-details .changelog li:nth-child(2) { transition-delay: 30ms; }
+#updates .timeline-card.expanded .release-details .changelog li:nth-child(3) { transition-delay: 60ms; }
+#updates .timeline-card.expanded .release-details .changelog li:nth-child(4) { transition-delay: 90ms; }
+#updates .timeline-card.expanded .release-details .changelog li:nth-child(n+5) { transition-delay: 120ms; }
+#updates .release-expand i { transition: transform 330ms var(--site-fx-ease); }
+
+/* Focus effects stay visible on editable controls without moving the layout. */
+:is(#updates .updates-search, #support .support-search, #accounts .friend-add-input):focus-within {
+    box-shadow: 0 0 0 3px rgba(139, 153, 255, .14), inset 0 1px rgba(255, 255, 255, .06);
+    transition: border-color 200ms ease, box-shadow 260ms ease, background-color 200ms ease;
+}
+body.light-theme :is(#updates .updates-search, #support .support-search, #accounts .friend-add-input):focus-within {
+    box-shadow: 0 0 0 3px rgba(86, 100, 197, .12), inset 0 1px rgba(255, 255, 255, .75);
+}
+
+/* Continuous ambience is least useful on compact screens. */
+@media (max-width: 820px) {
+    .bg-gradient-overlay,
+    .bg-gradient-overlay::after,
+    .ambient-light { animation: none !important; }
+}
+@media (hover: none), (pointer: coarse) {
+    #support .support-channel:hover .sc-icon,
+    #updates .timeline-card:hover .release-icon { transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tab-content.route-enter,
+    .tab-content.route-enter :is(.hero-text-block,.hero-visual-block,.account-cockpit-heading-copy,.account-cockpit-summary,.updates-heading-copy,.updates-featured,.dev-hero-copy,.dev-profile,.af-hero h2,.af-hero > p,.support-hero-copy,.support-response-card) { animation: none !important; }
+    .animate-on-scroll { transition: none !important; opacity: 1 !important; transform: none !important; }
+}
+html.lite-mode .tab-content.route-enter,
+html.lite-mode .tab-content.route-enter :is(.hero-text-block,.hero-visual-block,.account-cockpit-heading-copy,.account-cockpit-summary,.updates-heading-copy,.updates-featured,.dev-hero-copy,.dev-profile,.af-hero h2,.af-hero > p,.support-hero-copy,.support-response-card) { animation: none !important; }

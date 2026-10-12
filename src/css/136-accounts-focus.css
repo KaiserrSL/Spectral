@@ -1,0 +1,219 @@
+/* Accounts: clearer actions and a more legible profile workspace. */
+#accounts.account-cockpit-tab .account-cockpit-section { width: min(1320px, 100%); }
+#accounts .account-cockpit-heading { margin-bottom: 27px; }
+#accounts .account-cockpit-heading .text-gradient { background: linear-gradient(100deg, #a8b2ff 4%, #837ff2 53%, #b6a1ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+#accounts .account-cockpit-heading-copy > p { max-width: 610px; color: #a5aec9; }
+#accounts .account-cockpit-summary { padding: 13px; border-radius: 22px; }
+#accounts .account-cockpit-summary > span { padding: 8px 12px; }
+#accounts .account-cockpit-summary b { font-size: 1.05rem; }
+#accounts .account-cockpit-summary small { font-size: .65rem; letter-spacing: .06em; }
+#accounts .identity-cockpit {
+    grid-template-columns: minmax(270px, .85fr) minmax(390px, 1.42fr) minmax(265px, .86fr);
+    border-color: rgba(153, 161, 255, .20);
+    box-shadow: 0 34px 90px rgba(0, 0, 0, .36), inset 0 1px rgba(255, 255, 255, .08);
+}
+#accounts .cockpit-rail { padding: 27px 21px 22px; }
+#accounts .cockpit-rail-head small { font-size: .63rem; color: #8996bd; }
+#accounts.account-cockpit-tab .cockpit-rail-head h3 { font-size: 1.12rem; }
+#accounts .cockpit-rail-hint { margin: 10px 0 14px; font-size: .72rem; color: #98a4c1; line-height: 1.55; }
+#accounts .cockpit-add-profile {
+    width: 100%;
+    min-height: 42px;
+    height: auto;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 17px;
+    color: #fff;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .015em;
+    border-color: rgba(163, 168, 255, .48);
+    background: linear-gradient(112deg, #6667df, #7b57d9 58%, #674bb8);
+    box-shadow: 0 8px 24px rgba(93, 72, 219, .22), inset 0 1px rgba(255, 255, 255, .25);
+}
+#accounts .cockpit-add-profile i { display: inline-grid; place-items: center; flex: none; width: 16px; height: 16px; font-size: .82rem; line-height: 1; transition: transform .25s ease; }
+#accounts .cockpit-add-profile:hover {
+    transform: translateY(-2px);
+    border-color: rgba(193, 198, 255, .75);
+    background: linear-gradient(112deg, #7879ee, #8e67eb 58%, #785ace);
+    box-shadow: 0 12px 28px rgba(93, 72, 219, .33), inset 0 1px rgba(255, 255, 255, .3);
+}
+#accounts .cockpit-add-profile:hover i { transform: rotate(90deg); }
+#accounts.account-cockpit-tab .cockpit-profile-rail .accounts-grid { max-height: 465px; gap: 10px; }
+#accounts.account-cockpit-tab .account-card {
+    min-height: 112px;
+    gap: 11px 8px;
+    padding: 13px;
+    border-color: rgba(150, 158, 246, .16);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .035);
+}
+#accounts.account-cockpit-tab .account-card:hover { transform: translateY(-2px); border-color: rgba(150, 158, 246, .37); background: rgba(114, 105, 237, .095); box-shadow: 0 10px 22px rgba(0, 0, 0, .12); }
+#accounts.account-cockpit-tab .account-card.is-active { border-color: rgba(147, 158, 255, .58); background: linear-gradient(135deg, rgba(100, 96, 236, .22), rgba(57, 176, 207, .065)); }
+#accounts.account-cockpit-tab .acc-avatar,
+#accounts.account-cockpit-tab .acc-avatar img { width: 46px; height: 46px; border-radius: 14px; }
+#accounts.account-cockpit-tab .acc-card-name { font-size: .9rem; font-weight: 800; }
+#accounts.account-cockpit-tab .acc-card-head .active-account-type { margin-top: 5px; font-size: .62rem !important; }
+#accounts.account-cockpit-tab .acc-card-meta { font-size: .64rem; color: #a1acc7; }
+#accounts.account-cockpit-tab .acc-btn-select { min-width: 66px; min-height: 31px; font-size: .62rem; }
+#accounts.account-cockpit-tab .acc-btn-delete { width: 31px; height: 31px; }
+#accounts.account-cockpit-tab .acc-fav { width: 31px; height: 31px; }
+#accounts.account-cockpit-tab .accounts-empty { min-height: 225px; padding: 26px 14px; border: 1px dashed rgba(143, 154, 239, .24); border-radius: 18px; background: rgba(99, 102, 241, .045); }
+#accounts.account-cockpit-tab .accounts-empty > i {
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 13px;
+    color: #a4a8ff;
+    font-size: 1.25rem;
+    line-height: 1;
+    opacity: 1;
+    border: 1px solid rgba(147, 151, 255, .22);
+    border-radius: 16px;
+    background: rgba(112, 108, 231, .11);
+}
+#accounts.account-cockpit-tab .accounts-empty p { font-size: .8rem; line-height: 1.5; }
+#accounts #accountsEmptyAddBtn {
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 38px;
+    margin-top: 18px;
+    padding: 0 15px;
+    color: #f2f0ff;
+    font-size: .7rem;
+    font-weight: 700;
+    border: 1px solid rgba(156, 150, 255, .38);
+    border-radius: 11px;
+    background: rgba(117, 93, 223, .24);
+    cursor: pointer;
+    transition: transform .25s ease, background .25s ease;
+}
+#accounts #accountsEmptyAddBtn:hover { transform: translateY(-2px); background: rgba(117, 93, 223, .4); }
+#accounts #accountsEmptyAddBtn > i {
+    width: 14px;
+    height: 14px;
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    margin: 0;
+    color: currentColor;
+    font-size: .76rem;
+    line-height: 1;
+    opacity: 1;
+}
+#accounts .cockpit-slot-meter { gap: 10px; padding-top: 20px; }
+#accounts .cockpit-slot-meter > div span,
+#accounts .cockpit-slot-meter > div b { font-size: .69rem; }
+#accounts .cockpit-slot-meter button { min-height: 39px; font-size: .66rem; }
+#accounts .cockpit-slot-meter button > i { width: 14px; flex: none; font-size: .78rem; line-height: 1; text-align: center; }
+#accounts.account-cockpit-tab .cockpit-core { padding: 27px 30px 28px; }
+#accounts .account-cockpit-summary i { font-size: .85rem; }
+#accounts.account-cockpit-tab .no-accounts-msg > i { width: 58px; height: 58px; font-size: 1.25rem; line-height: 1; border-radius: 17px; }
+#accounts.account-cockpit-tab .cockpit-social-rail .btn-add-friend { display: grid; place-items: center; }
+#accounts.account-cockpit-tab .cockpit-social-rail .btn-add-friend > i { width: 16px; height: 16px; display: grid; place-items: center; font-size: .88rem; line-height: 1; }
+#accounts.account-cockpit-tab .cockpit-social-rail .friend-add-input > i { width: 18px; flex: none; font-size: .82rem; text-align: center; }
+#accounts.account-cockpit-tab .friends-empty > i {
+    width: 58px;
+    height: 58px;
+    display: grid;
+    place-items: center;
+    margin: 0 auto 16px;
+    color: #9a9ef2;
+    font-size: 1.5rem;
+    line-height: 1;
+    opacity: 1;
+    border: 1px solid rgba(147, 151, 255, .16);
+    border-radius: 18px;
+    background: rgba(112, 108, 231, .08);
+}
+#accounts .cockpit-social-note > i { flex: none; width: 15px; font-size: .78rem; line-height: 1.2; text-align: center; }
+#accounts.account-cockpit-tab .active-account-uuid span { font-size: .7rem; }
+#accounts.account-cockpit-tab .active-account-uuid em { font-size: .62rem; }
+#accounts.account-cockpit-tab .acc-stat small { font-size: .65rem; }
+#accounts.account-cockpit-tab .account-ready-state span { font-size: .68rem; }
+#accounts.account-cockpit-tab .account-ready-state small { font-size: .63rem; }
+#accounts.account-cockpit-tab .cockpit-social-rail .friend-add-input input { font-size: .72rem; }
+#accounts.account-cockpit-tab .friend-name { font-size: .79rem; }
+#accounts.account-cockpit-tab .friend-user,
+#accounts .cockpit-social-note { font-size: .67rem; }
+
+/* The add dialog uses two distinct choices with the active form below. */
+.add-account-overlay { padding: 18px; background: rgba(3, 5, 17, .74); }
+.add-account-modal {
+    width: min(510px, 100%);
+    max-width: 100%;
+    padding: 32px;
+    border: 1px solid rgba(146, 155, 245, .26);
+    border-radius: 25px;
+    background: radial-gradient(circle at 0 0, rgba(100, 95, 222, .22), transparent 54%), linear-gradient(145deg, #181b35, #0a0d1e 76%);
+    box-shadow: 0 32px 90px rgba(0, 0, 0, .48), inset 0 1px rgba(255, 255, 255, .09);
+}
+.add-account-modal h3 { margin: 0 34px 25px 0; font-size: 1.38rem; line-height: 1.2; }
+.add-account-modal h3 i { color: #a5a7ff; }
+.add-account-modal .close-add-account { top: 20px; right: 23px; }
+.add-account-modal .acc-type-selector { margin-bottom: 23px; }
+.add-account-modal .acc-type-title { margin-bottom: 10px; color: #a0aac9; font-size: .72rem; }
+.add-account-modal .acc-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+.add-account-modal .acc-type-card {
+    min-height: 108px;
+    gap: 7px;
+    padding: 17px 13px;
+    border-color: rgba(145, 155, 239, .18);
+    background: rgba(255, 255, 255, .035);
+}
+.add-account-modal .acc-type-card:hover { border-color: rgba(158, 164, 255, .5); background: rgba(111, 103, 230, .12); }
+.add-account-modal .acc-type-card.active { border-color: #9699ff; background: linear-gradient(135deg, rgba(105, 103, 224, .26), rgba(104, 68, 184, .12)); box-shadow: inset 0 1px rgba(255, 255, 255, .09), 0 10px 25px rgba(71, 61, 157, .13); }
+.add-account-modal .acc-type-card span { color: #f0f2ff; }
+.add-account-modal .acc-type-card.active span { color: #fff; }
+.add-account-modal .acc-type-card small { color: #adb6d0; font-size: .7rem; }
+.add-account-modal .acc-form { padding-top: 2px; }
+.add-account-modal .offline-info { color: #b5bdd5; border-color: rgba(145, 155, 239, .2); background: rgba(105, 103, 224, .09); }
+.add-account-modal :is(button, input):focus-visible,
+#accounts :is(button, input):focus-visible { outline: 2px solid #b7b8ff; outline-offset: 3px; }
+
+body.light-theme #accounts .account-cockpit-heading-copy > p { color: #626e91; }
+body.light-theme #accounts .account-cockpit-heading .text-gradient { background: linear-gradient(100deg, #4951b9 3%, #614cbd 52%, #51459e); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+body.light-theme #accounts .identity-cockpit { border-color: rgba(79, 70, 229, .2); box-shadow: 0 24px 65px rgba(75, 83, 150, .16), inset 0 1px #fff; }
+body.light-theme #accounts .cockpit-rail-head small,
+body.light-theme #accounts .cockpit-rail-hint { color: #606d92; }
+body.light-theme #accounts .cockpit-add-profile { color: #fff; border-color: rgba(74, 67, 193, .35); background: linear-gradient(112deg, #6567dc, #8159cf); }
+body.light-theme #accounts.account-cockpit-tab .account-card { border-color: rgba(78, 72, 169, .16); background: rgba(255, 255, 255, .67); }
+body.light-theme #accounts.account-cockpit-tab .account-card:hover { border-color: rgba(78, 72, 169, .34); background: #fff; }
+body.light-theme #accounts.account-cockpit-tab .account-card.is-active { border-color: rgba(79, 70, 229, .44); background: linear-gradient(135deg, rgba(107, 105, 226, .2), rgba(255, 255, 255, .72)); }
+body.light-theme #accounts.account-cockpit-tab .acc-card-meta { color: #586586; }
+body.light-theme #accounts.account-cockpit-tab .accounts-empty { border-color: rgba(79, 70, 229, .25); background: rgba(255, 255, 255, .54); }
+body.light-theme #accounts.account-cockpit-tab .accounts-empty > i,
+body.light-theme #accounts.account-cockpit-tab .friends-empty > i { color: #6263c8; border-color: rgba(79, 70, 229, .18); background: rgba(103, 93, 219, .09); }
+body.light-theme #accounts #accountsEmptyAddBtn { color: #4849a7; background: rgba(103, 93, 219, .12); }
+body.light-theme .add-account-modal { background: radial-gradient(circle at 0 0, rgba(115, 104, 226, .13), transparent 54%), linear-gradient(145deg, #f9faff, #e9edfa); border-color: rgba(79, 70, 229, .19); }
+body.light-theme .add-account-modal h3 { color: #293059; }
+body.light-theme .add-account-modal .acc-type-title { color: #657093; }
+body.light-theme .add-account-modal .acc-type-card { border-color: rgba(79, 70, 229, .17); background: rgba(255, 255, 255, .67); }
+body.light-theme .add-account-modal .acc-type-card.active { border-color: rgba(79, 70, 229, .57); background: rgba(103, 93, 219, .14); }
+body.light-theme .add-account-modal .acc-type-card span,
+body.light-theme .add-account-modal .acc-type-card.active span { color: #2b315a; }
+body.light-theme .add-account-modal .acc-type-card small { color: #626d8e; }
+body.light-theme .add-account-modal .offline-info { color: #596587; }
+
+@media (max-width: 1120px) and (min-width: 981px) {
+    #accounts .identity-cockpit { grid-template-columns: minmax(230px, .82fr) minmax(340px, 1.35fr) minmax(230px, .82fr); }
+    #accounts .cockpit-rail { padding-inline: 15px; }
+}
+@media (max-width: 980px) { #accounts .identity-cockpit { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px) {
+    #accounts .identity-cockpit { grid-template-columns: minmax(0, 1fr); }
+    #accounts .cockpit-rail { padding: 21px 17px; }
+    #accounts.account-cockpit-tab .cockpit-core { padding: 23px 17px; }
+    .add-account-modal { padding: 26px 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    #accounts .cockpit-add-profile i,
+    #accounts .cockpit-add-profile:hover i { transform: none; transition: none; }
+    #accounts #accountsEmptyAddBtn:hover,
+    #accounts .cockpit-add-profile:hover,
+    #accounts.account-cockpit-tab .account-card:hover { transform: none; }
+}

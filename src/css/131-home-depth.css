@@ -1,0 +1,89 @@
+/* The home route opens below the fixed navigation even for a direct hash URL. */
+#home { scroll-margin-top:120px; }
+
+/* Let the content determine hero height, then use the remaining width for useful routes. */
+#home .hero-container {
+    min-height:0;
+    align-items:center;
+    gap:clamp(24px,3vw,44px);
+    padding-top:clamp(28px,4vw,54px);
+}
+#home .hero-text-block h1 { max-width:620px; font-size:clamp(3rem,4.4vw,5rem); line-height:1.05; }
+#home .hero-text-block > p { max-width:55ch; }
+#home .status-badge { margin-bottom:24px; }
+#home .cta-group { margin-top:29px; }
+
+#home .home-wayfinder {
+    grid-column:1 / -1;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:12px;
+    min-width:0;
+    margin-top:2px;
+}
+#home .home-wayfinder-link {
+    --route-color:138,151,255;
+    position:relative;
+    display:grid;
+    grid-template-columns:44px minmax(0,1fr) 18px;
+    align-items:center;
+    gap:13px;
+    min-height:82px;
+    padding:14px 18px;
+    overflow:hidden;
+    border:1px solid rgba(var(--route-color),.2);
+    border-radius:17px;
+    color:#e7edff;
+    text-decoration:none;
+    background:linear-gradient(130deg,rgba(var(--route-color),.11),rgba(10,14,32,.78) 72%);
+    box-shadow:inset 0 1px rgba(255,255,255,.045);
+    transition:transform .32s cubic-bezier(.2,.8,.25,1),border-color .26s ease,background .26s ease,box-shadow .26s ease;
+}
+#home .home-wayfinder-link:nth-child(2) { --route-color:100,200,235; }
+#home .home-wayfinder-link:nth-child(3) { --route-color:94,218,176; }
+#home .home-wayfinder-link::before { content:""; position:absolute; inset:0 auto 0 0; width:3px; background:rgb(var(--route-color)); opacity:.75; }
+#home .home-wayfinder-link:hover { transform:translateY(-3px); border-color:rgba(var(--route-color),.48); box-shadow:0 17px 34px rgba(3,7,22,.24),inset 0 1px rgba(255,255,255,.07); }
+#home .home-wayfinder-link:focus-visible { outline:2px solid rgb(var(--route-color)); outline-offset:3px; }
+#home .home-wayfinder-icon { display:flex; align-items:center; justify-content:center; width:44px; height:44px; border:1px solid rgba(var(--route-color),.24); border-radius:12px; color:rgb(var(--route-color)); background:rgba(var(--route-color),.1); }
+#home .home-wayfinder-icon i { line-height:1; }
+#home .home-wayfinder-copy { display:grid; min-width:0; gap:4px; }
+#home .home-wayfinder-copy small { color:#9ba8c6; font-size:.67rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+#home .home-wayfinder-copy strong { overflow:hidden; color:#f2f5ff; font-size:1rem; line-height:1.2; text-overflow:ellipsis; white-space:nowrap; }
+#home .home-wayfinder-link > i { color:rgba(var(--route-color),.78); font-size:.76rem; transition:transform .26s ease; }
+#home .home-wayfinder-link:hover > i { transform:translateX(3px); }
+
+/* Compact the handoff into the existing interactive tool deck. */
+#home .features-section { margin-top:clamp(54px,5vw,78px); }
+#home .home-features-heading { margin-bottom:25px; }
+#home .feature-card-main > small { font-size:.63rem; }
+#home .feature-card h3 { font-size:1.48rem; }
+#home .feature-card p { font-size:.83rem; line-height:1.55; }
+#home .feature-card-open b { font-size:.61rem; }
+@media (min-width:681px) {
+    #home .feature-card:not(.is-active) .feature-card-extra { grid-template-rows:1fr; max-height:200px; margin-top:16px; opacity:.82; transform:none; transition-delay:0s; }
+    #home .feature-card:not(.is-active) .feature-benefits { display:none; }
+    #home .feature-card:not(.is-active) .feature-mini-window { min-height:124px; }
+}
+
+body.light-theme #home .home-wayfinder-link { border-color:rgba(var(--route-color),.27); color:#293653; background:linear-gradient(130deg,rgba(var(--route-color),.13),rgba(255,255,255,.88) 72%); box-shadow:0 10px 26px rgba(70,84,150,.07),inset 0 1px white; }
+body.light-theme #home .home-wayfinder-copy small { color:#60708e; }
+body.light-theme #home .home-wayfinder-copy strong { color:#253253; }
+body.light-theme #home .home-wayfinder-icon { background:rgba(var(--route-color),.13); }
+
+@media (max-width:1180px) {
+    #home .hero-container { padding-top:26px; gap:32px; }
+    #home .hero-text-block h1 { max-width:680px; }
+    #home .features-section { margin-top:64px; }
+}
+@media (max-width:680px) {
+    #home .hero-container { padding-top:12px; gap:27px; }
+    #home .hero-text-block h1 { font-size:clamp(2.35rem,8.5vw,3.3rem); }
+    #home .status-badge { margin-bottom:19px; }
+    #home .home-wayfinder { grid-template-columns:1fr; gap:9px; margin-top:1px; }
+    #home .home-wayfinder-link { min-height:66px; padding:10px 14px; }
+    #home .features-section { margin-top:65px; }
+}
+@media (prefers-reduced-motion:reduce) {
+    #home .home-wayfinder-link,#home .home-wayfinder-link > i { transition:none; }
+}
+html.lite-mode #home .home-wayfinder-link,html.lite-mode #home .home-wayfinder-link > i { transition:none; }

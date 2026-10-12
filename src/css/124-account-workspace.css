@@ -1,0 +1,80 @@
+/* Account workspace: shared rhythm, readable data and bounded motion. */
+:root{--font-ui:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;--font-data:'JetBrains Mono',ui-monospace,monospace;--workspace-surface:rgba(17,22,40,.88);--workspace-raised:rgba(255,255,255,.035);--workspace-line:rgba(173,188,231,.15);--workspace-text:#edf1ff;--workspace-muted:#a3afc8;--workspace-accent:#a9a0ff}
+body,button,input,select,textarea{font-family:var(--font-ui)}
+body{font-optical-sizing:auto;text-rendering:optimizeLegibility}
+h1,h2,h3,h4{font-family:var(--font-ui);text-wrap:balance}
+p{ text-wrap:pretty }
+code,kbd,pre,.dev-system-code,.support-code,.admin-inspector-id{font-family:var(--font-data)}
+.fas,.far,.fab{flex-shrink:0;line-height:1}
+button:disabled{cursor:not-allowed}
+:where(button,a,input,select,textarea,[tabindex]):focus-visible{outline:2px solid var(--workspace-accent);outline-offset:4px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.workspace-section-heading{display:flex;align-items:flex-start;gap:14px;margin:0 0 22px;text-align:left}
+.workspace-section-heading>span{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--workspace-line);background:rgba(145,128,255,.09);border-radius:13px;color:var(--workspace-accent);font-size:17px}
+.workspace-section-heading small{display:block;font-size:10px;font-weight:650;letter-spacing:.14em;color:var(--workspace-muted);margin:0 0 6px}
+.workspace-section-heading h3{font-size:21px;line-height:1.25;letter-spacing:-.6px;color:var(--workspace-text);margin:0}
+.workspace-section-heading p,.workspace-note{color:var(--workspace-muted);font-size:12px;line-height:1.7;margin:8px 0 0}
+.workspace-note{display:flex;align-items:baseline;gap:9px;text-align:left}
+#profileView [data-ptab-content="my-profile"]{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;align-items:start}
+#profileView [data-ptab-content="my-profile"]>.profile-cover{grid-column:1/-1;grid-row:auto}
+#profileView [data-ptab-content="my-profile"]>.profile-stat-chips{grid-column:1/-1;grid-row:auto;margin:0}
+#profileView [data-ptab-content="my-profile"]>.profile-role-spotlight{grid-column:1/-1;grid-row:auto;margin:0}
+#profileView [data-ptab-content="my-profile"]>.profile-identity-studio{grid-column:1/-1;grid-row:auto}
+#profileView [data-ptab-content="my-profile"]>.account-editor{grid-column:1;grid-row:5 / span 2}
+#profileView [data-ptab-content="my-profile"]>.profile-preferences{grid-column:2;grid-row:5;margin:0}
+#profileView [data-ptab-content="my-profile"]>.account-session-card{grid-column:2;grid-row:6}
+#profileView [data-ptab-content="my-profile"]>.profile-actions{grid-column:1/-1;grid-row:auto;margin:0;justify-content:flex-end}
+.account-editor,.account-session-card,.role-comparison{min-width:0;padding:24px;background:var(--workspace-surface);border:1px solid var(--workspace-line);border-radius:20px;color:var(--workspace-text)}
+#profileView .account-editor .profile-settings{display:flex;flex-direction:column;gap:20px;padding:0;margin:0;border:0;background:none;box-shadow:none}
+.account-field{display:flex;flex-direction:column;gap:9px;text-align:left;min-width:0}
+.account-field>span{display:flex;align-items:center;gap:8px;color:var(--workspace-text);font-size:12px;font-weight:550}
+.account-field>span>i{color:var(--workspace-accent);font-size:13px;width:16px;text-align:center}
+.account-field output{margin-left:auto;font-family:var(--font-data);font-size:10px;color:var(--workspace-muted);font-weight:400}
+.account-field input,.account-field textarea{width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--workspace-line);background:rgba(0,0,0,.16);border-radius:11px;color:var(--workspace-text);font-size:14px;line-height:1.5;padding:13px 14px;transition:border-color .18s,background-color .18s}
+.account-field textarea{resize:vertical;min-height:90px;max-height:240px}
+.account-field input:focus,.account-field textarea:focus{border-color:var(--workspace-accent);background:var(--workspace-raised)}
+.account-field input::placeholder,.account-field textarea::placeholder{color:var(--workspace-muted);opacity:.7}
+.account-avatar-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.account-avatar-tools small{width:100%;font-size:10px;color:var(--workspace-muted);margin-top:1px}
+.account-editor button,.account-session-actions button,.role-reservation button,.admin-review button,.admin-pagination button,#retryAdminConnection{border:1px solid var(--workspace-line);background:var(--workspace-raised);color:var(--workspace-text);border-radius:10px;padding:10px 13px;font:550 12px var(--font-ui);display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;transition:background .18s,border-color .18s,transform .18s;cursor:pointer}
+.account-editor button:hover:not(:disabled),.account-session-actions button:hover,.role-reservation button:hover,.admin-review button:hover,.admin-pagination button:hover:not(:disabled){background:rgba(145,128,255,.14);border-color:var(--workspace-accent);transform:translateY(-1px)}
+.account-editor button:disabled,.admin-review button:disabled,.admin-pagination button:disabled{opacity:.4;transform:none;cursor:not-allowed}
+.account-save-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--workspace-line)}
+.account-save-bar>span{width:100%;font-size:11px;line-height:1.5;color:var(--workspace-muted)}
+.account-save-bar>span.is-dirty{color:#eac477}
+#profileView .account-save-bar .btn-save-profile,#adminConfirmAction{width:auto;margin:0;background:#b5acff;color:#15122e;border-color:transparent;box-shadow:none;font-weight:650}
+.account-session-summary{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.session-orb{height:36px;width:36px;display:grid;place-items:center;border-radius:50%;background:rgba(72,211,172,.1);color:#60dab3;flex:0 0 36px}
+.account-session-summary>div{flex:1;min-width:170px}
+.account-session-summary strong{font-size:13px}
+.account-session-summary p{font-size:12px;line-height:1.65;color:var(--workspace-muted);margin:6px 0 0}
+.session-state{border:1px solid var(--workspace-line);padding:5px 8px;border-radius:6px;font:10px var(--font-data);color:var(--workspace-muted)}
+.account-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px 16px;margin:20px 0}
+.account-detail-grid div{min-width:0}.account-detail-grid dt{color:var(--workspace-muted);font-size:10px;margin-bottom:6px;display:flex;gap:6px;align-items:center}.account-detail-grid dd{margin:0;font-size:12px;line-height:1.5;overflow-wrap:anywhere}
+.account-session-actions{display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid var(--workspace-line);padding-top:17px}
+.account-entitlements{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+.account-entitlements article{padding:20px;border:1px solid var(--workspace-line);background:var(--workspace-surface);border-radius:16px;display:flex;flex-direction:column;gap:13px;text-align:left}
+.account-entitlements article>span{display:flex;align-items:center;gap:8px;color:var(--workspace-muted);font-size:11px}
+.account-entitlements article>span i{color:var(--workspace-accent)}.account-entitlements b{font-size:26px;letter-spacing:-1px;font-weight:600;color:var(--workspace-text)}.account-entitlements b small{font:12px var(--font-data);color:var(--workspace-muted);letter-spacing:0}.account-entitlements article>small{font-size:11px;line-height:1.6;color:var(--workspace-muted)}
+.entitlement-track{height:4px;overflow:hidden;background:var(--workspace-line);border-radius:4px}.entitlement-track i{height:100%;display:block;background:linear-gradient(90deg,#9180ff,#63cfdb);border-radius:4px;transition:width .35s}
+.role-reservation{display:flex;align-items:center;gap:15px;background:rgba(83,175,152,.08);border:1px solid rgba(83,175,152,.25);padding:20px;border-radius:16px;margin-bottom:22px;text-align:left}.role-reservation[hidden],.admin-review[hidden]{display:none!important}.role-reservation>span{color:#60dab3;font-size:22px}.role-reservation>div{flex:1}.role-reservation small{display:block;letter-spacing:.1em;font-size:9px;color:var(--workspace-muted);margin-bottom:6px}.role-reservation strong{color:var(--workspace-text);font-size:15px}.role-reservation p{color:var(--workspace-muted);font-size:11px;margin:6px 0 0}
+.role-comparison{margin:22px 0}.role-compare-controls{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0}.role-compare-controls button{border:1px solid var(--workspace-line);border-radius:9px;background:transparent;color:var(--workspace-muted);padding:10px 13px;display:flex;gap:8px;align-items:center;font-size:12px;cursor:pointer;transition:background .18s,color .18s}.role-compare-controls button[aria-pressed="true"]{background:rgba(145,128,255,.15);color:var(--workspace-accent);border-color:rgba(145,128,255,.4)}
+.role-comparison-scroll{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;border:1px solid var(--workspace-line);border-radius:12px}.role-comparison table{width:100%;min-width:620px;border-collapse:collapse;text-align:left;font-size:12px}.role-comparison th,.role-comparison td{padding:17px 13px;border-bottom:1px solid var(--workspace-line);line-height:1.5}.role-comparison thead{background:var(--workspace-raised)}.role-comparison thead th{font-weight:600;color:var(--workspace-text);white-space:nowrap}.role-comparison thead i{color:var(--workspace-accent);margin-right:3px}.role-comparison tbody th{font-weight:500;color:var(--workspace-muted);width:150px}.role-comparison td{font-size:11px;color:var(--workspace-text)}.role-comparison tr:last-child>*{border-bottom:0}.role-comparison th small{display:block;font-size:9px;margin-top:5px;color:var(--workspace-accent)}.role-comparison .is-current{background:rgba(145,128,255,.1)}.permission-true{color:#60dab3}.permission-false{color:var(--workspace-muted)}
+.admin-mode-note{padding:12px 16px;background:var(--workspace-raised);border:1px solid var(--workspace-line);border-radius:12px;margin:14px 0 20px;font-size:12px}
+.admin-panel-wrap .admin-subtabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}.admin-panel-wrap .admin-stab{flex:1;white-space:nowrap;min-height:44px;justify-content:center}
+.admin-review{padding:24px;border:1px solid rgba(145,128,255,.5);border-radius:18px;background:var(--workspace-surface);margin:0 0 22px;animation:workspaceReveal .24s ease-out}.admin-review .account-field{margin-top:20px}.admin-review-actions{display:flex;justify-content:flex-end;gap:10px}.admin-change-row{display:grid;grid-template-columns:minmax(100px,1fr) minmax(70px,auto) 20px minmax(90px,auto);gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--workspace-line);font-size:12px;color:var(--workspace-muted);overflow-wrap:anywhere}.admin-change-row strong{color:var(--workspace-text)}.admin-change-row b{color:var(--workspace-accent)}#adminActionError{color:#fba5a5;font-size:12px;margin:14px 0;line-height:1.6}
+.admin-pagination{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 14px}.admin-pagination>span{font:10px var(--font-data);color:var(--workspace-muted)}.admin-pagination>div{display:flex;gap:6px}.admin-pagination button{min-height:34px;padding:8px 12px}
+.admin-audit-list{display:flex;flex-direction:column;gap:10px}.admin-audit-list article{display:flex;gap:14px;padding:20px;background:var(--workspace-surface);border:1px solid var(--workspace-line);border-radius:14px}.admin-audit-list article>span{color:var(--workspace-accent);padding-top:3px}.admin-audit-list article>div{flex:1;min-width:0}.admin-audit-list header{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.admin-audit-list strong{font-size:12px;color:var(--workspace-text)}.admin-audit-list time{font:10px var(--font-data);color:var(--workspace-muted)}.admin-audit-list p{font-size:13px;color:var(--workspace-text);margin:10px 0;overflow-wrap:anywhere}.admin-audit-list small{color:var(--workspace-muted);font-size:11px;line-height:1.7;overflow-wrap:anywhere}
+.admin-empty-state{display:flex;align-items:center;flex-direction:column;gap:12px;text-align:center;padding:40px 24px;color:var(--workspace-muted)}.admin-empty-state>i{color:var(--workspace-accent);font-size:26px}.admin-empty-state h3{color:var(--workspace-text);font-size:18px;margin:0}.admin-empty-state p{font-size:12px;line-height:1.7;max-width:440px;margin:0}
+.admin-user-row{content-visibility:auto;contain-intrinsic-size:auto 130px}.admin-user-inspector{align-self:start}.admin-user-name{overflow-wrap:anywhere}.admin-users-toolbar select{font-family:var(--font-ui)}
+@keyframes workspaceReveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+body.light-theme{--workspace-surface:rgba(255,255,255,.86);--workspace-raised:rgba(66,60,108,.035);--workspace-line:rgba(65,66,103,.15);--workspace-text:#25283e;--workspace-muted:#616a82;--workspace-accent:#6251c9}
+body.light-theme .account-field input,body.light-theme .account-field textarea{background:#fff}body.light-theme .account-save-bar>span.is-dirty{color:#92651a}body.light-theme .permission-true,body.light-theme .session-orb{color:#168367}body.light-theme #adminActionError{color:#ac3535}
+@media(max-width:760px){
+ #profileView [data-ptab-content="my-profile"]{grid-template-columns:minmax(0,1fr)}
+ #profileView [data-ptab-content="my-profile"]>*{grid-column:1!important;grid-row:auto!important}
+ #profileView [data-ptab-content="my-profile"]>.account-editor{order:4}#profileView [data-ptab-content="my-profile"]>.profile-preferences{order:5}#profileView [data-ptab-content="my-profile"]>.account-session-card{order:6}#profileView [data-ptab-content="my-profile"]>.profile-actions{order:7}
+ .account-editor,.account-session-card,.role-comparison,.admin-review{padding:18px;border-radius:16px}.workspace-section-heading h3{font-size:19px}.account-entitlements{grid-template-columns:1fr 1fr}.account-entitlements article:last-child{grid-column:1/-1}.role-reservation{flex-wrap:wrap}.role-reservation button{margin-left:32px}.admin-panel-wrap .admin-stab{flex:0 0 auto}.admin-change-row{grid-template-columns:1fr 18px 1fr;gap:8px}.admin-change-row strong{grid-column:1/-1}.account-field input,.account-field textarea{font-size:16px}.account-session-summary>div{min-width:140px}
+}
+@media(prefers-reduced-motion:reduce){.admin-review{animation:none}.entitlement-track i,.account-editor button,.account-session-actions button,.role-reservation button,.admin-review button,.admin-pagination button{transition:none;transform:none!important}}
+body.lite-mode .admin-review{animation:none}body.lite-mode .entitlement-track i{transition:none}

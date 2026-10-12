@@ -1,0 +1,134 @@
+        <section id="accounts" class="tab-content account-cockpit-tab">
+            <div class="accounts-section account-cockpit-section">
+                <header class="account-cockpit-heading animate-on-scroll">
+                    <div class="account-cockpit-heading-copy">
+                        <span class="account-cockpit-kicker"><i class="fas fa-fingerprint"></i> Identity cockpit</span>
+                        <h2>One launcher.<br><span class="text-gradient">Every version of you.</span></h2>
+                        <p>Switch Minecraft identities, inspect the active signal and keep your player network close without leaving one workspace.</p>
+                    </div>
+                    <div class="account-cockpit-summary" aria-label="Account overview">
+                        <span><i class="fas fa-layer-group"></i><b id="cockpitProfileCount">0</b><small>Profiles</small></span>
+                        <span><i class="fas fa-user-group"></i><b id="cockpitFriendCount">0</b><small>Friends</small></span>
+                        <span><i class="fas fa-shield-halved"></i><b id="cockpitSlotLimit">—</b><small>Role slots</small></span>
+                    </div>
+                </header>
+
+                <!-- Notice: shown when not logged in to site account -->
+                <div class="launcher-notice glass animate-on-scroll delay-1" id="launcherNotice">
+                    <div class="ln-icon"><i class="fas fa-gamepad"></i></div>
+                    <div class="ln-body">
+                        <strong>Site account required</strong>
+                        <span>Sign in to your Spectral account to manage your personal Minecraft profiles. Each user has their own separate set.</span>
+                    </div>
+                    <button type="button" class="ln-signin-btn" id="noticeSignInBtn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
+                </div>
+
+                <div id="accountsSignedInWorkspace" class="account-cockpit-workspace">
+                    <div class="identity-cockpit animate-on-scroll delay-1" id="accountsColumns">
+                        <aside class="cockpit-rail cockpit-profile-rail" aria-labelledby="cockpitProfilesTitle">
+                            <div class="cockpit-rail-head">
+                                <div><small>Identity bank</small><h3 id="cockpitProfilesTitle">Your profiles</h3></div>
+                            </div>
+                            <p class="cockpit-rail-hint">Select an identity to route it into the launcher core.</p>
+                            <button type="button" class="cockpit-add-profile" id="openAddAccountBtn" aria-label="Add Minecraft profile"><i class="fas fa-plus" aria-hidden="true"></i><span>Add profile</span></button>
+                            <div class="accounts-grid" id="accountsGrid"></div>
+                            <div class="accounts-empty" id="accountsEmpty" style="display:none;">
+                                <i class="fas fa-user-slash" aria-hidden="true"></i>
+                                <p id="accountsEmptyText">No Minecraft profiles</p>
+                                <button type="button" id="accountsEmptyAddBtn"><i class="fas fa-plus" aria-hidden="true"></i> Add your first profile</button>
+                            </div>
+                            <div class="cockpit-slot-meter">
+                                <div><span>Role capacity</span><b id="cockpitSlotUsage">0 / 0</b></div>
+                                <i><b id="cockpitSlotMeterBar"></b></i>
+                                <button type="button" id="accountsViewRolesBtn"><i class="fas fa-gem"></i> Explore role capacity</button>
+                            </div>
+                        </aside>
+
+                        <div class="cockpit-core" id="activeAccountBanner" role="region" aria-label="Active launcher identity">
+                            <div class="active-account-glow"></div>
+                            <div class="cockpit-core-grid" aria-hidden="true"></div>
+                            <div class="cockpit-core-rings" aria-hidden="true"><i></i><i></i><i></i></div>
+                            <div class="cockpit-core-topline">
+                                <span id="cockpitCoreStatus"><i></i> Launcher identity online</span>
+                                <em><i class="fas fa-satellite-dish"></i> Local signal</em>
+                            </div>
+                            <div class="active-account-left">
+                                <div class="active-account-avatar" id="activeAvatar">
+                                    <img id="activeAvatarImg" src="" alt="Avatar" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                    <div class="active-badge"><i class="fas fa-check"></i></div>
+                                </div>
+                                <div class="active-account-info">
+                                    <div class="active-account-label">Currently routed</div>
+                                    <div class="active-account-name" id="activeAccountName">—</div>
+                                    <div class="active-account-type" id="activeAccountType"></div>
+                                </div>
+                            </div>
+                            <div class="cockpit-identity-code">
+                                <span>Stable identity code</span>
+                                <button type="button" class="active-account-uuid" id="activeAccountUuid" title="Copy UUID"><i class="fas fa-fingerprint"></i><span id="activeUuidText">—</span><em>Copy</em></button>
+                            </div>
+                            <div class="active-account-stats">
+                                <div class="acc-stat"><i class="fas fa-clock"></i><span id="activeAccountTime">0h</span><small>in game</small></div>
+                                <div class="acc-stat"><i class="fas fa-calendar-alt"></i><span id="activeAccountDate">—</span><small>added</small></div>
+                            </div>
+                            <div class="account-ready-state">
+                                <span><i></i> Ready to launch</span>
+                                <small>This identity will be used for the next game session.</small>
+                            </div>
+                            <div class="no-accounts-msg" id="noAccountsMsg">
+                                <i class="fas fa-user-plus" aria-hidden="true"></i>
+                                <div><b>No identity routed</b><p>Add your first Minecraft profile to activate the cockpit.</p></div>
+                            </div>
+                        </div>
+
+                        <aside class="cockpit-rail cockpit-social-rail friends-section" id="friendsSection" style="display:none;" aria-labelledby="cockpitFriendsTitle">
+                            <div class="friends-header cockpit-rail-head">
+                                <div><small>Player network</small><h3 id="cockpitFriendsTitle">Friends <span class="friends-count" id="friendsCount">0</span></h3></div>
+                            </div>
+                            <form class="friend-add-form" id="friendAddForm" autocomplete="off">
+                                <div class="friend-add-input">
+                                    <i class="fas fa-user-plus"></i>
+                                    <input type="text" id="friendAddInput" placeholder="Find by username…" maxlength="30" aria-label="Friend username">
+                                </div>
+                                <button type="submit" class="btn-add-friend" aria-label="Add friend"><i class="fas fa-arrow-right"></i></button>
+                            </form>
+                            <div class="friend-add-msg" id="friendAddMsg" role="status" aria-live="polite" style="display:none;"></div>
+                            <div class="friend-requests" id="friendRequests" style="display:none;"></div>
+                            <div class="friends-grid" id="friendsGrid"></div>
+                            <div class="friends-empty" id="friendsEmpty" style="display:none;">
+                                <i class="fas fa-user-group" aria-hidden="true"></i>
+                                <p>Your player network is empty. Search for someone above.</p>
+                            </div>
+                            <div class="cockpit-social-note"><i class="fas fa-shield-heart"></i><span>Friend profiles open in the new public identity view.</span></div>
+                        </aside>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Minecraft Account Modal -->
+            <div class="add-account-overlay" id="addAccountOverlay" role="dialog" aria-modal="true" aria-labelledby="addAccountTitle" aria-hidden="true" inert>
+                <div class="add-account-modal glass-modal">
+                    <button type="button" class="close-add-account" id="closeAddAccountBtn" aria-label="Close account dialog">&times;</button>
+                    <h3 id="addAccountTitle"><i class="fas fa-gamepad"></i> Add Minecraft Profile</h3>
+                    <div class="acc-type-selector" id="accTypeSelector">
+                        <div class="acc-type-title">Profile type</div>
+                        <div class="acc-type-grid">
+                            <button type="button" class="acc-type-card active" data-type="elyby"><img src="https://ely.by/favicon.ico" data-hide-on-error width="28" height="28" loading="lazy" decoding="async" referrerpolicy="no-referrer" style="border-radius:6px" alt=""><i class="fas fa-cloud" style="display:none"></i><span>Ely.by</span><small>Save profile name</small></button>
+                            <button type="button" class="acc-type-card" data-type="offline"><i class="fas fa-user-shield"></i><span>Offline</span><small>No authentication</small></button>
+                        </div>
+                    </div>
+                    <div class="acc-form" id="formElyby">
+                        <div class="input-group-animated"><input type="text" id="elybyLogin" required placeholder=" " maxlength="16" autocomplete="username"><label for="elybyLogin">Profile name</label></div>
+                        <div class="offline-info"><i class="fas fa-shield-halved"></i> This website saves only the profile name. Connect Ely.by securely in the desktop launcher.</div>
+                        <button type="button" class="btn-submit-login" id="btnElybySubmit"><span>Add Ely.by Profile</span><div class="btn-loader"></div></button>
+                    </div>
+                    <div class="acc-form" id="formOffline" style="display:none;">
+                        <div class="input-group-animated"><input type="text" id="offlineUsername" required placeholder=" " maxlength="16" autocomplete="off"><label for="offlineUsername">Username (up to 16 characters)</label></div>
+                        <div class="offline-info"><i class="fas fa-info-circle"></i> Offline accounts only work on servers without online verification.</div>
+                        <button type="button" class="btn-submit-login" id="btnOfflineSubmit"><span>Create Profile</span><div class="btn-loader"></div></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ UPDATES ══════════════ -->

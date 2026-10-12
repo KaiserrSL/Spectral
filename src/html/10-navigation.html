@@ -1,0 +1,35 @@
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <!-- Navigation -->
+    <nav class="navbar glass-nav" role="navigation" aria-label="Main navigation">
+        <a class="logo-container" href="#home" aria-label="Spectral Launcher — Home">
+            <span class="logo-mark"><img src="Icon-256.webp" alt="" class="logo-img-custom" width="50" height="50" decoding="async" fetchpriority="high"></span>
+            <span class="logo-lockup"><strong class="logo-text">Spectral</strong><small>LAUNCHER</small></span>
+        </a>
+        <div class="nav-links-container glass" id="primaryNavigation" aria-label="Primary navigation">
+            <span class="nav-active-indicator" id="navActiveIndicator" aria-hidden="true"></span>
+            <a href="#home" class="nav-btn active" data-target="home"><i class="fas fa-home" aria-hidden="true"></i> <span>Home</span></a>
+            <a href="#accounts" class="nav-btn" data-target="accounts"><i class="fas fa-users" aria-hidden="true"></i> <span>Accounts</span></a>
+            <a href="#updates" class="nav-btn" data-target="updates"><i class="fas fa-bolt" aria-hidden="true"></i> <span>Updates</span></a>
+            <a href="#development" class="nav-btn" data-target="development"><i class="fas fa-code" aria-hidden="true"></i> <span>Development</span></a>
+            <a href="#advanced-features" class="nav-btn" data-target="advanced-features"><i class="fas fa-tools" aria-hidden="true"></i> <span>Features</span></a>
+            <a href="#support" class="nav-btn" data-target="support"><i class="fas fa-life-ring" aria-hidden="true"></i> <span>Support</span></a>
+        </div>
+        <div class="nav-actions">
+            <button type="button" class="btn-account" id="openDashboardBtn" aria-label="Open account panel">
+                <div class="avatar-circle" id="navAvatarCircle"><i class="fas fa-user" aria-hidden="true"></i></div>
+                <span class="req-badge" id="reqBadge" style="display:none;">0</span>
+                <span class="account-copy"><small id="accountEyebrow">YOUR SPACE</small><strong id="accountText">Sign In</strong></span>
+                <i class="fas fa-chevron-down account-chevron" aria-hidden="true"></i>
+            </button>
+            <button type="button" class="nav-theme-toggle" id="navThemeToggle" aria-label="Switch to light theme" aria-pressed="false" title="Switch to light theme">
+                <i class="fas fa-sun theme-icon-sun" aria-hidden="true"></i>
+                <i class="fas fa-moon theme-icon-moon" aria-hidden="true"></i>
+            </button>
+        </div>
+        <button type="button" class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="primaryNavigation">
+            <span></span><span></span><span></span>
+        </button>
+    </nav>
+    <div class="nav-backdrop" id="navBackdrop" aria-hidden="true"></div>
+
+    <main class="content-wrapper" id="main-content" tabindex="-1">

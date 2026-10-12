@@ -1,0 +1,484 @@
+/* ================================================================
+   PROFILE SIGNATURE HEADERS — SPECTRAL PRISM + DEVELOPER PROTOCOL
+   ================================================================ */
+.profile-cover-label em {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    margin-left: 4px;
+    padding: 0 8px;
+    border: 1px solid color-mix(in srgb, var(--header-c) 24%, transparent);
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--header-c) 74%, white);
+    background: color-mix(in srgb, var(--header-a) 11%, rgba(5, 7, 16, .42));
+    font-size: .49rem;
+    font-style: normal;
+    letter-spacing: .12em;
+    box-shadow: inset 0 1px rgba(255, 255, 255, .055);
+}
+
+.profile-special-art {
+    position: absolute;
+    z-index: 0;
+    display: none;
+    pointer-events: none;
+    user-select: none;
+}
+.profile-cover[data-header="prism"] .profile-prism-art,
+.profile-cover[data-header="code"] .profile-code-art { display: block; }
+
+/* Spectral is a dimensional light object, not a recoloured generic header. */
+.profile-cover[data-header="prism"] {
+    --header-a: #5b55f7;
+    --header-b: #be3fce;
+    --header-c: #5eeeff;
+    border-color: rgba(126, 135, 255, .46);
+    background:
+        radial-gradient(260px circle at 75% 43%, rgba(112, 235, 255, .20), transparent 61%),
+        radial-gradient(360px circle at 90% 0%, rgba(232, 73, 208, .20), transparent 63%),
+        radial-gradient(330px circle at 7% 8%, rgba(83, 91, 245, .29), transparent 68%),
+        linear-gradient(128deg, #11173b 0%, #0b102a 44%, #150b27 100%);
+    box-shadow:
+        inset 0 1px rgba(255,255,255,.13),
+        inset 0 -1px rgba(94,238,255,.08),
+        0 24px 58px rgba(38,26,113,.25),
+        0 0 0 1px rgba(102,217,255,.035);
+}
+.profile-cover[data-header="prism"]::before {
+    opacity: .68;
+    background-image:
+        radial-gradient(circle, rgba(255,255,255,.32) 0 1px, transparent 1.5px),
+        linear-gradient(118deg, transparent 0 31%, rgba(95,235,255,.075) 31.2% 31.45%, transparent 31.7% 100%),
+        linear-gradient(62deg, transparent 0 69%, rgba(235,91,218,.065) 69.2% 69.45%, transparent 69.7% 100%);
+    background-size: 58px 58px, 100% 100%, 100% 100%;
+    mask-image: linear-gradient(90deg, rgba(0,0,0,.55), #000);
+    animation: profilePrismStars 22s linear infinite;
+}
+.profile-cover[data-header="prism"]::after {
+    height: 74%;
+    background: linear-gradient(transparent, rgba(7,10,29,.66) 56%, rgba(7,9,24,.95));
+}
+.profile-prism-art {
+    top: 36px;
+    right: 3%;
+    width: 51%;
+    height: 176px;
+    filter: drop-shadow(0 22px 25px rgba(4, 6, 22, .24));
+}
+.profile-prism-art::before {
+    content: "";
+    position: absolute;
+    inset: 17% 8% 4%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(102,228,255,.16), rgba(111,77,241,.07) 42%, transparent 70%);
+    filter: blur(10px);
+}
+.profile-prism-art::after {
+    content: "";
+    position: absolute;
+    left: 8%;
+    right: 0;
+    bottom: 3px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(100,235,255,.64), rgba(219,92,221,.48), transparent);
+    box-shadow: 0 0 16px rgba(94,238,255,.38);
+}
+.profile-prism-orbit {
+    position: absolute;
+    top: 52%;
+    left: 57%;
+    border: 1px solid rgba(126, 228, 255, .25);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(-12deg);
+}
+.profile-prism-orbit::before,
+.profile-prism-orbit::after {
+    content: "";
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #7beaff;
+    box-shadow: 0 0 13px #50ddff;
+}
+.profile-prism-orbit::before { top: 13%; left: 14%; }
+.profile-prism-orbit::after { right: 10%; bottom: 22%; background: #f28ae4; box-shadow: 0 0 13px #ed64d5; }
+.profile-prism-orbit-a {
+    width: 246px;
+    height: 104px;
+    animation: profilePrismOrbitA 16s linear infinite;
+}
+.profile-prism-orbit-b {
+    width: 190px;
+    height: 144px;
+    border-color: rgba(190, 132, 255, .20);
+    transform: translate(-50%, -50%) rotate(31deg);
+    animation: profilePrismOrbitB 21s linear infinite reverse;
+}
+.profile-prism-beam {
+    position: absolute;
+    left: -12%;
+    top: 72px;
+    width: 125%;
+    height: 58px;
+    opacity: .67;
+    background:
+        linear-gradient(90deg, transparent 0%, rgba(65,220,255,.24) 27%, rgba(105,130,255,.30) 48%, rgba(222,74,215,.25) 70%, transparent 100%);
+    clip-path: polygon(0 49%, 45% 38%, 100% 0, 100% 72%, 45% 58%, 0 53%);
+    filter: blur(.2px) drop-shadow(0 0 13px rgba(103,225,255,.28));
+    animation: profilePrismBeam 6.8s ease-in-out infinite;
+}
+.profile-prism-core {
+    position: absolute;
+    top: 18px;
+    left: 57%;
+    width: 100px;
+    height: 133px;
+    overflow: hidden;
+    clip-path: polygon(50% 0, 96% 31%, 78% 100%, 22% 100%, 4% 31%);
+    background:
+        linear-gradient(116deg, rgba(255,255,255,.66), transparent 24%),
+        linear-gradient(145deg, #72f3ff 0%, #7188ff 38%, #b553e2 70%, #ff7fc6 100%);
+    box-shadow: inset 0 0 22px rgba(255,255,255,.34);
+    filter: drop-shadow(0 0 18px rgba(93,221,255,.46));
+    animation: profilePrismFloat 5.4s ease-in-out infinite;
+}
+.profile-prism-core::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    clip-path: inherit;
+    border: 1px solid rgba(255,255,255,.55);
+    background: linear-gradient(150deg, rgba(255,255,255,.22), transparent 42%);
+}
+.profile-prism-core > i,
+.profile-prism-core > b {
+    position: absolute;
+    inset: 0;
+    display: block;
+}
+.profile-prism-core > i {
+    clip-path: polygon(50% 0, 50% 100%, 22% 100%, 4% 31%);
+    background: linear-gradient(165deg, rgba(183,255,255,.84), rgba(84,107,246,.62));
+}
+.profile-prism-core > b {
+    clip-path: polygon(50% 0, 96% 31%, 78% 100%, 50% 100%);
+    background: linear-gradient(160deg, rgba(238,129,255,.54), rgba(222,55,162,.64));
+}
+.profile-prism-shard {
+    position: absolute;
+    display: block;
+    width: 18px;
+    height: 31px;
+    opacity: .84;
+    clip-path: polygon(50% 0, 100% 33%, 78% 100%, 19% 88%, 0 30%);
+    background: linear-gradient(145deg, #9bf5ff, #7c83ff 55%, #e26fd3);
+    box-shadow: 0 0 14px rgba(103,226,255,.26);
+}
+.profile-prism-shard-a { top: 23px; left: 18%; transform: rotate(-24deg); animation: profilePrismShardA 6s ease-in-out infinite; }
+.profile-prism-shard-b { top: 44px; right: 6%; width: 13px; height: 24px; transform: rotate(31deg); animation: profilePrismShardB 7s -1.8s ease-in-out infinite; }
+.profile-prism-shard-c { left: 25%; bottom: 20px; width: 10px; height: 18px; transform: rotate(18deg); animation: profilePrismShardB 5.8s -3s ease-in-out infinite reverse; }
+.profile-prism-art > em {
+    display: none;
+}
+.profile-cover[data-header="prism"] .profile-avatar-wrapper img {
+    border-color: rgba(197,247,255,.88);
+    box-shadow: 0 15px 36px rgba(0,0,0,.36), 0 0 0 4px rgba(113,130,255,.15), -7px 0 24px rgba(73,224,255,.25), 8px 0 27px rgba(231,83,208,.22);
+}
+.profile-cover[data-header="prism"] .profile-cover-signal {
+    border-color: rgba(124,219,255,.18);
+    background: linear-gradient(135deg, rgba(23,20,62,.62), rgba(11,14,39,.55));
+    box-shadow: inset 0 1px rgba(255,255,255,.07), 0 10px 26px rgba(3,5,22,.18);
+}
+
+/* Developer gets a compact live engineering console and sharper geometry. */
+.profile-cover[data-header="code"] {
+    --header-a: #fb4b91;
+    --header-b: #6d4cf3;
+    --header-c: #52e6ff;
+    border-color: rgba(244, 84, 151, .38);
+    background:
+        radial-gradient(300px circle at 12% 5%, rgba(242,74,142,.24), transparent 68%),
+        radial-gradient(300px circle at 86% 32%, rgba(38,211,241,.15), transparent 68%),
+        linear-gradient(125deg, #170d25 0%, #0b1021 48%, #07151e 100%);
+    box-shadow: inset 0 1px rgba(255,255,255,.10), inset 0 -1px rgba(64,218,244,.075), 0 24px 54px rgba(25,7,35,.23);
+}
+.profile-cover[data-header="code"]::before {
+    opacity: .62;
+    background-image:
+        linear-gradient(rgba(80,224,249,.065) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(244,75,145,.065) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,255,255,.32) 0 1px, transparent 1.4px);
+    background-size: 22px 22px, 22px 22px, 74px 74px;
+    mask-image: linear-gradient(90deg, rgba(0,0,0,.28), #000 48%, #000);
+    animation: profileCodeGrid 14s linear infinite;
+}
+.profile-cover[data-header="code"]::after {
+    height: 72%;
+    background: linear-gradient(transparent, rgba(7,10,24,.68) 59%, rgba(6,9,21,.96));
+}
+.profile-cover[data-header="code"] .profile-cover-scene::after { display: none; }
+.profile-code-art {
+    top: 50px;
+    right: 3%;
+    width: 52%;
+    height: 145px;
+}
+.profile-code-art::before {
+    content: "";
+    position: absolute;
+    inset: -14px -6px 0 2px;
+    border: 1px solid rgba(78,223,248,.08);
+    clip-path: polygon(0 0, 36% 0, 36% 1px, 100% 1px, 100% 68%, 99.6% 68%, 99.6% 100%, 62% 100%, 62% calc(100% - 1px), 0 calc(100% - 1px));
+}
+.profile-code-reticle {
+    position: absolute;
+    top: 43%;
+    left: 49%;
+    width: 220px;
+    height: 220px;
+    border: 1px solid rgba(73,220,246,.10);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+.profile-code-reticle::before,
+.profile-code-reticle::after {
+    content: "";
+    position: absolute;
+    background: rgba(78,224,249,.13);
+}
+.profile-code-reticle::before { left: 50%; top: -12%; width: 1px; height: 124%; }
+.profile-code-reticle::after { top: 50%; left: -12%; width: 124%; height: 1px; }
+.profile-code-window {
+    position: absolute;
+    top: 0;
+    right: 10px;
+    width: min(280px, 94%);
+    min-height: 130px;
+    overflow: hidden;
+    border: 1px solid rgba(91,226,250,.19);
+    border-radius: 14px;
+    background: linear-gradient(145deg, rgba(7,13,29,.82), rgba(11,17,33,.64));
+    box-shadow: inset 0 1px rgba(255,255,255,.065), 0 18px 38px rgba(2,6,18,.26), 0 0 34px rgba(39,201,229,.055);
+    backdrop-filter: blur(9px);
+}
+.profile-code-window::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -45px;
+    height: 44px;
+    background: linear-gradient(transparent, rgba(65,226,250,.12), transparent);
+    animation: profileCodeScan 4.8s ease-in-out infinite;
+}
+.profile-code-window-bar {
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0 10px;
+    border-bottom: 1px solid rgba(91,226,250,.10);
+    background: rgba(255,255,255,.025);
+}
+.profile-code-window-bar > i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #fa5a91;
+    box-shadow: 0 0 8px rgba(250,90,145,.64);
+}
+.profile-code-window-bar > i:nth-child(2) { background:#9b7bff; box-shadow:0 0 8px rgba(155,123,255,.56); }
+.profile-code-window-bar > i:nth-child(3) { background:#55e5fa; box-shadow:0 0 8px rgba(85,229,250,.56); }
+.profile-code-window-bar > b {
+    margin-left: 5px;
+    color: rgba(172,185,218,.62);
+    font: 700 .48rem/1 'Courier New', monospace;
+    letter-spacing: .06em;
+}
+.profile-code-command {
+    display: grid;
+    grid-template-columns: 11px auto 1fr;
+    align-items: center;
+    gap: 5px;
+    padding: 11px 12px 8px;
+    font: 700 .56rem/1 'Courier New', monospace;
+}
+.profile-code-command > i { color:#51e6fb; font-size:.72rem; font-style:normal; }
+.profile-code-command > b { color:#eef4ff; font-weight:700; }
+.profile-code-command > em { color:#fa6ca0; font-style:normal; }
+.profile-code-line {
+    display: grid;
+    grid-template-columns: 28% 1fr;
+    gap: 6px;
+    height: 3px;
+    margin: 0 12px 7px;
+}
+.profile-code-line > i,
+.profile-code-line > b { display:block; border-radius:999px; background:rgba(102,120,166,.22); }
+.profile-code-line > i { background:linear-gradient(90deg,rgba(250,76,145,.60),rgba(154,105,255,.38)); }
+.profile-code-line-a > b { width:82%; }
+.profile-code-line-b { grid-template-columns:17% 1fr; }
+.profile-code-line-b > b { width:64%; }
+.profile-code-line-c { grid-template-columns:38% 1fr; }
+.profile-code-line-c > b { width:43%; }
+.profile-code-status {
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    padding: 0 11px;
+    border-top: 1px solid rgba(255,255,255,.045);
+    color: rgba(138,235,204,.72);
+    font: 700 .43rem/1 'Courier New', monospace;
+    letter-spacing: .08em;
+}
+.profile-code-status > i { width:5px; height:5px; border-radius:50%; background:#49dda4; box-shadow:0 0 9px #49dda4; animation:profileCodeStatus 2s ease-in-out infinite; }
+.profile-code-status > b { margin-left:auto; color:rgba(126,222,246,.58); font-weight:700; }
+.profile-code-index {
+    position: absolute;
+    right: 0;
+    top: 33px;
+    color: rgba(75,222,247,.20);
+    font: 700 .45rem/1.7 'Courier New', monospace;
+    letter-spacing: .08em;
+    text-align: right;
+}
+.profile-cover[data-header="code"] .profile-avatar-wrapper img {
+    border-color: rgba(101,232,249,.86);
+    border-radius: 17px;
+    box-shadow: 0 15px 34px rgba(0,0,0,.40), 0 0 0 3px rgba(244,75,145,.12), -7px 0 21px rgba(244,75,145,.20), 8px 0 21px rgba(67,220,245,.19);
+}
+.profile-cover[data-header="code"] .profile-cover-label { font-family:'Courier New',monospace; }
+.profile-cover[data-header="code"] .profile-cover-signal {
+    border-color: rgba(75,222,247,.15);
+    border-radius: 11px;
+    background: rgba(5,10,23,.63);
+    box-shadow: inset 3px 0 rgba(245,73,143,.48), inset 0 1px rgba(255,255,255,.055);
+}
+
+/* The studio thumbnails now preview the actual identity of both special scenes. */
+.profile-header-option-preview[data-preview-header="prism"] {
+    background:
+        radial-gradient(circle at 68% 42%, rgba(108,239,255,.45), transparent 28%),
+        linear-gradient(135deg,#111a45,#182052 46%,#361441);
+}
+.profile-header-option-preview[data-preview-header="prism"]::before {
+    opacity: .48;
+    background: conic-gradient(from 210deg at 68% 46%, transparent, rgba(76,225,255,.42), rgba(120,104,255,.38), rgba(238,77,207,.42), transparent 72%);
+    background-size: auto;
+}
+.profile-header-option-preview[data-preview-header="prism"] > i {
+    top: 10px;
+    right: 21%;
+    width: 34px;
+    height: 48px;
+    border: 1px solid rgba(255,255,255,.58);
+    border-radius: 0;
+    clip-path: polygon(50% 0, 100% 30%, 77% 100%, 23% 100%, 0 30%);
+    background: linear-gradient(145deg,#a5f8ff,#7787ff 48%,#ee70d2);
+    box-shadow: 0 0 20px rgba(92,226,255,.38);
+}
+.profile-header-option-preview[data-preview-header="prism"] > b {
+    left: 8%;
+    bottom: 8px;
+    width: 84%;
+    height: 1px;
+    background: linear-gradient(90deg,transparent,#58e6ff,#df67d6,transparent);
+}
+.profile-header-option-preview[data-preview-header="code"] {
+    background:
+        radial-gradient(circle at 15% 0,rgba(244,72,142,.30),transparent 48%),
+        linear-gradient(135deg,#160d23,#091522);
+}
+.profile-header-option-preview[data-preview-header="code"]::before {
+    opacity: .52;
+    background-image: linear-gradient(rgba(74,221,247,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(244,72,142,.12) 1px,transparent 1px);
+    background-size: 12px 12px;
+}
+.profile-header-option-preview[data-preview-header="code"] > i {
+    top: 12px;
+    right: 10px;
+    width: 62%;
+    height: 42px;
+    border: 1px solid rgba(91,225,248,.26);
+    border-radius: 7px;
+    background:
+        linear-gradient(rgba(255,255,255,.05) 0 10px,transparent 10px),
+        linear-gradient(90deg,rgba(250,82,145,.54) 0 28%,transparent 28% 35%,rgba(95,222,244,.20) 35% 86%,transparent 86%) 8px 18px/100% 3px no-repeat,
+        rgba(5,11,24,.72);
+    box-shadow: 0 8px 20px rgba(0,0,0,.24);
+}
+.profile-header-option-preview[data-preview-header="code"] > b {
+    width: 38%;
+    height: 2px;
+    background: #50def5;
+    box-shadow: 0 0 9px rgba(80,222,245,.56);
+}
+
+@keyframes profilePrismStars { to { background-position: 58px 58px, 0 0, 0 0; } }
+@keyframes profilePrismOrbitA { to { transform:translate(-50%,-50%) rotate(348deg); } }
+@keyframes profilePrismOrbitB { to { transform:translate(-50%,-50%) rotate(391deg); } }
+@keyframes profilePrismBeam { 0%,100% { opacity:.42; transform:translateX(-8px) scaleX(.94); } 50% { opacity:.82; transform:translateX(7px) scaleX(1.03); } }
+@keyframes profilePrismFloat { 0%,100% { transform:translateY(0) rotate(-1.5deg); } 50% { transform:translateY(-7px) rotate(1.5deg); } }
+@keyframes profilePrismShardA { 0%,100% { transform:translateY(0) rotate(-24deg); } 50% { transform:translateY(-9px) rotate(-17deg); } }
+@keyframes profilePrismShardB { 0%,100% { transform:translateY(0) rotate(31deg); } 50% { transform:translateY(7px) rotate(24deg); } }
+@keyframes profileCodeGrid { to { background-position:22px 22px,22px 22px,74px 74px; } }
+@keyframes profileCodeScan { 0%,16% { transform:translateY(0); opacity:0; } 34% { opacity:1; } 78%,100% { transform:translateY(180px); opacity:0; } }
+@keyframes profileCodeStatus { 50% { opacity:.45; transform:scale(.72); } }
+
+body.light-theme .profile-cover[data-header="prism"] {
+    border-color: rgba(91,95,222,.40);
+    background:
+        radial-gradient(280px circle at 75% 38%,rgba(67,206,235,.24),transparent 62%),
+        radial-gradient(330px circle at 90% 0,rgba(226,79,202,.20),transparent 65%),
+        linear-gradient(128deg,#263080,#1a2459 45%,#321747);
+}
+body.light-theme .profile-cover[data-header="code"] {
+    border-color: rgba(210,65,128,.37);
+    background:
+        radial-gradient(300px circle at 12% 5%,rgba(242,74,142,.25),transparent 68%),
+        radial-gradient(300px circle at 86% 32%,rgba(38,211,241,.17),transparent 68%),
+        linear-gradient(125deg,#29113a,#111936 48%,#0b2230);
+}
+body.light-theme .profile-cover[data-header="prism"]::after,
+body.light-theme .profile-cover[data-header="code"]::after { background:linear-gradient(transparent,rgba(8,11,31,.58) 57%,rgba(7,9,24,.91)); }
+body.light-theme .dashboard-modal.profile-wide .profile-cover[data-header="prism"] .profile-header,
+body.light-theme .dashboard-modal.profile-wide .profile-cover[data-header="code"] .profile-header {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+@media (max-width: 820px) {
+    .profile-prism-art { right: 1%; width: 56%; }
+    .profile-code-art { right: 2%; width: 55%; }
+}
+@media (max-width: 620px) {
+    .profile-cover-label em { display:none; }
+    .profile-prism-art { top:44px; right:-2%; width:68%; height:164px; opacity:.86; transform:scale(.92); transform-origin:top right; }
+    .profile-code-art { top:49px; right:0; width:66%; opacity:.82; transform:scale(.9); transform-origin:top right; }
+    .profile-code-window { right:5px; }
+    .profile-prism-art > em,.profile-code-index { display:none; }
+}
+@media (max-width: 410px) {
+    .profile-prism-art { right:-12%; width:78%; opacity:.72; }
+    .profile-code-art { right:-9%; width:76%; opacity:.68; }
+    .profile-code-window { width:94%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .profile-cover[data-header="prism"]::before,
+    .profile-cover[data-header="code"]::before,
+    .profile-prism-orbit,
+    .profile-prism-beam,
+    .profile-prism-core,
+    .profile-prism-shard,
+    .profile-code-window::before,
+    .profile-code-status > i { animation:none!important; }
+}
+html.lite-mode .profile-prism-orbit-b,
+html.lite-mode .profile-prism-shard,
+html.lite-mode .profile-code-reticle,
+html.lite-mode .profile-code-window::before { display:none!important; }
+

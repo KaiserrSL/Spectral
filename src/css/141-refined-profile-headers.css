@@ -1,0 +1,264 @@
+/* Role identity is expressed through light and texture, without literal emblems. */
+.dashboard-modal.profile-wide .profile-cover {
+  --header-a: #8880ff;
+  --header-b: #bb83e9;
+  --header-c: #b4b6ff;
+  --header-surface:
+    radial-gradient(ellipse 43% 110% at 78% 40%, rgba(123, 113, 246, .31), transparent 75%),
+    radial-gradient(ellipse 58% 140% at 94% 108%, rgba(188, 102, 215, .20), transparent 77%),
+    linear-gradient(112deg, #10142c, #121530 58%, #201534);
+  min-height: 220px;
+  border: 1px solid color-mix(in srgb, var(--header-a) 29%, rgba(255, 255, 255, .12));
+  border-radius: 21px;
+  background: var(--header-surface) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, .13), 0 16px 38px rgba(2, 3, 18, .26);
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="archive"] {
+  --header-a: #69d0bd;
+  --header-b: #79b8cd;
+  --header-c: #a9e8d7;
+  --header-surface:
+    radial-gradient(ellipse 48% 120% at 82% 46%, rgba(70, 180, 159, .22), transparent 75%),
+    linear-gradient(122deg, transparent 52%, rgba(120, 224, 205, .045) 52.2%, transparent 53%),
+    linear-gradient(112deg, #0d1b27, #102532 60%, #19313d);
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="solar"] {
+  --header-a: #f7c58a;
+  --header-b: #ea8e9e;
+  --header-c: #ffdbad;
+  --header-surface:
+    radial-gradient(ellipse 48% 145% at 86% 40%, rgba(251, 181, 119, .31), transparent 72%),
+    radial-gradient(ellipse 38% 100% at 99% 5%, rgba(237, 112, 151, .14), transparent 78%),
+    linear-gradient(112deg, #231927, #34232e 59%, #473039);
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="crown"] {
+  --header-a: #b799ff;
+  --header-b: #db96d4;
+  --header-c: #ebd0ff;
+  --header-surface:
+    radial-gradient(ellipse 48% 120% at 80% 37%, rgba(172, 112, 241, .25), transparent 76%),
+    linear-gradient(127deg, transparent 53%, rgba(232, 182, 255, .07) 53.3%, transparent 54.2%),
+    linear-gradient(112deg, #18132d, #261841 60%, #382052);
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="prism"] {
+  --header-a: #8b9dff;
+  --header-b: #dc89d9;
+  --header-c: #91e1ed;
+  --header-surface:
+    linear-gradient(129deg, transparent 50%, rgba(99, 206, 229, .10) 50.3%, transparent 59%),
+    linear-gradient(68deg, transparent 68%, rgba(204, 112, 217, .11) 68.3%, transparent 77%),
+    radial-gradient(ellipse 53% 120% at 79% 48%, rgba(115, 115, 236, .28), transparent 77%),
+    linear-gradient(112deg, #111831, #1d2242 58%, #331d42);
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="guardian"] {
+  --header-a: #83adfa;
+  --header-b: #9b9bef;
+  --header-c: #a7d8ff;
+  --header-surface:
+    radial-gradient(ellipse 48% 120% at 82% 43%, rgba(96, 157, 237, .27), transparent 76%),
+    linear-gradient(108deg, transparent 60%, rgba(146, 207, 252, .065) 60.3%, transparent 61%),
+    linear-gradient(112deg, #101a32, #192b49 59%, #25375d);
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="command"] {
+  --header-a: #f09bb3;
+  --header-b: #cb85ba;
+  --header-c: #ffd0da;
+  --header-surface:
+    radial-gradient(ellipse 51% 125% at 80% 43%, rgba(226, 105, 145, .28), transparent 77%),
+    linear-gradient(117deg, transparent 59%, rgba(255, 185, 204, .055) 59.2%, transparent 60%),
+    linear-gradient(112deg, #261622, #392131 59%, #4b293f);
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="code"] {
+  --header-a: #dd91ce;
+  --header-b: #8dbddd;
+  --header-c: #ade3ed;
+  --header-surface:
+    radial-gradient(ellipse 47% 120% at 81% 43%, rgba(119, 174, 224, .24), transparent 73%),
+    radial-gradient(ellipse 42% 110% at 95% -10%, rgba(218, 95, 173, .21), transparent 78%),
+    linear-gradient(112deg, #201529, #1d203a 55%, #193442);
+}
+
+/* Fine print and drifting glows add depth without competing with the account name. */
+.dashboard-modal.profile-wide .profile-cover::before,
+.dashboard-modal.profile-wide .profile-cover[data-header="prism"]::before,
+.dashboard-modal.profile-wide .profile-cover[data-header="code"]::before {
+  inset: 0;
+  opacity: .38;
+  background-image:
+    radial-gradient(circle, rgba(238, 238, 255, .56) 0 1px, transparent 1.4px),
+    linear-gradient(116deg, transparent 65%, color-mix(in srgb, var(--header-c) 14%, transparent) 65.1%, transparent 65.3%);
+  background-size: 71px 54px, 100% 100%;
+  mask-image: linear-gradient(90deg, transparent 18%, #000 62%, #000);
+  animation: none !important;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="archive"]::before,
+.dashboard-modal.profile-wide .profile-cover[data-header="guardian"]::before {
+  opacity: .22;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 22px, color-mix(in srgb, var(--header-c) 14%, transparent) 23px, transparent 24px),
+    radial-gradient(circle, rgba(228, 248, 255, .54) 0 1px, transparent 1.4px);
+  background-size: 100% 100%, 82px 64px;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="command"]::before,
+.dashboard-modal.profile-wide .profile-cover[data-header="code"]::before {
+  opacity: .23;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 18px, color-mix(in srgb, var(--header-c) 15%, transparent) 19px, transparent 20px),
+    linear-gradient(90deg, transparent 77%, color-mix(in srgb, var(--header-a) 14%, transparent) 77.1%, transparent 77.3%);
+  background-size: 100% 100%;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="nebula"]::before {
+  opacity: .54;
+  background-image:
+    radial-gradient(circle at 71% 31%, rgba(240, 237, 255, .68) 0 1px, transparent 2px),
+    radial-gradient(circle at 89% 19%, rgba(194, 188, 255, .64) 0 1px, transparent 2px),
+    radial-gradient(circle at 60% 76%, rgba(233, 230, 255, .46) 0 1px, transparent 2px),
+    radial-gradient(circle, rgba(238, 238, 255, .4) 0 .6px, transparent 1.2px);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 83px 66px;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="archive"]::before {
+  opacity: .26;
+  background-image:
+    repeating-radial-gradient(ellipse at 82% 19%, transparent 0 17px, rgba(158, 241, 220, .22) 18px, transparent 19px),
+    linear-gradient(118deg, transparent 70%, rgba(185, 247, 232, .13) 70.15%, transparent 70.4%);
+  background-size: 100% 100%;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="solar"]::before {
+  opacity: .31;
+  background-image:
+    repeating-linear-gradient(169deg, transparent 0 32px, rgba(255, 210, 171, .12) 33px, transparent 34px),
+    linear-gradient(0deg, transparent 56%, rgba(255, 215, 177, .23) 56.2%, transparent 56.5%);
+  background-size: 100% 100%;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="crown"]::before {
+  opacity: .35;
+  background-image:
+    linear-gradient(139deg, transparent 56%, rgba(226, 183, 255, .19) 56.15%, transparent 56.5%),
+    linear-gradient(153deg, transparent 72%, rgba(255, 203, 245, .14) 72.15%, transparent 72.5%),
+    radial-gradient(circle, rgba(248, 220, 255, .35) 0 .7px, transparent 1.3px);
+  background-size: 100% 100%, 100% 100%, 88px 68px;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="prism"]::before {
+  opacity: .42;
+  background-image:
+    linear-gradient(131deg, transparent 54%, rgba(131, 231, 251, .22) 54.2%, transparent 54.55%),
+    linear-gradient(71deg, transparent 68%, rgba(235, 161, 235, .2) 68.2%, transparent 68.55%),
+    linear-gradient(110deg, transparent 81%, rgba(177, 184, 255, .18) 81.2%, transparent 81.55%);
+  background-size: 100% 100%;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="guardian"]::before {
+  opacity: .32;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 27px, rgba(165, 217, 255, .14) 28px, transparent 29px),
+    linear-gradient(112deg, transparent 62%, rgba(188, 226, 255, .16) 62.2%, transparent 62.5%);
+  background-size: 100% 100%;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="command"]::before {
+  opacity: .3;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 38px, rgba(255, 183, 205, .14) 39px, transparent 40px),
+    linear-gradient(0deg, transparent 52%, rgba(255, 192, 209, .2) 52.2%, transparent 52.5%);
+  background-size: 100% 100%;
+}
+.dashboard-modal.profile-wide .profile-cover[data-header="code"]::before {
+  opacity: .32;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 24px, rgba(166, 224, 240, .13) 25px, transparent 26px),
+    linear-gradient(90deg, transparent 74%, rgba(245, 169, 218, .2) 74.2%, transparent 74.5%),
+    radial-gradient(circle at 82% 33%, rgba(240, 193, 232, .42) 0 1px, transparent 2px);
+  background-size: 100% 100%;
+}
+.dashboard-modal.profile-wide .profile-cover::after,
+body.light-theme .dashboard-modal.profile-wide .profile-cover::after {
+  inset: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(6, 7, 22, .12), transparent 65%), linear-gradient(0deg, rgba(5, 6, 20, .77), transparent 62%) !important;
+}
+.profile-cover-scene i { top: -148px; right: -4%; width: 390px; height: 260px; border: 1px solid color-mix(in srgb, var(--header-c) 16%, transparent); border-radius: 50%; opacity: .7; animation: headerFineOrbit 14s ease-in-out infinite alternate; }
+.profile-cover-scene i::after { display: none; }
+.profile-cover-scene i:nth-child(2) { top: -166px; right: -10%; width: 490px; height: 310px; opacity: .45; animation-duration: 19s; }
+.profile-cover-scene i:nth-child(3) { top: -94px; right: 7%; width: 260px; height: 155px; opacity: .38; animation-duration: 11s; }
+.profile-cover-scene span, .profile-cover-scene b { filter: blur(38px); opacity: .14; }
+.profile-cover-scene span { top: 10px; left: 52%; width: 220px; height: 96px; background: var(--header-a); animation: headerFineGlow 10s ease-in-out infinite alternate; }
+.profile-cover-scene b { top: 66px; right: 3%; width: 185px; height: 72px; background: var(--header-b); animation: headerFineGlow 13s -4s ease-in-out infinite alternate-reverse; }
+.profile-cover[data-header="solar"] .profile-cover-scene i,
+.profile-cover[data-header="command"] .profile-cover-scene i { border-style: solid; }
+.profile-cover[data-header="crown"] .profile-cover-scene i,
+.profile-cover[data-header="solar"] .profile-cover-scene i { opacity: .3; }
+.profile-cover[data-header="solar"] .profile-cover-scene i:nth-child(n+2),
+.profile-cover[data-header="command"] .profile-cover-scene i:nth-child(n+2) { opacity: .14; }
+.profile-cover[data-header="code"] .profile-cover-scene i { opacity: .23; }
+.profile-cover[data-header="prism"] .profile-cover-scene span { width: 250px; background: var(--header-c); opacity: .13; }
+.profile-cover[data-header="code"] .profile-cover-scene::after { display: none; }
+@keyframes headerFineOrbit { to { transform: translate3d(-13px, 7px, 0) rotate(3deg); } }
+@keyframes headerFineGlow { to { transform: translate3d(-24px, 8px, 0); opacity: .22; } }
+.profile-cover.header-switching .profile-cover-scene { animation: headerFineReveal .5s ease-out both; }
+@keyframes headerFineReveal { from { opacity: .35; transform: translate3d(10px, 0, 0); } to { opacity: 1; transform: none; } }
+
+/* Quiet interface chrome lets the colour field carry the header. */
+.profile-cover-top { padding: 16px 20px 0; }
+.profile-cover-label { gap: 9px; padding: 0; border: 0; border-radius: 0; color: rgba(247, 244, 255, .87); background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; text-shadow: 0 1px 12px rgba(0, 0, 0, .35); }
+.profile-cover-label>i { color: var(--header-c); }
+.profile-cover-label em { min-height: 0; margin-left: 3px; padding: 0 0 0 10px; border: 0; border-left: 1px solid rgba(233, 226, 255, .28); border-radius: 0; color: rgba(236, 230, 250, .72); background: transparent; box-shadow: none; }
+.profile-cover-customize { min-height: 33px; padding: 0 11px; border: 1px solid rgba(241, 234, 255, .19); border-radius: 10px; color: #f6f2ff; background: rgba(8, 9, 28, .22); -webkit-backdrop-filter: blur(9px); backdrop-filter: blur(9px); box-shadow: none; }
+.profile-cover-customize:hover { border-color: color-mix(in srgb, var(--header-c) 48%, transparent); background: rgba(14, 13, 39, .55); box-shadow: none; }
+.dashboard-modal.profile-wide .profile-cover .profile-header { inset: auto 20px 18px; background: transparent !important; }
+.dashboard-modal.profile-wide .profile-cover .profile-avatar-wrapper { width: 86px; height: 86px; }
+.dashboard-modal.profile-wide .profile-cover .profile-avatar-wrapper img { border: 2px solid rgba(249, 245, 255, .72); border-radius: 17px; box-shadow: 0 13px 28px rgba(3, 3, 19, .35), 0 0 0 4px color-mix(in srgb, var(--header-a) 13%, transparent); }
+.dashboard-modal.profile-wide .profile-cover .profile-header h3 { margin-bottom: 6px !important; color: #fff; text-shadow: 0 2px 16px rgba(0, 0, 0, .32); }
+.profile-presence { color: rgba(231, 227, 245, .78); }
+.profile-cover #profileRoleBadge { min-height: 24px; padding: 4px 9px; border: 1px solid color-mix(in srgb, var(--header-a) 44%, transparent); border-radius: 8px; color: #fff; background: color-mix(in srgb, var(--header-a) 18%, rgba(9, 10, 30, .64)) !important; box-shadow: none; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.profile-cover #profileRoleBadge small { color: rgba(244, 239, 255, .75); }
+.profile-cover-signal { min-width: 159px; padding: 8px 0 0; border: 0; border-top: 1px solid color-mix(in srgb, var(--header-c) 38%, transparent); border-radius: 0; color: #fff; background: transparent !important; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none !important; text-align: right; }
+.profile-cover-signal small, .profile-cover-signal em { color: rgba(225, 220, 242, .69); }
+.profile-cover-signal b { color: #fff; }
+
+/* Studio thumbnails represent atmosphere and light, rather than simplified icons. */
+.profile-header-option-preview { --thumb-a: rgba(130, 118, 247, .34); --thumb-b: #171732; --thumb-c: #302044; border: 1px solid rgba(181, 168, 244, .15); background: radial-gradient(ellipse at 76% 45%, var(--thumb-a), transparent 68%), linear-gradient(110deg, var(--thumb-b), var(--thumb-c)) !important; box-shadow: inset 0 1px rgba(255, 255, 255, .07); }
+.profile-header-option-preview[data-preview-header="archive"] { --thumb-a:rgba(91,198,177,.3); --thumb-b:#112732; --thumb-c:#20423f; }
+.profile-header-option-preview[data-preview-header="solar"] { --thumb-a:rgba(251,183,132,.39); --thumb-b:#30212c; --thumb-c:#5d3b44; }
+.profile-header-option-preview[data-preview-header="crown"] { --thumb-a:rgba(181,129,241,.37); --thumb-b:#211b3b; --thumb-c:#4e2b66; }
+.profile-header-option-preview[data-preview-header="prism"] { --thumb-a:rgba(135,183,248,.38); --thumb-b:#1c2748; --thumb-c:#512751; }
+.profile-header-option-preview[data-preview-header="guardian"] { --thumb-a:rgba(115,182,246,.38); --thumb-b:#192842; --thumb-c:#345883; }
+.profile-header-option-preview[data-preview-header="command"] { --thumb-a:rgba(241,142,178,.37); --thumb-b:#321f31; --thumb-c:#61384e; }
+.profile-header-option-preview[data-preview-header="code"] { --thumb-a:rgba(149,194,231,.34); --thumb-b:#252037; --thumb-c:#294657; }
+.profile-header-option-preview::before { opacity: .45; background-image: radial-gradient(circle, rgba(255,255,255,.55) 0 1px,transparent 1.5px); background-size: 25px 21px; }
+.profile-header-option-preview[data-preview-header="prism"]::before,
+.profile-header-option-preview[data-preview-header="code"]::before { opacity: .45; background-image: radial-gradient(circle, rgba(255,255,255,.55) 0 1px, transparent 1.5px); background-size: 25px 21px; }
+.profile-header-option-preview[data-preview-header] > i { top: -28px; right: -7px; width: 110px; height: 93px; border: 1px solid rgba(235, 230, 255, .16); border-radius: 50%; clip-path: none; background: transparent; box-shadow: none; transform: rotate(-18deg); }
+.profile-header-option-preview[data-preview-header] > b { left: 18%; bottom: 14px; width: 78%; height: 1px; border-radius: 0; background: linear-gradient(90deg, transparent, rgba(237, 232, 255, .32), transparent); box-shadow: none; }
+
+body.light-theme .dashboard-modal.profile-wide .profile-cover { color: #fff; background: var(--header-surface) !important; }
+body.light-theme .dashboard-modal.profile-wide .profile-cover .profile-header { background: transparent !important; border: 0; box-shadow: none; }
+body.light-theme .dashboard-modal.profile-wide .profile-cover .profile-header h3 { color: #fff; text-shadow: 0 2px 16px rgba(0, 0, 0, .32); }
+body.light-theme .profile-cover-label { color: rgba(247, 244, 255, .87); background: transparent; }
+body.light-theme .profile-cover-label em { color: rgba(236, 230, 250, .72); background: transparent; }
+body.light-theme .profile-cover-customize { color: #f6f2ff; border-color: rgba(241, 234, 255, .19); background: rgba(8, 9, 28, .22); box-shadow: none; }
+body.light-theme .profile-cover-customize:hover { color: #fff; background: rgba(14, 13, 39, .55); }
+body.light-theme .profile-presence { color: rgba(231, 227, 245, .78); }
+body.light-theme .profile-cover-signal { color: #fff; border-color: color-mix(in srgb, var(--header-c) 38%, transparent) !important; background: transparent !important; box-shadow: none !important; }
+body.light-theme .profile-cover-signal small, body.light-theme .profile-cover-signal em { color: rgba(225, 220, 242, .69) !important; }
+body.light-theme .profile-cover-signal b { color: #fff !important; }
+body.light-theme .profile-header-option-preview,
+body.light-theme .profile-header-option-preview[data-preview-header="prism"],
+body.light-theme .profile-header-option-preview[data-preview-header="code"] { background: radial-gradient(ellipse at 76% 45%, var(--thumb-a), transparent 68%), linear-gradient(110deg, var(--thumb-b), var(--thumb-c)) !important; }
+body.light-theme .profile-header-option-preview::before { background-image: radial-gradient(circle,rgba(255,255,255,.55) 0 1px,transparent 1.5px) !important; }
+body.light-theme .profile-header-option-preview[data-preview-header] > i { border-color: rgba(235, 230, 255, .16); }
+body.light-theme .profile-header-option-preview[data-preview-header] > b { background: linear-gradient(90deg, transparent, rgba(237, 232, 255, .32), transparent); }
+
+@media (max-width: 680px) {
+  .dashboard-modal.profile-wide .profile-cover { min-height: 232px; }
+  .dashboard-modal.profile-wide .profile-cover .profile-header { inset: auto 14px 15px; }
+  .dashboard-modal.profile-wide .profile-cover .profile-avatar-wrapper { width: 75px; height: 75px; }
+  .profile-cover-label { min-width: 0; max-width: calc(100% - 105px); overflow: hidden; white-space: nowrap; }
+  .profile-cover-label em { display: none; }
+  .profile-cover-scene i { right: -35%; opacity: .35; }
+  .profile-cover-scene span { left: 44%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-cover-scene i, .profile-cover-scene span, .profile-cover-scene b,
+  .profile-cover.header-switching .profile-cover-scene { animation: none !important; }
+}
+html.lite-mode .profile-cover-scene i,
+html.lite-mode .profile-cover-scene span,
+html.lite-mode .profile-cover-scene b { animation: none !important; }

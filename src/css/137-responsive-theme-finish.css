@@ -1,0 +1,132 @@
+/* Shared viewport and palette finish. Keep these rules last in the source manifest. */
+:root { color-scheme: dark; }
+body.light-theme {
+    color-scheme: light;
+    --bg-dark: #f4f7fd;
+    --text: #1b2743;
+    --text-muted: #52617f;
+    --glass-border: rgba(57, 77, 128, .16);
+    --day-ink: #202d4b;
+    --day-heading: #17233f;
+    --day-copy: #4f5f7c;
+    --day-muted: #62708d;
+    --day-line: rgba(57, 77, 128, .17);
+    --day-surface: #fff;
+    --day-surface-soft: #f7f9fd;
+    background: #f4f7fd;
+}
+body.light-theme .bg-gradient-overlay {
+    background: radial-gradient(55% 45% at 8% 6%, rgba(125, 142, 224, .13), transparent 75%),
+        radial-gradient(46% 38% at 92% 68%, rgba(45, 166, 191, .09), transparent 76%);
+}
+body.light-theme .vignette { opacity: .35; }
+body.light-theme .ambient-light { opacity: .09; }
+body.light-theme .light-bg-shapes .lbs { opacity: .2; }
+body.light-theme :is(#home,#accounts,#updates,#development,#advanced-features,#support) {
+    color: var(--day-ink);
+}
+body.light-theme :is(#home,#updates,#development,#advanced-features,#support) .text-gradient {
+    background: linear-gradient(110deg, #394da4 0%, #5749b4 48%, #9b326f 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+body.light-theme #development.development-premium .dev-hero-copy > p { color: #4a5878; }
+body.light-theme #development .dev-facts small,
+body.light-theme #development .dev-eyebrow { color: #52618c; }
+body.light-theme #development .dev-facts b { color: #28345d; }
+body.light-theme #updates .updates-header p { color: #51607f; }
+body.light-theme :is(#home,#updates,#development,#advanced-features,#support) :is(input,textarea)::placeholder { color: #687797; opacity: 1; }
+
+/* The palette control belongs to the main navigation, including for guests. */
+.navbar .nav-actions {
+    display: flex;
+    align-items: center;
+    justify-self: end;
+    gap: 8px;
+    min-width: 0;
+}
+.navbar .nav-theme-toggle {
+    position: relative;
+    order: -1;
+    display: grid;
+    place-items: center;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    margin-left: 0;
+    border: 1px solid rgba(171,187,240,.2);
+    border-radius: 15px;
+    color: #cad3ff;
+    background: rgba(53,62,91,.3);
+    box-shadow: inset 0 1px rgba(255,255,255,.07);
+    cursor: pointer;
+    transition: color .25s ease, background-color .25s ease, border-color .25s ease, transform .3s cubic-bezier(.2,.8,.25,1);
+}
+.navbar .nav-theme-toggle:hover { color: #fff; border-color: rgba(170,183,255,.48); background: rgba(91,104,160,.27); transform: translateY(-2px); }
+.navbar .nav-theme-toggle:focus-visible { outline: 2px solid #9fa9ff; outline-offset: 3px; }
+.nav-theme-toggle i { position: absolute; font-size: 1.1rem; transition: opacity .28s ease, transform .42s cubic-bezier(.2,.8,.25,1); }
+.nav-theme-toggle .theme-icon-sun { opacity: 1; transform: rotate(0) scale(1); }
+.nav-theme-toggle .theme-icon-moon { opacity: 0; transform: rotate(-65deg) scale(.45); }
+body.light-theme .nav-theme-toggle .theme-icon-sun { opacity: 0; transform: rotate(65deg) scale(.45); }
+body.light-theme .nav-theme-toggle .theme-icon-moon { opacity: 1; transform: rotate(0) scale(1); }
+body.light-theme .navbar .nav-theme-toggle { color: #424d9d; border-color: rgba(77,91,154,.2); background: rgba(255,255,255,.72); box-shadow: inset 0 1px #fff, 0 5px 16px rgba(68,85,142,.08); }
+body.light-theme .navbar .nav-theme-toggle:hover { color: #27347d; border-color: rgba(69,83,176,.42); background: #fff; }
+
+/* A short reveal keeps gradients and illustrations coherent while changing palette. */
+::view-transition { pointer-events: none; }
+::view-transition-old(root) { animation: none; }
+::view-transition-new(root) { animation: themeReveal .56s cubic-bezier(.18,.8,.25,1) both; }
+@keyframes themeReveal {
+    from { clip-path: circle(0 at var(--theme-origin-x, 50%) var(--theme-origin-y, 50%)); }
+    to { clip-path: circle(var(--theme-radius, 150vmax) at var(--theme-origin-x, 50%) var(--theme-origin-y, 50%)); }
+}
+body.theme-switching :is(.navbar,.nav-links-container,.dashboard-modal,.acc-panel,.timeline-card,.feature-card,.support-channel,.faq-item) {
+    transition: color .38s ease, background-color .42s ease, border-color .42s ease, box-shadow .42s ease;
+}
+
+/* Authentication forms must remain reachable on short phone and landscape viewports. */
+.dashboard-modal.glass-modal:not(.profile-wide) {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Narrow screens must keep every route and dialog reachable without page clipping. */
+.content-wrapper, .tab-content, .tab-content > *, .dashboard-modal, .dashboard-view { min-width: 0; }
+:is(.updates-toolbar,.updates-header,.dev-hero,.dev-systems-layout,.af-hero,.support-knowledge-studio,.identity-cockpit) > * { min-width: 0; }
+:is(.tab-content,.dashboard-modal) :is(h1,h2,h3,h4,p,strong) { overflow-wrap: break-word; }
+
+@media (max-width: 1180px) {
+    .navbar .nav-actions { order: 2; margin-left: auto; }
+    .navbar .nav-theme-toggle { flex-basis: 46px; }
+    .navbar .btn-account { margin-left: 0; }
+    .navbar .nav-burger { order: 4; }
+}
+@media (min-width: 1181px) and (max-width: 1280px) {
+    .navbar .btn-account { width: 46px; min-width: 46px; min-height: 46px; padding: 3px; }
+    .navbar .btn-account .avatar-circle { width: 38px; height: 38px; flex-basis: 38px; }
+    .navbar .btn-account .account-copy,
+    .navbar .btn-account .account-chevron { display: none; }
+}
+@media (max-width: 620px) {
+    .navbar .nav-actions { gap: 7px; }
+    .navbar .nav-theme-toggle { flex-basis: 44px; width: 44px; height: 44px; border-radius: 14px; }
+    .navbar .btn-account { width: 44px; min-width: 44px; min-height: 44px; }
+    .navbar .nav-burger { margin-left: 7px; }
+    #updates .updates-filters { display: flex; flex-wrap: wrap; width: 100%; gap: 5px; overflow: visible; }
+    #updates .updates-filter { flex: 1 1 auto; min-width: 0; text-align: center; }
+    #development .code-content { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+    #advanced-features .af-terminal-body { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+    #support .support-topic-strip { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+}
+@media (max-width: 360px) {
+    .navbar .logo-lockup { display: none; }
+    .navbar .logo-container { flex: 0 0 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+    .navbar .nav-theme-toggle, .nav-theme-toggle i { transition: none !important; }
+}
+html.lite-mode ::view-transition-old(root),
+html.lite-mode ::view-transition-new(root) { animation: none; }

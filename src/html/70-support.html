@@ -1,0 +1,123 @@
+        <section id="support" class="tab-content legacy-tab-style">
+            <div class="support-wrapper">
+                <header class="support-hero support-hub-hero animate-on-scroll">
+                    <div class="support-hero-copy">
+                        <div class="support-badge"><i class="fas fa-life-ring"></i> Spectral Help Center</div>
+                        <h2>Find the issue.<br><span class="text-gradient">Get back in game.</span></h2>
+                        <p>Search a guide or choose a symptom below. If you still need help, prepare a note with your version and error details.</p>
+                        <label class="support-search" for="supportSearchInput">
+                            <i class="fas fa-magnifying-glass"></i>
+                            <input id="supportSearchInput" type="search" placeholder="Search Java, memory, mods, accounts..." autocomplete="off">
+                            <kbd>/</kbd>
+                        </label>
+                        <div class="support-search-status" id="supportSearchStatus" aria-live="polite">Search across 7 guides and 4 guided checks</div>
+                    </div>
+                </header>
+
+                <div class="support-channels animate-on-scroll delay-1" id="supportChannels">
+                    <a class="support-channel" href="https://discord.gg/Ek8qgfDCZ" target="_blank" rel="noopener noreferrer" style="--ch:#5865F2"><div class="sc-icon"><i class="fab fa-discord"></i></div><div class="sc-body"><h4>Discord</h4><p>Live help and community chat</p></div><i class="fas fa-arrow-up-right-from-square sc-arrow"></i></a>
+                    <a class="support-channel" href="https://github.com/KaiserrSL/spectral-downloads/issues" target="_blank" rel="noopener noreferrer" style="--ch:#a78bfa"><div class="sc-icon"><i class="fab fa-github"></i></div><div class="sc-body"><h4>GitHub Issues</h4><p>Browse the public issue history</p></div><i class="fas fa-arrow-up-right-from-square sc-arrow"></i></a>
+                    <a class="support-channel" href="mailto:spectrallaunchersupport@gmail.com" style="--ch:#10b981"><div class="sc-icon"><i class="fas fa-envelope"></i></div><div class="sc-body"><h4>Email</h4><p>spectrallaunchersupport@gmail.com</p></div><i class="fas fa-arrow-up-right-from-square sc-arrow"></i></a>
+                </div>
+
+                <section class="support-diagnostic-workspace animate-on-scroll delay-1" id="supportDiagnostic" aria-labelledby="supportDiagnosticTitle">
+                    <div class="support-diagnostic-head"><div><span>Guided checks</span><h3 id="supportDiagnosticTitle">What went wrong?</h3><p>Select a symptom and work through its checks.</p></div><div class="support-diagnostic-progress"><span>Checklist progress</span><strong id="supportChecklistCount">0 / 3</strong><div class="support-progress-track"><i id="supportProgressFill"></i></div></div></div>
+                    <div class="support-diagnostic-layout">
+                        <div class="support-symptom-list" role="tablist" aria-label="Choose a symptom">
+                            <button type="button" id="supportFixCrash" class="support-symptom active" role="tab" aria-selected="true" aria-controls="supportPanelCrash" data-support-fix="crash"><i class="fas fa-bug"></i><span><small>01 / Startup</small><strong>Game crashes or freezes</strong></span><i class="fas fa-arrow-right"></i></button>
+                            <button type="button" id="supportFixLoader" class="support-symptom" role="tab" aria-selected="false" aria-controls="supportPanelLoader" data-support-fix="loader"><i class="fas fa-puzzle-piece"></i><span><small>02 / Modded</small><strong>Fabric or Forge fails</strong></span><i class="fas fa-arrow-right"></i></button>
+                            <button type="button" id="supportFixPerformance" class="support-symptom" role="tab" aria-selected="false" aria-controls="supportPanelPerformance" data-support-fix="performance"><i class="fas fa-gauge-high"></i><span><small>03 / In game</small><strong>Low FPS or stutter</strong></span><i class="fas fa-arrow-right"></i></button>
+                            <button type="button" id="supportFixAccount" class="support-symptom" role="tab" aria-selected="false" aria-controls="supportPanelAccount" data-support-fix="account"><i class="fas fa-user-shield"></i><span><small>04 / Identity</small><strong>Account or offline play</strong></span><i class="fas fa-arrow-right"></i></button>
+                        </div>
+                        <div class="support-solution" id="supportPanelCrash" role="tabpanel" aria-labelledby="supportFixCrash" data-support-panel="crash">
+                            <div class="support-solution-label"><i class="fas fa-bug"></i> STARTUP / CRASH</div><h4>Find where the launch stopped.</h4><p>Start with the last red Console line. It often identifies a missing dependency or an incompatible runtime.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Open Console and read the final error line.</span></label><label><input type="checkbox"><span>Confirm the instance has the Java version it requires.</span></label><label><input type="checkbox"><span>Try a sensible memory setting and leave RAM for the system.</span></label></div>
+                            <div class="support-solution-actions"><button type="button" data-support-guide="logs">Read the Console guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
+                        </div>
+                        <div class="support-solution" id="supportPanelLoader" role="tabpanel" aria-labelledby="supportFixLoader" data-support-panel="loader" hidden>
+                            <div class="support-solution-label"><i class="fas fa-puzzle-piece"></i> MODDED / LOADER</div><h4>Check the version chain.</h4><p>Mod loaders need a matching Minecraft base version, Java runtime and compatible mods.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Match the Fabric or Forge build to the Minecraft version.</span></label><label><input type="checkbox"><span>Check Java's required major version.</span></label><label><input type="checkbox"><span>Disable the newest mod and retry if the error names it.</span></label></div>
+                            <div class="support-solution-actions"><button type="button" data-support-guide="fabric">Read the modded guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
+                        </div>
+                        <div class="support-solution" id="supportPanelPerformance" role="tabpanel" aria-labelledby="supportFixPerformance" data-support-panel="performance" hidden>
+                            <div class="support-solution-label"><i class="fas fa-gauge-high"></i> PERFORMANCE</div><h4>Change one variable at a time.</h4><p>Compare FPS in the same world and location so you can see which adjustment helped.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Lower render distance and restart the game.</span></label><label><input type="checkbox"><span>Use a compatible optimization mod for your loader.</span></label><label><input type="checkbox"><span>Set reasonable memory without assigning all system RAM.</span></label></div>
+                            <div class="support-solution-actions"><button type="button" data-support-guide="fps">Read the FPS guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
+                        </div>
+                        <div class="support-solution" id="supportPanelAccount" role="tabpanel" aria-labelledby="supportFixAccount" data-support-panel="account" hidden>
+                            <div class="support-solution-label"><i class="fas fa-user-shield"></i> ACCOUNT / OFFLINE</div><h4>Check which identity you are using.</h4><p>A website account, a Minecraft profile and an online Microsoft session serve different purposes.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Select the intended Minecraft profile in the launcher.</span></label><label><input type="checkbox"><span>For online services, confirm your Microsoft session.</span></label><label><input type="checkbox"><span>For offline play, check that the selected profile is local.</span></label></div>
+                            <div class="support-solution-actions"><button type="button" data-support-guide="account">Read the account guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
+                        </div>
+                    </div>
+                    <div class="support-diagnostic-empty" role="status"><i class="fas fa-magnifying-glass"></i><strong>No guided path matches that search.</strong><span>Try a shorter term or browse the guides below.</span></div>
+                    <div class="support-diagnostic-foot"><span><i class="fas fa-circle-info"></i> Still stuck? Prepare a support note with the details you found.</span><button type="button" data-support-jump="supportBrief">Build a support note <i class="fas fa-arrow-right"></i></button></div>
+                </section>
+
+                <section class="support-brief animate-on-scroll" id="supportBrief" aria-labelledby="supportBriefTitle">
+                    <div class="support-brief-intro">
+                        <span class="support-brief-symbol" aria-hidden="true"><i class="fas fa-clipboard-list"></i></span>
+                        <div><span class="support-brief-label">Before you ask for help</span><h3 id="supportBriefTitle">Build a useful support note.</h3><p>A clear version and the final error line help others reproduce the problem. Fill in what you know, then copy a note for Discord, email or an issue.</p></div>
+                    </div>
+                    <div class="support-brief-grid">
+                        <form class="support-brief-form" id="supportBriefForm">
+                            <label>What happened?<select id="supportBriefIssue"><option value="Game crashes or freezes">Game crashes or freezes</option><option value="Fabric or Forge fails">Fabric or Forge fails</option><option value="Low FPS or stutter">Low FPS or stutter</option><option value="Account or offline play">Account or offline play</option><option value="Something else">Something else</option></select></label>
+                            <label>Minecraft version<input id="supportBriefVersion" type="text" autocomplete="off" placeholder="For example, 1.21.1" maxlength="60"></label>
+                            <label>Java version, if relevant<input id="supportBriefJava" type="text" autocomplete="off" placeholder="For example, Java 21" maxlength="60"></label>
+                            <label class="support-brief-wide">Final Console error or what you observed<textarea id="supportBriefError" rows="3" placeholder="Paste a short, relevant excerpt. Remove account details or tokens first." maxlength="1200"></textarea></label>
+                            <div class="support-brief-actions"><button type="button" id="supportBriefCopy"><i class="fas fa-copy" aria-hidden="true"></i> Copy support note</button><button type="reset">Clear fields</button><span id="supportBriefStatus" role="status" aria-live="polite"></span></div>
+                        </form>
+                        <aside class="support-brief-preview" aria-label="Support note preview"><div class="support-brief-preview-head"><span><i class="fas fa-file-lines" aria-hidden="true"></i> Your note</span><span>Live preview</span></div><pre id="supportBriefPreview"></pre><p><i class="fas fa-shield-halved" aria-hidden="true"></i> Check the note for personal information before sharing it.</p></aside>
+                    </div>
+                </section>
+
+                <section class="support-knowledge-studio animate-on-scroll" aria-labelledby="supportKnowledgeTitle">
+                    <header class="support-knowledge-head">
+                        <div>
+                            <span>Knowledge base</span>
+                            <h3 id="supportKnowledgeTitle">Answers without the guesswork.</h3>
+                        </div>
+                        <p>Filter by topic or search for a specific issue.</p>
+                    </header>
+                    <div class="support-topic-strip" role="group" aria-label="Filter guides by topic">
+                        <button type="button" class="active" data-support-topic="all" aria-pressed="true" style="--topic:#aeb6ff"><i class="fas fa-layer-group"></i> All guides</button>
+                        <button type="button" data-support-topic="accounts" aria-pressed="false" style="--topic:#8b7cff"><i class="fas fa-user-shield"></i> Accounts</button>
+                        <button type="button" data-support-topic="launch" aria-pressed="false" style="--topic:#4ca8ff"><i class="fas fa-rocket"></i> Launch</button>
+                        <button type="button" data-support-topic="mods" aria-pressed="false" style="--topic:#ff6fcf"><i class="fas fa-puzzle-piece"></i> Mods</button>
+                        <button type="button" data-support-topic="performance" aria-pressed="false" style="--topic:#45d6b5"><i class="fas fa-gauge-high"></i> Performance</button>
+                    </div>
+                    <div class="support-knowledge-layout">
+                        <div class="support-faq-column">
+                            <div class="support-faq-head"><strong>All questions</strong><span id="faqVisibleCount">7 guides</span></div>
+                            <div class="faq-list" id="faqList">
+                                <div class="faq-item open" data-support-topic="accounts" data-support-id="account" style="--faq-accent:#8b7cff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-user-plus"></i></span><span class="faq-q-copy"><small>Accounts · 2 min</small><strong>How do I add a Minecraft account?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Go to the Accounts tab and click <b>Add Profile</b>. This website stores profile names for previews; connect Microsoft or Ely.by securely in the desktop launcher before playing. Offline profiles do not use online authentication.</p></div></div>
+                                <div class="faq-item" data-support-topic="accounts" style="--faq-accent:#b46cff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-id-card"></i></span><span class="faq-q-copy"><small>Identity · 1 min</small><strong>What's the difference between a site account and a Minecraft account?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Your <b>site account</b> is your identity on this website. It stores preferences and can contain several <b>Minecraft profiles</b>, which are the identities used to launch the game.</p></div></div>
+                                <div class="faq-item" data-support-topic="mods" data-support-id="fabric" style="--faq-accent:#ff6fcf"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-puzzle-piece"></i></span><span class="faq-q-copy"><small>Mods · 3 min</small><strong>Why does my Fabric/Forge build fail to start?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Loader builds need a compatible Minecraft base version and Java runtime. Reinstall the build, confirm the required Java major version, then read the final Console error if the launch still stops.</p></div></div>
+                                <div class="faq-item" data-support-topic="performance" style="--faq-accent:#ffb84d"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-memory"></i></span><span class="faq-q-copy"><small>Memory · 2 min</small><strong>How much memory should I allocate?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Use 2–4 GB for vanilla, 4–6 GB for medium modpacks and up to 8 GB for heavy packs. Leave enough memory for your operating system instead of assigning nearly all system RAM.</p></div></div>
+                                <div class="faq-item" data-support-topic="launch" data-support-id="logs" style="--faq-accent:#4ca8ff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-terminal"></i></span><span class="faq-q-copy"><small>Diagnostics · 2 min</small><strong>Where can I see logs and errors?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>The Console tab streams JVM output with colored levels, search, copy and export. Start at the bottom: the final red lines usually name the failing stage or missing dependency.</p></div></div>
+                                <div class="faq-item" data-support-topic="accounts" style="--faq-accent:#45d6b5"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-wifi"></i></span><span class="faq-q-copy"><small>Offline play · 1 min</small><strong>Is the launcher free and does it work offline?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Yes. Spectral runs locally and supports offline profiles. A Microsoft account is required only when you want licensed online authentication and multiplayer services that depend on it.</p></div></div>
+                                <div class="faq-item" data-support-topic="performance" data-support-id="fps" style="--faq-accent:#67e8f9"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-gauge-high"></i></span><span class="faq-q-copy"><small>Performance · 3 min</small><strong>How can I improve low FPS?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Start with Sodium on Fabric or another compatible optimization stack. Keep render distance reasonable, avoid excessive memory allocation and compare changes in the same world and location.</p></div></div>
+                            </div>
+                            <div class="support-no-results" id="supportNoResults" hidden><i class="fas fa-magnifying-glass"></i><strong>No matching guide yet</strong><p>Try a shorter term such as Java, memory, mods or account.</p></div>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="forum-section animate-on-scroll delay-1">
+                    <div class="forum-header-row">
+                        <div>
+                            <h3 class="support-subtitle" style="margin-top:0;">Ideas &amp; Suggestions</h3>
+                            <p style="color:var(--text-muted);font-size:0.9rem;margin-top:4px;">Share your ideas for the launcher and site — the best ones become real features</p>
+                        </div>
+                        <div class="forum-write-wrap">
+                            <button type="button" class="forum-write-btn" id="forumWriteBtn"><i class="fas fa-lightbulb"></i> Share Idea</button>
+                            <span class="forum-login-hint" id="forumLoginHint" style="display:none;"><i class="fas fa-lock"></i> Sign in to share an idea</span>
+                        </div>
+                    </div>
+                    <div class="forum-posts-list" id="forumPostsList"></div>
+                    <div class="forum-empty-state" id="forumEmpty" style="display:none;"><i class="fas fa-comment-slash"></i><p>No ideas yet — be the first!</p></div>
+                </div>
+            </div>
+        </section>
+
+    </main>

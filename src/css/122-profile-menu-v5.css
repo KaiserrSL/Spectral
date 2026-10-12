@@ -1,0 +1,230 @@
+/* ══════════════════════════════════════════════════════════════════════
+   PROFILE MENU RENDERING V5
+   One stable shell, compositor-only motion and lazy inner work.
+   ══════════════════════════════════════════════════════════════════════ */
+.dashboard-overlay {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 180ms ease,
+        visibility 0s linear 240ms;
+}
+
+.dashboard-overlay.open {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transition-delay: 0s;
+}
+
+.dashboard-overlay .dashboard-modal {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(.985);
+    transition:
+        opacity 160ms ease,
+        transform 320ms cubic-bezier(.16, 1, .3, 1);
+}
+
+.dashboard-overlay.open .dashboard-modal {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+}
+
+.dashboard-modal.profile-wide,
+.dashboard-modal.profile-wide.admin-wide,
+.dashboard-modal.profile-wide.store-wide {
+    --profile-enter-transform: translate3d(0, 14px, 0) scale(.985);
+    width: min(1120px, calc(100vw - 28px)) !important;
+    max-width: none;
+    max-height: calc(100dvh - 24px) !important;
+    padding: 24px !important;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    contain: layout style;
+    transform: var(--profile-enter-transform);
+    transition:
+        opacity 160ms ease,
+        transform 340ms cubic-bezier(.16, 1, .3, 1),
+        border-color 180ms ease,
+        box-shadow 320ms ease;
+}
+
+.dashboard-modal.profile-wide[data-entrance="aurora"] {
+    --profile-enter-transform: translate3d(0, 24px, 0) scale(.985);
+}
+
+.dashboard-modal.profile-wide[data-entrance="portal"] {
+    --profile-enter-transform: perspective(900px) translate3d(0, 12px, 0) rotateX(-4deg) scale(.965);
+}
+
+.dashboard-modal.profile-wide[data-entrance="stardust"] {
+    --profile-enter-transform: translate3d(0, -13px, 0) scale(.98);
+}
+
+.dashboard-modal.profile-wide[data-entrance="rift"] {
+    --profile-enter-transform: translate3d(15px, 7px, 0) rotate(.8deg) scale(.97);
+}
+
+.dashboard-modal.profile-wide[data-entrance="terminal"] {
+    --profile-enter-transform: translate3d(0, 9px, 0) scale(.99);
+}
+
+.dashboard-overlay.open .dashboard-modal.profile-wide {
+    transform: translate3d(0, 0, 0) scale(1);
+}
+
+.dashboard-modal.profile-wide.profile-opening,
+.dashboard-modal.profile-wide.profile-opening::before,
+.dashboard-modal.profile-wide.profile-opening #profileView > .profile-tabs,
+.dashboard-modal.profile-wide.profile-opening [data-ptab-content="my-profile"] > *,
+.dashboard-modal.profile-wide.dashboard-morphing {
+    animation: none !important;
+    will-change: auto !important;
+}
+
+.dashboard-modal.profile-wide.profile-replay {
+    transform-origin: 50% 48%;
+    animation: profileShellReplayV5 360ms cubic-bezier(.16, 1, .3, 1) both;
+    will-change: transform, opacity;
+}
+
+@keyframes profileShellReplayV5 {
+    from {
+        opacity: .44;
+        transform: var(--profile-enter-transform);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+}
+
+#profileView {
+    min-width: 0;
+}
+
+#profileView[hidden],
+#profileView > .ptab-content[hidden] {
+    display: none !important;
+}
+
+#profileView > .ptab-content {
+    min-width: 0;
+}
+
+.dashboard-modal.profile-wide .ptab-content.ptab-enter,
+.dashboard-modal.profile-wide.admin-wide .ptab-content.ptab-enter {
+    animation: profilePanelEnterV5 260ms cubic-bezier(.16, 1, .3, 1) both;
+    will-change: transform, opacity;
+}
+
+@keyframes profilePanelEnterV5 {
+    from {
+        opacity: 0;
+        transform: translate3d(0, 9px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.profile-identity-studio {
+    max-height: none;
+    padding: 18px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate3d(0, -8px, 0) scale(.99);
+    transition:
+        opacity 180ms ease,
+        transform 280ms cubic-bezier(.16, 1, .3, 1),
+        visibility 0s linear 280ms;
+    contain: layout paint style;
+}
+
+.profile-identity-studio[hidden] {
+    display: none !important;
+}
+
+.profile-identity-studio.open {
+    max-height: none;
+    padding: 18px;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate3d(0, 0, 0) scale(1);
+    transition-delay: 0s;
+}
+
+.profile-cover {
+    contain: layout paint style;
+    isolation: isolate;
+}
+
+.profile-cover::before {
+    animation: none !important;
+}
+
+.profile-cover-scene {
+    contain: paint;
+}
+
+.profile-cover-scene span,
+.profile-cover-scene b {
+    filter: blur(24px);
+}
+
+.dashboard-overlay:not(.open) .profile-cover *,
+.dashboard-overlay:not(.open) .profile-cover *::before,
+.dashboard-overlay:not(.open) .profile-cover *::after,
+#profileView > .ptab-content[hidden] *,
+#profileView > .ptab-content[hidden] *::before,
+#profileView > .ptab-content[hidden] *::after {
+    animation-play-state: paused !important;
+}
+
+.profile-cover.header-switching {
+    will-change: transform, opacity;
+}
+
+@media (max-width: 620px) {
+    .dashboard-modal.profile-wide,
+    .dashboard-modal.profile-wide.admin-wide,
+    .dashboard-modal.profile-wide.store-wide {
+        width: calc(100vw - 10px) !important;
+        max-height: calc(100dvh - 10px) !important;
+        padding: 16px 11px 19px !important;
+        border-radius: 21px;
+        scrollbar-gutter: auto;
+    }
+
+    .dashboard-modal.profile-wide .profile-tabs {
+        width: calc(100% - 44px);
+        margin-right: 44px;
+    }
+
+    .profile-cover-scene span,
+    .profile-cover-scene b {
+        filter: blur(16px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-overlay,
+    .dashboard-overlay .dashboard-modal,
+    .dashboard-modal.profile-wide,
+    .profile-identity-studio {
+        transition-duration: .01ms !important;
+    }
+
+    .dashboard-modal.profile-wide.profile-replay,
+    .dashboard-modal.profile-wide .ptab-content.ptab-enter,
+    .profile-cover.header-switching {
+        animation: none !important;
+        will-change: auto !important;
+    }
+}
