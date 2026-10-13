@@ -2342,6 +2342,9 @@ function renderActiveMcBanner() {
     if (!banner) return;
 
     const active = mcAccounts.find(a=>a.id===activeMcId);
+    const previousIdentity = banner.dataset.renderedIdentityId;
+    const identityChanged = previousIdentity !== undefined && previousIdentity !== (active?.id || '');
+    banner.dataset.renderedIdentityId = active?.id || '';
     banner.classList.toggle('has-active',Boolean(active));
     if (!active) {
         if (leftSec)  leftSec.style.display='none';
@@ -2372,10 +2375,12 @@ function renderActiveMcBanner() {
     const uuidEl = document.getElementById('activeUuidText');
     if (uuidEl) uuidEl.textContent = active.uuid||offlineUuid(active.username);
     banner.classList.remove('identity-switching');
-    void banner.offsetWidth;
-    requestAnimationFrame(()=>banner.classList.add('identity-switching'));
     clearTimeout(banner._identitySwitchTimer);
-    banner._identitySwitchTimer=setTimeout(()=>banner.classList.remove('identity-switching'),620);
+    if (identityChanged) {
+        void banner.offsetWidth;
+        requestAnimationFrame(()=>banner.classList.add('identity-switching'));
+        banner._identitySwitchTimer=setTimeout(()=>banner.classList.remove('identity-switching'),620);
+    }
 }
 
 // ── MC Accounts grid ──────────────────────────────────────────
@@ -2415,9 +2420,10 @@ function renderMcGrid() {
     const emptyTxt = document.getElementById('accountsEmptyText');
     if (!grid) return;
     updateAccountCockpitMetrics();
-    grid.innerHTML='';
 
     if (!currentUserId) {
+        grid.replaceChildren();
+        delete grid.dataset.renderFingerprint;
         if (empty) empty.style.display='block';
         const emptyAdd=document.getElementById('accountsEmptyAddBtn');if(emptyAdd)emptyAdd.style.display='none';
         if (emptyTxt) emptyTxt.textContent='Sign in to your site account to see your Minecraft profiles';
@@ -2425,12 +2431,18 @@ function renderMcGrid() {
     }
     const list = getFilteredMc();
     if (list.length===0) {
+        grid.replaceChildren();
+        delete grid.dataset.renderFingerprint;
         if (empty) empty.style.display='block';
         if (emptyTxt) emptyTxt.textContent = mcAccounts.length===0 ? 'No Minecraft profiles yet' : 'No profiles match your filters';
         const emptyAdd=document.getElementById('accountsEmptyAddBtn');if(emptyAdd)emptyAdd.style.display=mcAccounts.length===0?'inline-flex':'none';
         return;
     }
     if (empty) empty.style.display='none';
+    const fingerprint=JSON.stringify([currentUserId,activeMcId,list]);
+    if(grid.dataset.renderFingerprint===fingerprint&&grid.childElementCount===list.length)return;
+    grid.replaceChildren();
+    grid.dataset.renderFingerprint=fingerprint;
     grid.onclick = e => {
         const fav=e.target.closest('.acc-fav'); if(fav&&grid.contains(fav)){e.preventDefault();e.stopPropagation();toggleMcFav(fav.dataset.id);return;}
         const del=e.target.closest('.acc-btn-delete'); if(del&&grid.contains(del)){e.preventDefault();e.stopPropagation();const card=del.closest('.account-card');const id=del.dataset.id||(card&&card.dataset.id);if(id)deleteMcAccount(id,card);return;}
@@ -2444,7 +2456,7 @@ function renderMcGrid() {
         card.dataset.id=acc.id;
         card.style.setProperty('--i', idx);
         card.innerHTML=`
-            <button class="acc-fav${acc.favorite?' on':''}" data-id="${esc(acc.id)}" title="Favorite" type="button"><i class="fas fa-star"></i></button>
+            <button class="acc-fav${acc.favorite?' on':''}" data-id="${esc(acc.id)}" title="${acc.favorite?'Remove from favorites':'Add to favorites'}" aria-label="${acc.favorite?'Remove from favorites':'Add to favorites'}" aria-pressed="${Boolean(acc.favorite)}" type="button"><i class="fas fa-star" aria-hidden="true"></i></button>
             ${isActive?'<span class="acc-active-tag"><span class="acc-active-dot"></span> Active</span>':''}
             <div class="acc-card-top">
                 <div class="acc-avatar">
@@ -4419,17 +4431,18 @@ function renderRolesShell(){
     if(!rolesPanelV2)return;
     rolesPanelV2.innerHTML=`<div class="roles-v2-shell">
         <header class="roles-v2-hero">
-            <div class="workspace-signal-art" aria-hidden="true"><span class="signal-orbit"></span><span class="signal-core"></span><span class="signal-trace"></span></div>
-            <div class="roles-v2-hero-copy"><span class="roles-v2-eyebrow">${workspaceIcon('wand-magic-sparkles')} ACCOUNT ROLES</span><h2>Make your space <em>your own.</em></h2><p>Explore each role, compare the limits that matter, and keep a favorite plan for launch.</p><div class="roles-v2-hero-points"><span>${workspaceIcon('sliders')} Clear limits</span><span>${workspaceIcon('sparkles')} Profile style</span><span>${workspaceIcon('shield-halved')} Verified access</span></div></div>
-            <div class="roles-v2-current"><span id="rolesV2CurrentIcon">${workspaceIcon('user')}</span><div><small id="rolesV2CurrentLabel">Current role</small><strong id="rolesV2CurrentName">Player</strong><em id="rolesV2CurrentNote">Standard access</em></div></div>
+            <div class="roles-v2-hero-copy"><span class="roles-v2-eyebrow"><span class="roles-v2-live-dot"></span> SPECTRAL / ROLE STUDIO</span><h2>Choose your <em>next form.</em></h2><p>Every role has its own look, room for more identities, and a different way to move through Spectral. Explore the collection before saving a plan.</p><div class="roles-v2-hero-points"><span><b>01</b> Explore</span><span><b>02</b> Compare</span><span><b>03</b> Save for launch</span></div></div>
+            <div class="roles-v2-hero-display" aria-hidden="true"><span class="roles-v2-display-ring ring-one"></span><span class="roles-v2-display-ring ring-two"></span><span class="roles-v2-display-gem">${workspaceIcon('gem')}</span><small>IDENTITY / EVOLVED</small></div>
+            <div class="roles-v2-current"><span id="rolesV2CurrentIcon">${workspaceIcon('user')}</span><div><small id="rolesV2CurrentLabel">YOUR CURRENT ROLE</small><strong id="rolesV2CurrentName">Player</strong><em id="rolesV2CurrentNote">Standard access</em></div></div>
         </header>
+        <div class="roles-v2-sectionline"><span>YOUR ACCESS NOW</span><span>LIVE ACCOUNT LIMITS</span></div>
         <section id="rolesV2Entitlements" class="roles-v2-entitlements" aria-label="Current account limits"></section>
         <section id="developerRoleLab" class="roles-v2-preview" hidden></section>
         <section id="roleReservation" class="roles-v2-reservation" hidden aria-live="polite"></section>
-        <div class="roles-v2-toolbar"><div><small>ROLE COLLECTION</small><h3>Choose your next chapter</h3><p>See the price and your actual account limits side by side.</p></div><div class="roles-v2-cycle" role="group" aria-label="Billing period"><button type="button" data-role-v2-cycle="monthly" aria-pressed="false">Monthly</button><button type="button" class="active" data-role-v2-cycle="yearly" aria-pressed="true">Yearly <b>-20%</b></button></div></div>
+        <div class="roles-v2-toolbar"><div><small>THE COLLECTION / 01</small><h3>Find your role</h3><p>Distinct identities, clear limits, and pricing you can compare.</p></div><div class="roles-v2-cycle" role="group" aria-label="Billing period"><button type="button" data-role-v2-cycle="monthly" aria-pressed="false">Monthly</button><button type="button" class="active" data-role-v2-cycle="yearly" aria-pressed="true">Yearly <b>SAVE 20%</b></button></div></div>
         <div id="roleStoreGrid" class="roles-v2-grid" aria-live="polite"></div>
-        <section class="roles-v2-compare"><header><span>${workspaceIcon('table-cells-large')}</span><div><small>ONE CLEAR VIEW</small><h3>What changes with each role?</h3><p>Permissions stay separate from visual previews.</p></div></header><div class="roles-v2-compare-tabs" role="tablist" aria-label="Role comparison"><button type="button" data-role-v2-category="capacity" aria-selected="true">${workspaceIcon('cubes')} Capacity</button><button type="button" data-role-v2-category="appearance" aria-selected="false">${workspaceIcon('palette')} Appearance</button><button type="button" data-role-v2-category="permissions" aria-selected="false">${workspaceIcon('shield-halved')} Permissions</button></div><div id="roleComparisonGrid" class="roles-v2-table-wrap" tabindex="0"></div><p class="roles-v2-note">${workspaceIcon('circle-info')} A launch choice is saved locally and never grants a role. Staff access is assigned by the server.</p></section>
-        <aside id="roleCheckoutSheet" class="roles-v2-checkout" hidden aria-live="polite"><button type="button" data-role-v2-close class="roles-v2-close" aria-label="Close role choice">×</button><span id="rolesV2CheckoutIcon">${workspaceIcon('star')}</span><div><small>PLAN PREVIEW · NO PAYMENT</small><h3 id="rolesV2CheckoutTitle">Choose Pro</h3><p id="rolesV2CheckoutText">Save a plan to revisit at launch. No charge or role activation happens here.</p></div><strong id="rolesV2CheckoutPrice">$0</strong><button type="button" data-role-v2-confirm class="roles-v2-confirm">Save plan ${workspaceIcon('arrow-right')}</button></aside>
+        <section class="roles-v2-compare"><header><span>${workspaceIcon('table-cells-large')}</span><div><small>THE DETAILS / 02</small><h3>Compare every detail</h3><p>See exactly what changes across capacity, appearance, and access.</p></div></header><div class="roles-v2-compare-tabs" role="group" aria-label="Role comparison"><button type="button" data-role-v2-category="capacity" aria-pressed="true">${workspaceIcon('cubes')} Capacity</button><button type="button" data-role-v2-category="appearance" aria-pressed="false">${workspaceIcon('palette')} Appearance</button><button type="button" data-role-v2-category="permissions" aria-pressed="false">${workspaceIcon('shield-halved')} Permissions</button></div><div id="roleComparisonGrid" class="roles-v2-table-wrap" tabindex="0"></div><p class="roles-v2-note">${workspaceIcon('circle-info')} Saving a launch choice on this device does not charge you or activate a role. Staff access is assigned by the server.</p></section>
+        <aside id="roleCheckoutSheet" class="roles-v2-checkout" hidden aria-live="polite"><button type="button" data-role-v2-close class="roles-v2-close" aria-label="Close role choice">×</button><span id="rolesV2CheckoutIcon">${workspaceIcon('star')}</span><div><small>YOUR SELECTION / 03</small><h3 id="rolesV2CheckoutTitle">Pro</h3><p id="rolesV2CheckoutText">Save this plan to revisit at launch.</p></div><div class="roles-v2-checkout-total"><strong id="rolesV2CheckoutPrice">$0</strong><small id="rolesV2CheckoutPeriod">per year</small></div><button type="button" data-role-v2-confirm class="roles-v2-confirm">Save plan ${workspaceIcon('arrow-right')}</button></aside>
     </div>`;
 }
 
@@ -4437,7 +4450,7 @@ function renderRolesEntitlements(user){
     const el=document.getElementById('rolesV2Entitlements');if(!el)return;
     const info=roleInfo(user.role),mc=loadMcAccounts(user.id)||[],fav=mc.filter(item=>item.favorite).length;
     const metric=(icon,label,value,limit)=>`<article><span>${workspaceIcon(icon)} ${label}</span><strong>${value}<small> / ${formatRoleLimit(limit)}</small></strong><div><i style="width:${Number.isFinite(limit)?Math.min(100,(value/Math.max(1,limit))*100):Math.min(100,value*6)}%"></i></div><em>${esc(info.label)} access</em></article>`;
-    el.innerHTML=metric('cubes','Launcher profiles',mc.length,info.profileLimit)+metric('star','Favorites',fav,info.favoriteLimit)+`<article><span>${workspaceIcon('shield-halved')} Permissions</span><strong>${canManageUsers(user)?'Admin':canModerate(user)?'Moderator':'Player'}</strong><em>${canManageUsers(user)?'Manage lower roles and access':canModerate(user)?'Review community queue':'Manage your own identities'}</em></article>`;
+    el.innerHTML=metric('cubes','Launcher profiles',mc.length,info.profileLimit)+metric('star','Favorites',fav,info.favoriteLimit)+`<article><span>${workspaceIcon('shield-halved')} Permissions</span><strong>${isDev(user)?'Developer':canManageUsers(user)?'Admin':canModerate(user)?'Moderator':'Player'}</strong><em>${isDev(user)?'Full workspace and safe role previews':canManageUsers(user)?'Manage lower roles and access':canModerate(user)?'Review community queue':'Manage your own identities'}</em></article>`;
 }
 
 function renderRolesPreview(user,displayRole){
@@ -4450,10 +4463,22 @@ function roleCard(user,key,index){
     const info=roleInfo(key),display=displayedRoleKey(user),developer=isDev(user),current=display===key,chosen=workspaceRoleOrder(user.id),reserved=chosen?.role===key,eligible=key==='VETERAN'&&isVeteranEligible(user),plan=ROLE_STORE_PLANS[key];
     const locked=!developer&&key==='VETERAN'&&!current;
     const state=current?'current':reserved?'reserved':locked?'locked':'';
-    let label=current?'Current role':developer?`Preview ${info.label}`:reserved?'Saved plan':locked?(eligible?'Assigned automatically':'Legacy role'):'Review plan';
-    let action=developer?'preview':key==='VETERAN'?'none':'choose';
-    const price=developer?'Visual preview':key==='VETERAN'?(eligible?'Earned permanently':'Founder window closed'):`$${plan[rolesV2.cycle].toFixed(2)} / ${rolesV2.cycle==='yearly'?'year':'month'}`;
-    return `<article class="role-v2-card ${state} ${key==='PRO'?'featured':''}" style="--role-color:${info.color};--role-delay:${index*42}ms" data-role-v2-card="${key}"><div class="role-v2-card-top"><span>${workspaceIcon(info.icon.replace('fas fa-',''))}</span><small>${current?'YOUR ROLE':key==='PRO'?'POPULAR':developer?'PREVIEW':key==='VETERAN'?'FOUNDER':'ROLE'}</small></div><div class="role-v2-card-name"><h4>${esc(info.label)}</h4><p>${esc(info.tagline)}</p></div><div class="role-v2-price-wrap"><strong class="role-v2-price">${price}</strong>${!developer&&plan?`<small>${rolesV2.cycle==='yearly'?'Billed annually at launch':'Indicative monthly plan'}</small>`:''}</div><div class="role-v2-capacity"><span>${workspaceIcon('cubes')} ${formatRoleLimit(roleProfileLimit(key))} profiles</span><span>${workspaceIcon('star')} ${formatRoleLimit(roleFavoriteLimit(key))} favorites</span></div><ul>${info.perks.slice(0,3).map(perk=>`<li>${workspaceIcon('check')} ${esc(perk)}</li>`).join('')}</ul><button type="button" data-role-v2-action="${action}" data-role-v2-key="${key}" ${action==='none'||current||reserved?'disabled':''}>${label} ${workspaceIcon(developer?'eye':current?'check':reserved?'bookmark':'arrow-right')}</button></article>`;
+    const label=current?'Current role':developer?`Preview ${info.label}`:reserved?'Saved for launch':locked?(eligible?'Assigned automatically':'Founder role'):'Explore plan';
+    const action=developer?'preview':key==='VETERAN'?'none':'choose';
+    const icon=workspaceIcon(info.icon.replace('fas fa-',''));
+    const status=current?'ACTIVE':reserved?'SAVED':developer?'VISUAL PREVIEW':key==='VETERAN'?'FOUNDER LEGACY':key==='LEGEND'?'COMMUNITY FAVORITE':key==='SPECTRAL'?'COMPLETE ACCESS':'EVERYDAY UPGRADE';
+    const price=plan?`<strong class="role-v2-price">$${plan[rolesV2.cycle].toFixed(2)}</strong><span class="role-v2-price-unit">/ ${rolesV2.cycle==='yearly'?'year':'month'}</span>`:developer?'<strong class="role-v2-price-word">Preview only</strong>':`<strong class="role-v2-price-word">${eligible?'Earned forever':'Founders only'}</strong>`;
+    const priceNote=plan?(rolesV2.cycle==='yearly'?`About $${(plan.yearly/12).toFixed(2)}/mo · annual total shown`:'Indicative monthly price · no charge today'):developer?'Appearance preview · no purchase':'A permanent badge from the founding year';
+    return `<article class="role-v2-card role-v2-${key.toLowerCase()} ${state} ${key==='PRO'?'featured':''}" style="--role-color:${info.color};--role-delay:${index*42}ms" data-role-v2-card="${key}">
+        <div class="role-v2-art" aria-hidden="true"><span class="role-v2-art-grid"></span><span class="role-v2-art-orbit"></span><span class="role-v2-art-emblem">${icon}</span><span class="role-v2-art-number">0${index+1} / 0${workspaceRoleKeys(user).length}</span></div>
+        <div class="role-v2-card-top"><span class="role-v2-card-monogram">${icon}</span><small>${status}</small></div>
+        <div class="role-v2-card-name"><h4>${esc(info.label)}</h4><p>${esc(info.tagline)}</p></div>
+        <div class="role-v2-price-wrap"><div>${price}</div><small>${priceNote}</small></div>
+        <div class="role-v2-capacity"><span>${workspaceIcon('cubes')} <b>${formatRoleLimit(roleProfileLimit(key))}</b> profiles</span><span>${workspaceIcon('star')} <b>${formatRoleLimit(roleFavoriteLimit(key))}</b> favorites</span></div>
+        <div class="role-v2-benefits-label">INCLUDED WITH ${esc(info.label).toUpperCase()}</div>
+        <ul>${info.perks.slice(1,4).map(perk=>`<li>${workspaceIcon('check')} <span>${esc(perk)}</span></li>`).join('')}</ul>
+        <button type="button" data-role-v2-action="${action}" data-role-v2-key="${key}" ${action==='none'||current||reserved?'disabled':''}><span>${label}</span>${workspaceIcon(developer?'eye':current?'check':reserved?'bookmark':'arrow-right')}</button>
+    </article>`;
 }
 
 function renderRolesCards(user){
@@ -4476,14 +4501,14 @@ function renderRoleWorkspaceV2(){
     const note=document.getElementById('rolesV2CurrentNote');if(note)note.textContent=isDev(user)&&display!=='DEV'?'Preview only · Developer access stays active':info.tagline;
     renderRolesEntitlements(user);renderRolesPreview(user,display);renderRolesCards(user);renderRolesCompare(user);
     const saved=workspaceRoleOrder(user.id),checkout=document.getElementById('roleReservation');
-    if(checkout){checkout.hidden=!saved;if(saved)checkout.innerHTML=`<span>${workspaceIcon('bookmark')}</span><div><small>SAVED PLAN · THIS DEVICE</small><strong>${esc(roleInfo(saved.role).label)} · ${saved.billing}</strong><p>$${Number(saved.quotedPrice).toFixed(2)} indicative price · no subscription</p></div><button type="button" data-role-v2-remove>${workspaceIcon('xmark')} Remove</button>`;}
+    if(checkout){checkout.hidden=!saved;if(saved)checkout.innerHTML=`<span>${workspaceIcon('bookmark')}</span><div><small>SAVED FOR LAUNCH · THIS DEVICE</small><strong>${esc(roleInfo(saved.role).label)} <i>·</i> ${saved.billing==='yearly'?'Yearly':'Monthly'}</strong><p>$${Number(saved.quotedPrice).toFixed(2)} indicative ${saved.billing==='yearly'?'annual':'monthly'} price · no charge or role activation</p></div><button type="button" data-role-v2-remove>${workspaceIcon('xmark')} Remove</button>`;}
 }
 
 function openRoleCheckoutV2(key){
     const user=workspaceUser(),plan=ROLE_STORE_PLANS[key],sheet=document.getElementById('roleCheckoutSheet');if(!user||!plan||!sheet)return;
     clearTimeout(rolesV2.closeTimer);
     rolesV2.quote={userId:user.id,role:key,billing:rolesV2.cycle,price:plan[rolesV2.cycle]};
-    sheet.hidden=false;document.getElementById('rolesV2CheckoutIcon').innerHTML=workspaceIcon(roleInfo(key).icon.replace('fas fa-',''));document.getElementById('rolesV2CheckoutTitle').textContent=`Choose ${roleInfo(key).label}`;document.getElementById('rolesV2CheckoutPrice').textContent=`$${plan[rolesV2.cycle].toFixed(2)}`;requestAnimationFrame(()=>sheet.classList.add('is-open'));
+    sheet.hidden=false;sheet.dataset.role=key.toLowerCase();document.getElementById('rolesV2CheckoutIcon').innerHTML=workspaceIcon(roleInfo(key).icon.replace('fas fa-',''));document.getElementById('rolesV2CheckoutTitle').textContent=`${roleInfo(key).label} · ${rolesV2.cycle==='yearly'?'Yearly':'Monthly'}`;document.getElementById('rolesV2CheckoutText').textContent=`${roleProfileLimit(key)===Infinity?'Unlimited':formatRoleLimit(roleProfileLimit(key))} profiles · ${roleFavoriteLimit(key)===Infinity?'unlimited':formatRoleLimit(roleFavoriteLimit(key))} favorites. No payment or role activation today.`;document.getElementById('rolesV2CheckoutPrice').textContent=`$${plan[rolesV2.cycle].toFixed(2)}`;document.getElementById('rolesV2CheckoutPeriod').textContent=rolesV2.cycle==='yearly'?'per year':'per month';requestAnimationFrame(()=>sheet.classList.add('is-open'));
 }
 function closeRoleCheckoutV2(){const sheet=document.getElementById('roleCheckoutSheet');if(!sheet)return;sheet.classList.remove('is-open');rolesV2.quote=null;clearTimeout(rolesV2.closeTimer);rolesV2.closeTimer=window.setTimeout(()=>{sheet.hidden=true;},180);}
 function saveRoleChoiceV2(){
@@ -4496,9 +4521,16 @@ function saveRoleChoiceV2(){
 function bindRolesV2(){
     if(!rolesPanelV2)return;
     renderRolesShell();
+    rolesPanelV2.addEventListener('pointermove',event=>{
+        if(event.pointerType!=='mouse'||REDUCED_MOTION||liteOn())return;
+        const card=event.target.closest('.role-v2-card');if(!card)return;
+        const bounds=card.getBoundingClientRect();
+        card.style.setProperty('--role-pointer-x',`${Math.max(0,Math.min(100,(event.clientX-bounds.left)/bounds.width*100))}%`);
+        card.style.setProperty('--role-pointer-y',`${Math.max(0,Math.min(100,(event.clientY-bounds.top)/bounds.height*100))}%`);
+    });
     rolesPanelV2.addEventListener('click',event=>{
         const cycle=event.target.closest('[data-role-v2-cycle]');if(cycle){if(rolesV2.quote)closeRoleCheckoutV2();rolesV2.cycle=cycle.dataset.roleV2Cycle;rolesPanelV2.querySelectorAll('[data-role-v2-cycle]').forEach(button=>{button.classList.toggle('active',button===cycle);button.setAttribute('aria-pressed',String(button===cycle));});renderRoleWorkspaceV2();return;}
-        const category=event.target.closest('[data-role-v2-category]');if(category){const order=['capacity','appearance','permissions'],previous=rolesV2.category,next=category.dataset.roleV2Category;if(previous===next)return;rolesV2.category=next;rolesPanelV2.querySelectorAll('[data-role-v2-category]').forEach(button=>{button.classList.toggle('active',button===category);button.setAttribute('aria-selected',String(button===category));});renderRolesCompare(workspaceUser());revealWorkspaceContent(document.getElementById('roleComparisonGrid'),order.indexOf(next)>order.indexOf(previous)?1:-1,{distance:9,duration:280});return;}
+        const category=event.target.closest('[data-role-v2-category]');if(category){const order=['capacity','appearance','permissions'],previous=rolesV2.category,next=category.dataset.roleV2Category;if(previous===next)return;rolesV2.category=next;rolesPanelV2.querySelectorAll('[data-role-v2-category]').forEach(button=>{button.classList.toggle('active',button===category);button.setAttribute('aria-pressed',String(button===category));});renderRolesCompare(workspaceUser());revealWorkspaceContent(document.getElementById('roleComparisonGrid'),order.indexOf(next)>order.indexOf(previous)?1:-1,{distance:9,duration:280});return;}
         const action=event.target.closest('[data-role-v2-action]');if(action&&!action.disabled){if(action.dataset.roleV2Action==='preview'){const user=workspaceUser();if(user&&setDeveloperRolePreview(user,action.dataset.roleV2Key)){renderNavbar();renderRoleWorkspaceV2();activateProfileTabV2('my-profile');showToast(`Preview: ${roleInfo(action.dataset.roleV2Key).label}.`,'eye');}}else if(action.dataset.roleV2Action==='choose')openRoleCheckoutV2(action.dataset.roleV2Key);return;}
         if(event.target.closest('[data-role-v2-reset]')){const user=workspaceUser();if(user&&setDeveloperRolePreview(user,'DEV')){renderNavbar();renderRoleWorkspaceV2();}return;}
         if(event.target.closest('[data-role-v2-remove]')){const user=workspaceUser();if(user&&saveRoleOrders(loadRoleOrders().filter(item=>item.userId!==user.id))){renderRoleWorkspaceV2();showToast('Saved plan removed.','check');}return;}
@@ -5224,7 +5256,11 @@ if (currentUserId) beginUserSession();
 
 // Cloud auth is opt-in. When configured, initialization restores only the
 // authenticated user's owner-scoped data; otherwise the site stays local.
-initSupabaseAuth().catch(()=>console.warn('[startup] Optional authentication is unavailable; local mode remains active.'));
+const accountsSection = document.getElementById('accounts');
+if (!validSupabaseConfig()) accountsSection?.classList.remove('accounts-booting');
+initSupabaseAuth()
+    .catch(()=>console.warn('[startup] Optional authentication is unavailable; local mode remains active.'))
+    .finally(()=>accountsSection?.classList.remove('accounts-booting'));
 
 // Keep an open site in sync with profiles added or removed in the launcher.
 let lastMinecraftRefresh = 0;
