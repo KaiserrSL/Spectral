@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 
-const source = await readFile(new URL('../script.js', import.meta.url), 'utf8');
+const source = await readFile(new URL('../src/js/30-user-model.js', import.meta.url), 'utf8');
 const start = source.indexOf('let mcSaveInProgress = false;');
 const end = source.indexOf('function cloudPushFriends', start);
 assert.ok(start >= 0 && end > start);
@@ -21,6 +21,7 @@ function harness({failOperation = ''} = {}) {
             update(value) { state.operation = 'update'; state.payload = value; return query; },
             delete() { state.operation = 'delete'; return query; },
             eq(key,value) { state.filters.push([key,value]); return query; },
+            order() { return query; },
             limit() { return query; },
             in(key,ids) { state.ids = [key,ids]; return query; },
             then(resolve,reject) {
@@ -49,13 +50,15 @@ function harness({failOperation = ''} = {}) {
     const context = vm.createContext({
         currentUserId:'owner', cloudAuthUserId:'owner', cloud, mcAccounts:[], activeMcId:null,
         validSupabaseConfig:()=>true, cloudReady:()=>true,
+        offlineUuid:value=>`offline-${value}`, renderAll:()=>{},
         safeIdentifier:value=>String(value||''), sanitizeField:(value,max)=>String(value||'').slice(0,max),
         saveMcAccounts:(id,accounts)=>{cache.push({id,accounts});return true;},
         saveActiveMc:(id,active)=>{cache.push({id,active});return true;},
         handleCloudError:()=>{}
     });
     vm.runInContext(source.slice(start,end),context);
-    return {save:vm.runInContext('saveMinecraftProfiles',context),records,cache,calls,context};
+    return {save:vm.runInContext('saveMinecraftProfiles',context),
+        refresh:vm.runInContext('refreshMinecraftProfiles',context),records,cache,calls,context};
 }
 
 const profile = {id:'la_test',username:'Alex',displayName:'Alex',type:'offline',uuid:'uuid',addedAt:'12.10.2026',playtime:'0h',favorite:false,lastUsed:null};
@@ -81,4 +84,26 @@ test('a rejected cloud write leaves the browser cache untouched', async () => {
     await assert.rejects(app.save('owner',[profile],profile.id),/could not be saved online/);
     assert.equal(app.cache.length,0);
     assert.equal(app.records.size,0);
+});
+
+test('saving a stale browser list preserves a profile added by the launcher', async () => {
+    const app=harness();
+    await app.save('owner',[profile],profile.id);
+    const launcher={id:'la_launcher',user_id:'owner',username:'Steve',display_name:'Steve',
+        type:'offline',uuid:'uuid-2',added_at:'13.10.2026',playtime:'0h',favorite:false,
+        last_used:null,is_active:false};
+    app.records.set(launcher.id,launcher);
+    await app.save('owner',[{...profile,favorite:true}],profile.id);
+    assert.equal(app.records.get(launcher.id)?.username,'Steve');
+    assert.equal(app.cache.at(-2).accounts.length,2);
+});
+
+test('refresh loads launcher changes into the open site', async () => {
+    const app=harness();
+    app.records.set('la_launcher',{id:'la_launcher',user_id:'owner',username:'Steve',
+        display_name:'Steve',type:'offline',uuid:'uuid-2',added_at:'13.10.2026',
+        playtime:'0h',favorite:false,last_used:null,is_active:true});
+    assert.equal(await app.refresh(),true);
+    assert.equal(app.cache.at(-2).accounts[0].username,'Steve');
+    assert.equal(app.cache.at(-1).active,'la_launcher');
 });

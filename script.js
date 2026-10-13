@@ -1751,6 +1751,36 @@ function cloudPushUsers(users) {
         .catch(error => handleCloudError('profile sync', error));
 }
 let mcSaveInProgress = false;
+const MC_ACCOUNT_COLUMNS = 'id,user_id,username,display_name,type,uuid,added_at,playtime,favorite,last_used,is_active';
+function applyCloudMinecraftRows(uid, rows) {
+    if (uid !== currentUserId || uid !== cloudAuthUserId) return false;
+    mcAccounts = rows.map(row => ({
+        id: safeIdentifier(row.id),
+        username: sanitizeField(row.username, 32),
+        displayName: sanitizeField(row.display_name || row.username, 32),
+        type: ['microsoft','elyby','offline'].includes(row.type) ? row.type : 'offline',
+        uuid: sanitizeField(row.uuid, 36) || offlineUuid(row.username),
+        addedAt: sanitizeField(row.added_at, 24),
+        playtime: sanitizeField(row.playtime, 24) || '0h',
+        favorite: Boolean(row.favorite),
+        lastUsed: row.last_used || null
+    })).filter(account => account.id && account.username);
+    activeMcId = rows.find(row => row.is_active)?.id || mcAccounts[0]?.id || null;
+    saveMcAccounts(uid, mcAccounts);
+    saveActiveMc(uid, activeMcId);
+    return true;
+}
+async function refreshMinecraftProfiles() {
+    if (!currentUserId || currentUserId !== cloudAuthUserId || !cloudReady()
+        || mcSaveInProgress) return false;
+    const uid = currentUserId;
+    const {data, error} = await cloud.from('mc_accounts').select(MC_ACCOUNT_COLUMNS)
+        .eq('user_id', uid).order('id', {ascending:true}).limit(100);
+    if (error) { handleCloudError('Minecraft profile refresh', error); return false; }
+    if (!applyCloudMinecraftRows(uid, data || [])) return false;
+    renderAll();
+    return true;
+}
 async function saveMinecraftProfiles(uid, accounts, activeId) {
     if (mcSaveInProgress) throw new Error('Wait for the current Minecraft profile change to finish.');
     if (uid !== currentUserId) throw new Error('Sign in again before changing Minecraft profiles.');
@@ -1773,44 +1803,58 @@ async function saveMinecraftProfiles(uid, accounts, activeId) {
             }));
             if (rows.length > 100 || rows.some(row => !row.id || !row.username)) throw new Error('Invalid Minecraft profile data.');
             const {data:stored,error:readError}=await cloud.from('mc_accounts')
-                .select('id,username,display_name,type,uuid,added_at,playtime,favorite,last_used,is_active')
+                .select(MC_ACCOUNT_COLUMNS)
                 .eq('user_id',uid).limit(100);
             if (readError) throw readError;
             const existing=new Map((stored||[]).map(row=>[row.id,row]));
+            const before=new Map(mcAccounts.map(account=>[account.id,account]));
             for (const row of rows) {
                 const id=row.id;
-                const changes={...row};
-                delete changes.id;
-                delete changes.user_id;
-                const previous=existing.get(id);
-                if(previous && Object.entries(changes).every(([key,value])=>
-                    key==='last_used' ? (value ? Date.parse(previous[key])===Date.parse(value) : !previous[key])
-                        : (previous[key]??null)===(value??null)))continue;
-                const request=previous
+                const baseline=before.get(id);
+                const changes={};
+                for(const key of ['username','display_name','type','uuid','added_at','playtime','favorite','last_used']) {
+                    const oldValue=baseline && ({username:baseline.username,display_name:baseline.displayName,
+                        type:baseline.type,uuid:baseline.uuid,added_at:baseline.addedAt,
+                        playtime:baseline.playtime,favorite:baseline.favorite,last_used:baseline.lastUsed})[key];
+                    if(!baseline || (row[key]??null)!==(oldValue??null))changes[key]=row[key];
+                }
+                if(baseline && !Object.keys(changes).length)continue;
+                const request=existing.has(id)
                     ? cloud.from('mc_accounts').update(changes).eq('id',id).eq('user_id',uid)
-                    : cloud.from('mc_accounts').insert(row);
+                    : cloud.from('mc_accounts').insert({...row,is_active:false});
                 const {data,error}=await request.select('id');
                 if (error) throw error;
                 if (!data?.some(saved=>saved.id===id)) throw new Error('The database did not confirm the Minecraft profile change.');
             }
             const keepIds=new Set(rows.map(row=>row.id));
-            const removed=[...existing.keys()].filter(id=>!keepIds.has(id));
+            // Delete only rows this browser actually removed. A launcher-added
+            // row absent from stale browser cache must stay in the database.
+            const removed=[...before.keys()].filter(id=>!keepIds.has(id) && existing.has(id));
             if (removed.length) {
                 const {error}=await cloud.from('mc_accounts').delete().eq('user_id',uid).in('id',removed);
                 if (error) throw error;
             }
+            if (activeId !== activeMcId) {
+                const {error:clearError}=await cloud.from('mc_accounts').update({is_active:false})
+                    .eq('user_id',uid).eq('is_active',true);
+                if (clearError) throw clearError;
+                if (activeId) {
+                    const {data:selected,error:selectError}=await cloud.from('mc_accounts')
+                        .update({is_active:true}).eq('id',activeId).eq('user_id',uid).select('id');
+                    if (selectError) throw selectError;
+                    if (!selected?.some(row=>row.id===activeId)) throw new Error('The selected Minecraft profile was not saved.');
+                }
+            }
             const {data:verified,error:verifyError}=await cloud.from('mc_accounts')
-                .select('id,username,display_name,type,uuid,added_at,playtime,favorite,last_used,is_active')
+                .select(MC_ACCOUNT_COLUMNS)
                 .eq('user_id',uid).limit(100);
             if (verifyError) throw verifyError;
-            if (verified?.length!==rows.length || rows.some(expected=>{
-                const actual=verified.find(row=>row.id===expected.id);
-                return !actual || Object.entries(expected).some(([key,value])=>{
-                    if(key==='user_id')return false;
-                    if(key==='last_used')return value ? Date.parse(actual[key])!==Date.parse(value) : Boolean(actual[key]);
-                    return (actual[key]??null)!==(value??null);
-                });
-            })) throw new Error('The database did not confirm the final Minecraft profile list.');
+            if (removed.some(id=>verified?.some(row=>row.id===id))
+                || rows.some(row=>!verified?.some(saved=>saved.id===row.id)))
+                throw new Error('The database did not confirm the final Minecraft profile list.');
+            if (uid !== currentUserId) throw new Error('The account changed while saving Minecraft profiles.');
+            applyCloudMinecraftRows(uid,verified||[]);
+            return true;
         }
         if (uid !== currentUserId) throw new Error('The account changed while saving Minecraft profiles.');
         // Cloud is authoritative. A full browser cache must not turn a confirmed
@@ -5181,5 +5225,17 @@ if (currentUserId) beginUserSession();
 // Cloud auth is opt-in. When configured, initialization restores only the
 // authenticated user's owner-scoped data; otherwise the site stays local.
 initSupabaseAuth().catch(()=>console.warn('[startup] Optional authentication is unavailable; local mode remains active.'));
+
+// Keep an open site in sync with profiles added or removed in the launcher.
+let lastMinecraftRefresh = 0;
+async function refreshMinecraftProfilesIfDue() {
+    if (document.hidden || !currentUserId || currentUserId !== cloudAuthUserId
+        || mcSaveInProgress || Date.now() - lastMinecraftRefresh < 5000) return;
+    lastMinecraftRefresh = Date.now();
+    await refreshMinecraftProfiles();
+}
+window.addEventListener('focus', refreshMinecraftProfilesIfDue);
+document.addEventListener('visibilitychange', refreshMinecraftProfilesIfDue);
+setInterval(refreshMinecraftProfilesIfDue, 15000);
 
 }); // DOMContentLoaded
