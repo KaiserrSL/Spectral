@@ -14,7 +14,9 @@ for (const entry of sourceManifest) {
     const outputPath = path.join(root, entry.output);
     const current = await readFile(outputPath, 'utf8').catch(() => '');
 
-    if (current === composed) {
+    // Source checkouts can mix LF and CRLF on Windows. Preserve the tracked
+    // output when its content is otherwise identical.
+    if (current.replace(/\r\n/g, '\n') === composed.replace(/\r\n/g, '\n')) {
         console.log(`${entry.output}: up to date`);
         continue;
     }
