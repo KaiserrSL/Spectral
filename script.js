@@ -52,6 +52,21 @@ class Particle {
 // Shared, DOM-free account rules. Cloud permissions must also be enforced by RLS/RPC.
 const AccountPolicy = Object.freeze({
     ranks: Object.freeze({USER:0,VETERAN:1,PRO:2,LEGEND:3,SPECTRAL:4,MODERATOR:10,ADMIN:20,DEV:30}),
+    nameIssue(value){
+        const name=String(value||'').normalize('NFKC').toLowerCase();
+        if(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/.test(name))return 'Invisible or control characters are not allowed in names.';
+        if(/(?:https?:|www\.|@|\.(?:com|ru|net|org|gg|io)\b|discord|telegram|t\.me\/)/i.test(name))return 'Names cannot contain links or contact details.';
+        const tokens=name.split(/[ _.-]+/).filter(Boolean);
+        if(tokens.some(token=>/[a-z]/.test(token)&&/[а-яёіїєґ]/.test(token)))return 'Do not mix alphabets inside a name.';
+        const rawCompact=name.replace(/[^a-zа-яёіїєґ0-9]/g,'');
+        const compact=rawCompact.replace(/[013457]/g,char=>({'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t'}[char]));
+        const latin=compact.replace(/[аеорсухі]/g,char=>({'а':'a','е':'e','о':'o','р':'p','с':'c','у':'y','х':'x','і':'i'}[char]));
+        if(/^(?:admin|administrator|moderator|mod|support|staff|owner|developer|dev|official|spectral(?:team|admin|mod|support|official)?|officialspectral|админ|модератор|поддержка|разработчик)[0-9]{0,4}$/.test(rawCompact)
+            ||/^(?:admin|administrator|moderator|mod|support|staff|owner|developer|dev|official|spectral(?:team|admin|mod|support|official)?|officialspectral|админ|модератор|поддержка|разработчик)$/.test(compact)
+            ||/^(?:admin|administrator|moderator|mod|support|staff|owner|developer|dev|official|spectral(?:team|admin|mod|support|official)?|officialspectral)[0-9]{0,4}$/.test(latin))return 'This staff name is reserved.';
+        if(/(?:fuck|cunt|nigg|bitch|fagg|хуй|хуе|пизд|бляд|блят|ебат|ебан|сука)/.test(compact)||/(?:fuck|cunt|nigg|bitch|fagg)/.test(latin))return 'Choose a name without offensive language.';
+        return '';
+    },
     canManage(actor,target,role=null){
         if(!actor||actor.banned||!target||actor.id===target.id)return false;
         const rank=this.ranks[actor.role]??-1;
@@ -80,7 +95,8 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── Particles ────────────────────────────────────────────────
 const canvas = document.getElementById('particles-canvas');
 if (!canvas) return;
-const ctx = canvas.getContext('2d');
+let ctx = null;
+try { ctx = canvas.getContext('2d'); } catch {}
 let particles = [], canvasWidth, canvasHeight, animationId;
 let mouse = { x: -9999, y: -9999, active: false };
 let canvasRunning = false;
@@ -92,16 +108,18 @@ let REDUCED_MOTION = reducedMotionQuery.matches;
 // Lightweight mode: weak devices skip the heavy canvas/tilt/parallax work.
 // The class is set super-early by boot.min.js in the document head.
 function liteOn() { return document.documentElement.classList.contains('lite-mode'); }
-function canvasShouldIdle() { return liteOn() || REDUCED_MOTION || window.innerWidth <= 620; }
+function canvasShouldIdle() { return !ctx || liteOn() || REDUCED_MOTION || window.innerWidth <= 620; }
 if (!liteOn() && !REDUCED_MOTION) document.addEventListener('mouseleave', () => { mouse.active = false; });
 function resizeCanvas() {
+    if (canvasShouldIdle()) {
+        // A hidden canvas still owns its backing bitmap unless it is released.
+        canvas.width = canvas.height = 0;
+        canvasWidth = canvasHeight = 0;
+        particles = [];
+        return;
+    }
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     canvasWidth = canvas.width; canvasHeight = canvas.height; initParticles();
-    if (REDUCED_MOTION && !liteOn()) {
-        particles.forEach(p => p.draw(ctx, true));
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
-    }
 }
 function initParticles() {
     particles = [];
@@ -118,9 +136,13 @@ function initParticles() {
 // Some devices report plenty of cores yet still chug. If the canvas
 // can't hold a decent frame rate during the first couple of seconds
 // (and the user hasn't explicitly chosen a mode), drop to lite mode.
-let _perfStart = null, _perfFrames = 0, _perfChecked = false;
+let _perfStart = null, _perfLastFrame = null, _perfFrames = 0, _perfChecked = false;
+function resetFpsSample() { _perfStart = null; _perfLastFrame = null; _perfFrames = 0; }
 function checkFps(ts) {
     if (_perfChecked || !window.__SPECTRAL_LITE_AUTO) return;
+    // Sleeping computers and background tabs must not count as dropped frames.
+    if (_perfLastFrame !== null && ts - _perfLastFrame > 1000) resetFpsSample();
+    _perfLastFrame = ts;
     if (_perfStart === null) { _perfStart = ts; return; }
     const elapsed = ts - _perfStart;
     if (elapsed < 900) return;            // warm-up grace period
@@ -159,7 +181,7 @@ const handleReducedMotionChange = event => {
     mouse.active = false;
     cancelAnimationFrame(animationId);
     canvasRunning = false;
-    ctx.clearRect(0,0,canvasWidth,canvasHeight);
+    if (ctx) ctx.clearRect(0,0,canvasWidth,canvasHeight);
     document.querySelectorAll('.animate-on-scroll,.timeline-item').forEach(element=>element.classList.add('visible','in-view'));
     resizeCanvas();
     if (!canvasShouldIdle() && !document.hidden) animate(performance.now());
@@ -171,6 +193,7 @@ else if (typeof reducedMotionQuery.addListener === 'function') reducedMotionQuer
 document.addEventListener('visibilitychange', () => {
     document.documentElement.classList.toggle('motion-paused', document.hidden);
     if (document.hidden) {
+        resetFpsSample();
         canvasRunning = false;
         cancelAnimationFrame(animationId);
         return;
@@ -599,28 +622,22 @@ function commitTheme(theme) {
         navThemeToggle.setAttribute('aria-pressed', String(theme === 'light'));
     }
     const themeColor = document.querySelector('meta[name="theme-color"]');
-    if (themeColor) themeColor.content = theme === 'light' ? '#f4f6ff' : '#080a18';
+    if (themeColor) themeColor.content = theme === 'light' ? '#f7f8f6' : '#080a18';
 }
-function applyTheme(theme, animate, source) {
+let selectedTheme = 'dark';
+let activeThemeTransition = null;
+function applyTheme(theme, animate) {
+    selectedTheme = theme;
     if (!animate || REDUCED_MOTION || liteOn()) {
         commitTheme(theme);
         return;
     }
     if (typeof document.startViewTransition === 'function' && !document.getElementById('dashboardOverlay')?.classList.contains('open')) {
-        const rect = source?.getBoundingClientRect();
-        const x = rect ? rect.left + rect.width / 2 : innerWidth / 2;
-        const y = rect ? rect.top + rect.height / 2 : innerHeight / 2;
-        const radius = Math.max(
-            Math.hypot(x, y), Math.hypot(innerWidth - x, y),
-            Math.hypot(x, innerHeight - y), Math.hypot(innerWidth - x, innerHeight - y),
-        );
-        document.documentElement.style.setProperty('--theme-origin-x', `${x}px`);
-        document.documentElement.style.setProperty('--theme-origin-y', `${y}px`);
-        document.documentElement.style.setProperty('--theme-radius', `${radius}px`);
-        document.startViewTransition(() => commitTheme(theme)).finished.catch(() => {}).finally(() => {
-            document.documentElement.style.removeProperty('--theme-origin-x');
-            document.documentElement.style.removeProperty('--theme-origin-y');
-            document.documentElement.style.removeProperty('--theme-radius');
+        activeThemeTransition?.skipTransition();
+        const transition = document.startViewTransition(() => commitTheme(theme));
+        activeThemeTransition = transition;
+        transition.finished.catch(() => {}).finally(() => {
+            if (activeThemeTransition === transition) activeThemeTransition = null;
         });
         return;
     }
@@ -632,17 +649,17 @@ let initialTheme = 'dark';
 try { initialTheme = localStorage.getItem(THEME_KEY) || 'dark'; } catch {}
 applyTheme(initialTheme, false);
 if (profileThemeToggle) {
-    profileThemeToggle.addEventListener('change', event => {
+    profileThemeToggle.addEventListener('change', () => {
         const next = profileThemeToggle.checked ? 'light' : 'dark';
         try { localStorage.setItem(THEME_KEY, next); } catch {}
-        applyTheme(next, true, event.currentTarget);
+        applyTheme(next, true);
     });
 }
 if (navThemeToggle) {
-    navThemeToggle.addEventListener('click', event => {
-        const next = document.body.classList.contains('light-theme') ? 'dark' : 'light';
+    navThemeToggle.addEventListener('click', () => {
+        const next = selectedTheme === 'light' ? 'dark' : 'light';
         try { localStorage.setItem(THEME_KEY, next); } catch {}
-        applyTheme(next, true, event.currentTarget);
+        applyTheme(next, true);
     });
 }
 
@@ -702,7 +719,8 @@ function enableLiteMode(persist, fromWatchdog) {
     window.__SPECTRAL_LITE = true;
     if (persist) { try { localStorage.setItem(LITE_KEY, 'on'); } catch (e) {} }
     cancelAnimationFrame(animationId);
-    try { ctx.clearRect(0, 0, canvasWidth, canvasHeight); } catch (e) {}
+    canvasRunning = false;
+    resizeCanvas();
     document.querySelectorAll('.animate-on-scroll').forEach(el => el.classList.add('visible'));
     updateLiteControl();
     showLiteBanner();
@@ -953,7 +971,7 @@ document.querySelectorAll('.code-tab').forEach(tab => {
 
 const DEV_STAGES = [
     {key:'profile',number:'01',icon:'sliders',accent:'139,124,255',title:'Read the selected profile',description:'Spectral gathers the instance, account, memory, window and launch preferences before touching the game files.',input:'Selected instance + player profile',output:'One validated GameSettings object',insight:'If the wrong instance opens, check the selection and account before changing Java or mods.'},
-    {key:'version',number:'02',icon:'cubes-stacked',accent:'76,168,255',title:'Resolve the game version',description:'Version metadata tells the launcher which libraries, assets and inherited settings this instance actually needs.',input:'Minecraft version + instance files',output:'Resolved libraries, assets and metadata',insight:'A missing file or mismatched loader often shows up here. Reinstall the affected version before rebuilding the whole instance.'},
+    {key:'version',number:'02',icon:'cubes-stacked',accent:'76,168,255',title:'Resolve the game version',description:'Version metadata tells the launcher which libraries, assets and inherited settings this instance actually needs.',input:'Minecraft version + instance files',output:'Resolved libraries, assets and metadata',insight:'A missing file or mismatched loader often shows up here. Run Check & Repair and restore a supported version if recommended.'},
     {key:'java',number:'03',icon:'mug-hot',accent:'255,184,77',title:'Match a compatible Java runtime',description:'The required Java major version comes from the selected game build. Spectral looks for a runtime that meets it.',input:'Required Java major version',output:'Compatible Java executable',insight:'If Java cannot be found, check the version requirement and select or install a matching runtime.'},
     {key:'command',number:'04',icon:'list-check',accent:'255,111,207',title:'Assemble the launch command',description:'LauncherCore prepares native files, builds the classpath and passes the right game and JVM arguments to the process.',input:'Resolved files + settings + account',output:'Complete Minecraft command',insight:'A missing native or invalid argument should be diagnosed from the exact command stage, not guessed from the game window.'},
     {key:'result',number:'05',icon:'wave-square',accent:'69,214,181',title:'Observe the running process',description:'QProcess streams output and exit state into Console, so a failure remains inspectable after the game closes.',input:'Minecraft JVM process',output:'Logs, exit code and visible errors',insight:'When asking for help, share the final relevant Console lines and the selected Minecraft and Java versions.'}
@@ -1019,7 +1037,7 @@ const DEV_SYSTEMS = {
     },
     content: {
         code: '04', accent: '91, 207, 166', icon: 'box-open', title: 'Versions & Mods', kind: 'Content',
-        description: 'Installs Minecraft versions and manages instance content, including Modrinth discovery, version files and one-click mod updates.',
+        description: 'Installs Minecraft versions and manages instance content, including Modrinth discovery, version files and compatible mod updates.',
         owns: 'Versions · mods · assets', connects: 'Modrinth · instance library',
         tags: ['Modrinth', 'Version JSON', 'Updates'], flow: ['Catalog', 'Content manager', 'Instance files'],
         tasks: ['Resolves inherited version metadata', 'Keeps every instance isolated', 'Tracks installed content and available updates']
@@ -1567,17 +1585,17 @@ const DEFAULT_MC_ACCOUNTS = {
         { id:'la_d1', username:'_kaiserr_', type:'elyby',     addedAt:'01.01.2026', playtime:'0h',   favorite:false, uuid:offlineUuid('_kaiserr_'), lastUsed:null }
     ],
     'su_pro': [
-        { id:'la_p1', username:'Steve_Pro',  type:'microsoft', addedAt:'15.01.2024', playtime:'127h', favorite:false, uuid:offlineUuid('Steve_Pro'),  lastUsed:null },
+        { id:'la_p1', username:'Steve_Pro',  type:'offline', addedAt:'15.01.2024', playtime:'127h', favorite:false, uuid:offlineUuid('Steve_Pro'),  lastUsed:null },
         { id:'la_p2', username:'Enderman42', type:'offline',   addedAt:'20.04.2024', playtime:'23h',  favorite:true,  uuid:offlineUuid('Enderman42'), lastUsed:null }
     ],
     'su_usr': [
         { id:'la_u1', username:'Alex',       type:'elyby',     addedAt:'20.02.2024', playtime:'43h',  favorite:false, uuid:offlineUuid('Alex'),       lastUsed:null }
     ],
     'su_adm': [
-        { id:'la_a1', username:'Console',    type:'microsoft', addedAt:'10.02.2024', playtime:'88h',  favorite:false, uuid:offlineUuid('Console'),    lastUsed:null }
+        { id:'la_a1', username:'Console',    type:'offline', addedAt:'10.02.2024', playtime:'88h',  favorite:false, uuid:offlineUuid('Console'),    lastUsed:null }
     ],
     'su_mod': [
-        { id:'la_m1', username:'Redstone',   type:'microsoft', addedAt:'05.03.2024', playtime:'54h',  favorite:true,  uuid:offlineUuid('Redstone'),   lastUsed:null },
+        { id:'la_m1', username:'Redstone',   type:'offline', addedAt:'05.03.2024', playtime:'54h',  favorite:true,  uuid:offlineUuid('Redstone'),   lastUsed:null },
         { id:'la_m2', username:'TorchBearer',type:'offline',   addedAt:'06.03.2024', playtime:'9h',   favorite:false, uuid:offlineUuid('TorchBearer'),lastUsed:null }
     ],
     'su_vet': [
@@ -1603,7 +1621,65 @@ const DEFAULT_FRIENDS = [
     { id:'fr_seed3', requester:'su_vet', addressee:'su_usr', status:'pending',  createdAt:'2026-06-27T09:15:00Z' }
 ];
 const DEFAULT_NEWS = [
-    { id:'news_modmanager_redesign', date:'Jun 28, 2026', title:'Mod Manager Redesign', version:'v0.9.4', channel:'beta', summary:'A cleaner two-panel mod workflow with faster discovery, clearer actions and a more consistent launcher interface.', isCurrent:true, dimmed:false, items:[
+    { id:'news_feature_recovery_199', date:'Oct 9, 2026', title:'Check, Restore & Understand Crashes', version:'v1.9.9', channel:'stable', icon:'shield-halved', summary:'The Play tab now gives a clearer path from a failed launch to a file check, a copyable report and a likely cause.', isCurrent:true, dimmed:false, items:[
+        {type:'add',text:'Check & Repair inspects the selected build’s version files, Java, libraries and assets without launching the game'},
+        {type:'imp',text:'When a supported Vanilla, Fabric, Forge or Quilt version needs repair, the launcher can restore files and repeat the check'},
+        {type:'add',text:'Crash analysis combines process output, crash reports and hs_err_pid files to suggest likely causes and next steps'},
+        {type:'imp',text:'Diagnostic reports can be copied for support while worlds and personal mods stay in their build folders'}
+    ]},
+    { id:'news_feature_site_profiles_23', date:'Oct 2, 2026', title:'A Clearer Home for Profiles & Friends', version:'Website 2.3', channel:'website', icon:'globe', summary:'The site brings game profile details, role-based slots and the friend network into one account workspace.', isCurrent:false, dimmed:false, items:[
+        {type:'imp',text:'The account page makes the selected game profile, UUID and available profile slots easier to inspect'},
+        {type:'add',text:'Friend requests, player search and profile links are grouped around the signed-in Spectral account'},
+        {type:'imp',text:'Profile copy explains that Ely.by authorization remains on the computer running the launcher'}
+    ]},
+    { id:'news_feature_updater_198', date:'Sep 27, 2026', title:'Updates with a Verifiable Package', version:'v1.9.8', channel:'stable', icon:'bolt', summary:'Launcher updates now explain what changed and require a suitable package with a matching SHA-256 checksum.', isCurrent:false, dimmed:false, items:[
+        {type:'add',text:'Spectral checks GitHub Releases at startup and offers a manual check under Settings → General → About'},
+        {type:'imp',text:'Available updates show release notes before installation and offer a restart afterward'},
+        {type:'fix',text:'An update is offered only when a newer release has a compatible package and a verifiable SHA-256 checksum'}
+    ]},
+    { id:'news_feature_mods_197', date:'Sep 18, 2026', title:'More Control over Modrinth Content', version:'v1.9.7', channel:'stable', icon:'puzzle-piece', summary:'Mod discovery and updates stay tied to the build’s Minecraft version and loader instead of treating every file as interchangeable.', isCurrent:false, dimmed:false, items:[
+        {type:'imp',text:'Discover compatible mods, resource packs and shaders from inside a build’s Content view'},
+        {type:'add',text:'Required dependencies can be offered during installation; Auto-libraries can download missing ones automatically'},
+        {type:'add',text:'Mod update checks retain disabled state, show update history and can be enabled separately for each build'},
+        {type:'imp',text:'Local files without a matching Modrinth project or compatible release remain under the player’s control'}
+    ]},
+    { id:'news_feature_modpacks_196', date:'Sep 6, 2026', title:'From Modrinth Pack to New Build', version:'v1.9.6', channel:'stable', icon:'cubes', summary:'A Modrinth search result or .mrpack file can set up a separate build with its required game version and configuration.', isCurrent:false, dimmed:false, items:[
+        {type:'add',text:'Search for a pack on Modrinth or choose a local .mrpack file during build creation'},
+        {type:'imp',text:'The installer reads the pack’s Minecraft version and supports no loader, Fabric, Forge and Quilt packs'},
+        {type:'breaking',text:'NeoForge .mrpack files are not accepted by the current installer'}
+    ]},
+    { id:'news_feature_first_run_195', date:'Aug 24, 2026', title:'A Gentler First Run', version:'v1.9.5', channel:'stable', icon:'gauge-high', summary:'Spectral helps new players choose sensible performance defaults, with room to tune them later.', isCurrent:false, dimmed:false, items:[
+        {type:'add',text:'A local first-run check considers available memory, processor, storage and screen before suggesting a performance profile'},
+        {type:'imp',text:'Settings can recalculate recommendations and adjust memory, resolution, fullscreen mode and JVM arguments'},
+        {type:'add',text:'Lower-motion visuals, reduced background effects and interface refresh limits help on weaker computers'}
+    ]},
+    { id:'news_feature_site_help_22', date:'Aug 12, 2026', title:'Help Center with a Path Forward', version:'Website 2.2', channel:'website', icon:'terminal', summary:'Guided checks and a copyable support note make it easier to explain a launch problem clearly.', isCurrent:false, dimmed:false, items:[
+        {type:'add',text:'Choose a startup, modded, performance or account symptom to see focused checks'},
+        {type:'add',text:'Build a support note with Minecraft version, Java version and the final relevant Console error'},
+        {type:'imp',text:'Searchable answers link site account details, game profiles, offline play and launcher diagnostics'}
+    ]},
+    { id:'news_feature_library_194', date:'Aug 2, 2026', title:'A Library for Every Kind of World', version:'v1.9.4', channel:'stable', icon:'cubes', summary:'Separate build folders make experimenting with loaders and mods less disruptive to existing worlds.', isCurrent:false, dimmed:false, items:[
+        {type:'add',text:'Create, rename, configure and copy builds with their own mods, settings, worlds and screenshots'},
+        {type:'imp',text:'The last selected build is restored when the launcher opens again'},
+        {type:'add',text:'A screenshot gallery can preview, open and remove images from each build'},
+        {type:'imp',text:'Deleting a build requires confirmation because its local files, including saves, are removed'}
+    ]},
+    { id:'news_feature_java_193', date:'Jul 22, 2026', title:'The Right Java for the Right Version', version:'v1.9.3', channel:'stable', icon:'bolt', summary:'Spectral matches Java to the selected Minecraft release and can fetch a suitable runtime when one is missing.', isCurrent:false, dimmed:false, items:[
+        {type:'add',text:'Installed and previously downloaded Java runtimes are scanned and checked for compatibility'},
+        {type:'add',text:'A suitable runtime can be downloaded automatically when none is available'},
+        {type:'imp',text:'Advanced users can set a global custom Java path and JVM arguments; older game versions still use compatibility checks'}
+    ]},
+    { id:'news_feature_site_ideas_21', date:'Jul 11, 2026', title:'Ideas with More Context', version:'Website 2.1', channel:'website', icon:'globe', summary:'Community proposals became easier to browse and connect to the people behind them.', isCurrent:false, dimmed:false, items:[
+        {type:'imp',text:'Idea cards make votes and moderation status easier to see'},
+        {type:'add',text:'Profile and role pages give community contributions a clearer identity'},
+        {type:'imp',text:'Developers can publish update entries from the site editor'}
+    ]},
+    { id:'news_feature_profiles_192', date:'Jul 1, 2026', title:'Profiles, Play & a Useful Console', version:'v1.9.2', channel:'stable', icon:'terminal', summary:'The five-tab desktop launcher ties a selected game profile and build to a visible launch process.', isCurrent:false, dimmed:false, items:[
+        {type:'add',text:'Create a local offline profile or authorize Ely.by in Accounts, including its two-factor code'},
+        {type:'imp',text:'Play shows the selected build, loader, game profile, mod count, playtime and last launch'},
+        {type:'add',text:'Console displays launch stages and Minecraft output with search, timestamps, copy and export'}
+    ]},
+    { id:'news_modmanager_redesign', date:'Jun 28, 2026', title:'Mod Manager Redesign', version:'v0.9.4', channel:'beta', summary:'A cleaner two-panel mod workflow with faster discovery, clearer actions and a more consistent launcher interface.', isCurrent:false, dimmed:false, items:[
         {type:'imp',text:'Mod Manager rebuilt to match the Library layout — the mod list sits on the left, with every action grouped in a panel on the right'},
         {type:'imp',text:'Bigger window and a cleaner header bar with a segmented Installed / Discover switch'},
         {type:'imp',text:'Unified icons and styling across the dialog — removed the icon chip backings and the dark box behind the tabs'}
@@ -1615,14 +1691,14 @@ const DEFAULT_NEWS = [
         {type:'add',text:'Brand-new light theme with an animated aurora background and a one-click dark/light toggle'},
         {type:'imp',text:'Polished login dialog, crisper 100px avatars and dozens of layout and colour fixes'}
     ]},
-    { id:'news_1', date:'Jun 26, 2026', title:'Typography & SpectrAI Assistant', isCurrent:false, dimmed:false, items:[
+    { id:'news_1', date:'Jun 26, 2026', title:'Typography & SpectrAI Prototype', isCurrent:false, dimmed:false, items:[
         {type:'imp',text:'New refined fonts across the app — Sora for headings and Plus Jakarta Sans for the interface'},
-        {type:'add',text:'Built-in SpectrAI assistant: a sliding chat panel that helps with mods, memory and launch errors'},
+        {type:'add',text:'Experimental SpectrAI panel added in source; it is not advertised as a ready-to-use assistant'},
         {type:'imp',text:'Accounts tab rebuilt to match the Library layout — list on the left, detailed profile card on the right'}
     ]},
     { id:'news_2', date:'Jun 25, 2026', title:'Performance & Launch Reliability', isCurrent:false, dimmed:false, items:[
         {type:'fix',text:'Modded builds now auto-install their required vanilla base, so they actually start'},
-        {type:'add',text:'Step-by-step console diagnostics that explain exactly why a launch failed'},
+        {type:'add',text:'Step-by-step console diagnostics that help identify likely launch failures'},
         {type:'imp',text:'Smoother animations: cached particle background and paused effects on hidden tabs'},
         {type:'imp',text:'Native libraries are cached after first launch for faster restarts'}
     ]},
@@ -1672,6 +1748,7 @@ function normalizeStoredUser(user) {
         displayName: sanitizeField(user.displayName || username, 24) || username,
         bio: sanitizeField(user.bio, 120),
         avatar: safeAvatarUrl(user.avatar),
+        pendingAvatar: safeAvatarUrl(user.pendingAvatar),
         registeredAt: sanitizeField(user.registeredAt, 24),
         totalTimeSec: Math.max(0, Number(user.totalTimeSec) || 0),
         visitCount: Math.max(0, Math.floor(Number(user.visitCount) || 0)),
@@ -1685,7 +1762,8 @@ function loadSiteUsers()  {
     const users = readJsonStorage(K_USERS, null, Array.isArray);
     return users ? users.map(normalizeStoredUser).filter(Boolean).slice(0, 250) : null;
 }
-function saveSiteUsers(u) { try{localStorage.setItem(K_USERS,JSON.stringify(u));}catch{return false;} cloudPushUsers(u); return true; }
+function cacheableSiteUsers(users){return validSupabaseConfig()?users.map(user=>({...user,pendingAvatar:''})):users;}
+function saveSiteUsers(u) { try{localStorage.setItem(K_USERS,JSON.stringify(cacheableSiteUsers(u)));}catch{return false;} cloudPushUsers(u); return true; }
 function loadSession()    { try{return localStorage.getItem(K_SESSION)||null;}catch{return null;} }
 function saveSession(id)  { try{if(id)localStorage.setItem(K_SESSION,id);else localStorage.removeItem(K_SESSION);}catch{} }
 function loadMcAccounts(uid) {
@@ -1736,14 +1814,9 @@ function cloudPushUsers(users) {
     const user = users.find(candidate => candidate.id === cloudAuthUserId);
     if (!user) return;
     const row = {
-        username: sanitizeField(user.username, 20),
-        display_name: sanitizeField(user.displayName || user.username, 24),
-        bio: sanitizeField(user.bio, 120),
-        avatar: safeAvatarUrl(user.avatar),
         total_time_sec: Math.max(0, Math.round(Number(user.totalTimeSec) || 0)),
         visit_count: Math.max(0, Math.floor(Number(user.visitCount) || 0)),
         last_seen: user.lastSeen || null,
-        status: sanitizeField(user.status, 100),
         mc_time_sec: Math.max(0, Math.round(Number(user.mcTimeSec) || 0))
     };
     cloud.from('site_users').update(row).eq('id', cloudAuthUserId)
@@ -1921,6 +1994,7 @@ function cloudProfileToUser(row, authEmail = '') {
         displayName: row.display_name,
         bio: row.bio,
         avatar: row.avatar,
+        pendingAvatar: row.pending_avatar,
         registeredAt: row.registered_at,
         totalTimeSec: row.total_time_sec,
         visitCount: row.visit_count,
@@ -1939,10 +2013,11 @@ async function cloudBootstrap(authUser = null) {
     cloudSyncing = true;
     let successful=false;
     try {
-        const [profilesRes, mcRes, friendsRes] = await Promise.all([
+        const [profilesRes, mcRes, friendsRes, avatarQueueRes] = await Promise.all([
             cloud.from('site_users').select('id,username,role,display_name,bio,avatar,registered_at,total_time_sec,visit_count,last_seen,banned,status,mc_time_sec'),
             cloud.from('mc_accounts').select('id,user_id,username,display_name,type,uuid,added_at,playtime,favorite,last_used,is_active').eq('user_id', cloudAuthUserId).limit(100),
-            cloud.from('friendships').select('id,requester_id,addressee_id,status,created_at').limit(500)
+            cloud.from('friendships').select('id,requester_id,addressee_id,status,created_at').limit(500),
+            cloud.from('spectral_avatar_queue').select('user_id,avatar').eq('user_id', cloudAuthUserId).maybeSingle()
         ]);
         if (profilesRes.error) throw profilesRes.error;
         if (mcRes.error) throw mcRes.error;
@@ -1953,7 +2028,8 @@ async function cloudBootstrap(authUser = null) {
 
         if(cloudAuthUserId!==ownerId)return false;
         successful=true;
-        (profilesRes.data || []).map(row => cloudProfileToUser(row, authUser?.email || '')).filter(Boolean).forEach(profile => {
+        const pendingAvatar = avatarQueueRes.error ? '' : avatarQueueRes.data?.avatar || '';
+        (profilesRes.data || []).map(row => cloudProfileToUser({...row,pending_avatar:row.id===ownerId?pendingAvatar:''}, authUser?.email || '')).filter(Boolean).forEach(profile => {
             const index = siteUsers.findIndex(user => user.id === profile.id);
             if (index >= 0) siteUsers[index] = profile;
             else siteUsers.push(profile);
@@ -1978,7 +2054,7 @@ async function cloudBootstrap(authUser = null) {
             lastUsed: row.last_used || null
         })).filter(account => account.id && account.username);
         try {
-            localStorage.setItem(K_USERS, JSON.stringify(siteUsers));
+            localStorage.setItem(K_USERS, JSON.stringify(cacheableSiteUsers(siteUsers)));
             localStorage.setItem(K_FRIENDS, JSON.stringify(friendships));
             localStorage.setItem(K_MC_PFX + cloudAuthUserId, JSON.stringify(accounts));
             const active = (mcRes.data || []).find(row => row.is_active);
@@ -2071,7 +2147,7 @@ let friendships  = loadFriends() || DEFAULT_FRIENDS.map(f=>({...f}));
 
 // Seed: inject any new default update entries into existing stored news (without
 // wiping user/DEV-created ones). Bump NEWS_SEED_VERSION when adding new defaults.
-const NEWS_SEED_VERSION = 3;
+const NEWS_SEED_VERSION = 4;
 (function seedNews(){
     try {
         const seeded = parseInt(localStorage.getItem('spectral_news_seed') || '0', 10);
@@ -2079,8 +2155,9 @@ const NEWS_SEED_VERSION = 3;
             const have = new Set(newsItems.map(n => n.id));
             const fresh = DEFAULT_NEWS.filter(n => !have.has(n.id));
             if (fresh.length) {
-                newsItems.forEach(n => { n.isCurrent = false; });
-                newsItems = [...fresh.map(n => ({...n})), ...newsItems];
+                const customCurrent = newsItems.some(n => n.isCurrent && !DEFAULT_NEWS.some(seed => seed.id === n.id));
+                if (!customCurrent) newsItems.forEach(n => { n.isCurrent = false; });
+                newsItems = [...fresh.map(n => ({...n, isCurrent:!customCurrent && n.isCurrent})), ...newsItems];
                 saveNews(newsItems);
             }
             localStorage.setItem('spectral_news_seed', String(NEWS_SEED_VERSION));
@@ -2093,7 +2170,7 @@ const NEWS_SEED_VERSION = 3;
 const NEWS_PRESENTATION_PRESETS = {
     news_modmanager_redesign: { version:'v0.9.4', channel:'beta', icon:'puzzle-piece', summary:'A cleaner two-panel mod workflow with faster discovery, clearer actions and a more consistent launcher interface.' },
     news_site_overhaul: { version:'Website 2.0', channel:'website', icon:'globe', summary:'Profiles, community ideas, themes and developer tools now live in one polished website experience.' },
-    news_1: { version:'v0.9.3', channel:'beta', icon:'robot', summary:'Refined typography, a richer Accounts layout and the first integrated SpectrAI assistant experience.' },
+    news_1: { version:'v0.9.3', channel:'beta', icon:'robot', summary:'Refined typography, a richer Accounts layout and an experimental SpectrAI panel.' },
     news_2: { version:'v0.9.2', channel:'stable', icon:'gauge-high', summary:'Faster launches, clearer diagnostics and more reliable setup for modded Minecraft instances.' },
     news_3: { version:'v0.9.1', channel:'stable', icon:'language', summary:'A consistent launcher interface with a redesigned console and complete RU / EN localization.' },
     news_4: { version:'Core', channel:'stable', icon:'cubes', summary:'The Qt 6 and C++17 foundation behind instances, Java management, versions, mods and diagnostics.' }
@@ -2113,6 +2190,20 @@ const NEWS_PRESENTATION_PRESETS = {
         if(upgraded.version!==news.version||upgraded.channel!==news.channel||upgraded.icon!==news.icon||upgraded.summary!==news.summary)changed=true;
         return upgraded;
     });
+    if(changed)saveNews(newsItems);
+})();
+
+// Correct the original seeded AI claim in existing browser storage. Leave
+// developer-edited release entries untouched.
+(function correctSeededAiNews(){
+    const entry=newsItems.find(news=>news.id==='news_1');
+    if(!entry)return;
+    let changed=false;
+    if(entry.title==='Typography & SpectrAI Assistant'){entry.title='Typography & SpectrAI Prototype';changed=true;}
+    if(entry.summary==='Refined typography, a richer Accounts layout and the first integrated SpectrAI assistant experience.'){entry.summary='Refined typography, a richer Accounts layout and an experimental SpectrAI panel.';changed=true;}
+    const oldText='Built-in SpectrAI assistant: a sliding chat panel that helps with mods, memory and launch errors';
+    const item=entry.items?.find(change=>change.text===oldText);
+    if(item){item.text='Experimental SpectrAI panel added in source; it is not advertised as a ready-to-use assistant';changed=true;}
     if(changed)saveNews(newsItems);
 })();
 
@@ -2205,11 +2296,16 @@ const ROLES = {
 const ROLE_ORDER = Object.keys(ROLES);
 function roleInfo(role)  { return ROLES[role] || ROLES.USER; }
 function roleRank(role)  { return roleInfo(role).rank; }
-const VETERAN_CUTOFF = new Date(2027, 0, 1).getTime();
+const VETERAN_CUTOFF = new Date(2027, 4, 1).getTime();
 const PREMIUM_ROLES = ['PRO','LEGEND','SPECTRAL'];
 function isVeteranEligible(user) {
-    const registered = parseRegDate(user && user.registeredAt);
-    return !!registered && registered < VETERAN_CUTOFF;
+    const value = user?.registeredAt;
+    if (!value) return false;
+    const calendarDate = /^(\d{2})\.(\d{2})\.(\d{4})$/.exec(value);
+    const registered = calendarDate
+        ? new Date(+calendarDate[3], +calendarDate[2] - 1, +calendarDate[1]).getTime()
+        : Date.parse(value);
+    return Number.isFinite(registered) && registered < VETERAN_CUTOFF;
 }
 function roleForRegistration(date=new Date()) { return date.getTime() < VETERAN_CUTOFF ? 'VETERAN' : 'USER'; }
 function roleProfileLimit(role) { return roleInfo(role).profileLimit; }
@@ -2218,9 +2314,9 @@ function formatRoleLimit(value) { return Number.isFinite(value) ? String(value) 
 function applyAutomaticVeteran(users) {
     let changed = false;
     (users || []).forEach(user => {
-        if (!validSupabaseConfig() && !user.roleSource && (!user.role || user.role === 'USER') && isVeteranEligible(user)) {
+        if (!validSupabaseConfig() && (!user.roleSource || user.roleSource === 'registration') && (!user.role || user.role === 'USER') && isVeteranEligible(user)) {
             user.role = 'VETERAN';
-            user.roleSource = 'founder-2026';
+            user.roleSource = 'founder-2027';
             changed = true;
         }
     });
@@ -2228,14 +2324,11 @@ function applyAutomaticVeteran(users) {
 }
 function updateVeteranRegistrationNote(){
     const note=document.getElementById('veteranRegistrationNote');if(!note)return;
-    note.hidden=validSupabaseConfig();
-    note.style.display=note.hidden?'none':'';
-    if(note.hidden)return;
     const title=note.querySelector('b');const copy=note.querySelector('small');
-    const open=Date.now()<VETERAN_CUTOFF;
+    const open=Date.now()<(validSupabaseConfig()?Date.UTC(2027,4,1):VETERAN_CUTOFF);
     note.classList.toggle('closed',!open);
-    if(title)title.textContent=open?"Founder's window is open":"Veteran is now a legacy role";
-    if(copy)copy.textContent=open?'Accounts created before 2027 receive the permanent Veteran role automatically.':'The automatic Veteran reward closed on January 1, 2027.';
+    if(title)title.textContent=open?'Your starting role: Veteran':'Your starting role: Player';
+    if(copy)copy.textContent=open?'Assigned automatically to accounts created before May 1, 2027. No selection or payment needed.':'The automatic Veteran reward closed on May 1, 2027.';
 }
 // Permission helpers — pass a user (or use the current viewer)
 function canAccessAdmin(u) { return !!u && !u.banned && roleRank(u.role) >= ROLES.MODERATOR.rank; }
@@ -2263,12 +2356,12 @@ function roleBadgeHtml(role) {
     return `<span class="role-badge role-${role.toLowerCase()}"><i class="${r.icon}"></i> ${r.label}</span>`;
 }
 
-// Upgrade existing pre-2027 Player accounts without touching premium or staff roles.
+// Upgrade eligible local Player accounts without touching manually assigned roles.
 if (applyAutomaticVeteran(siteUsers)) saveSiteUsers(siteUsers);
 updateVeteranRegistrationNote();
 
 // ── Type helpers ──────────────────────────────────────────────
-function typeLabel(t){ return {microsoft:'Microsoft',elyby:'Ely.by',offline:'Offline'}[t]||t; }
+function typeLabel(t){ return {microsoft:'Microsoft (legacy profile)',elyby:'Ely.by',offline:'Offline'}[t]||t; }
 function typeIcon(t) { return {microsoft:'fab fa-microsoft',elyby:'fas fa-cloud',offline:'fas fa-user-shield'}[t]||'fas fa-user'; }
 // ══════════════════════════════════════════════════════════════
 // RENDER FUNCTIONS
@@ -2360,7 +2453,7 @@ function renderActiveMcBanner() {
     if (noMsg)    noMsg.style.display='none';
     if (readyState) readyState.style.display='flex';
     if (identityCode) identityCode.style.display='grid';
-    if (coreStatus) coreStatus.innerHTML='<i></i> Launcher identity online';
+    if (coreStatus) coreStatus.innerHTML='<i></i> Selected game profile';
 
     const img = document.getElementById('activeAvatarImg');
     if (img){ img.src=avatarUrl(active.username); img.onerror=function(){this.onerror=null;this.src=avatarUrl('steve');}; }
@@ -2976,10 +3069,16 @@ function applyAuthUser(authUser){
     currentUserId = profile.id; saveSession(profile.id);
     clearAuthMsgs(); beginUserSession(); renderAll();
     if(dashOverlay && dashOverlay.classList.contains('open')) showProfileView();
-    if(freshAuthProfileId === profile.id) {
-        freshAuthProfileId = null;
-        showRegistrationWelcome(profile);
-    }
+    let newGoogleRegistration=false,confirmedEmailRegistration=false;
+    try{
+        const started=Number(sessionStorage.getItem('spectral_google_registration')||0);
+        newGoogleRegistration=started>0&&Date.now()-started<10*60*1000&&Math.abs(new Date(authUser.created_at).getTime()-started)<10*60*1000;
+        if(started)sessionStorage.removeItem('spectral_google_registration');
+        const pending=JSON.parse(sessionStorage.getItem('spectral_pending_email_registration')||'null');
+        confirmedEmailRegistration=pending?.id===profile.id&&Date.now()-pending.at<48*60*60*1000;
+        if(confirmedEmailRegistration||pending?.at&&Date.now()-pending.at>=48*60*60*1000)sessionStorage.removeItem('spectral_pending_email_registration');
+    }catch{}
+    if(freshAuthProfileId===profile.id||newGoogleRegistration||confirmedEmailRegistration){freshAuthProfileId=null;showRegistrationWelcome(profile);}
     return true;
 }
 let authGeneration=0;
@@ -2987,6 +3086,8 @@ let authRestorePromise=null;
 function clearAccountSession(){
     authGeneration++;stopTimeTracking();_visitBumpedFor=null;
     profileDrafts.clear();cloudAuthUserId=null;currentUserId=null;saveSession(null);
+    siteUsers.forEach(user=>{user.pendingAvatar='';});
+    adminCloudIds.clear();adminRemoteAudit=[];
     if(validSupabaseConfig())loadCommunityCloud();
     closeRoleCheckout();adminSelectedUserIds.clear();cancelAdminAction();
     renderAll();if(dashOverlay?.classList.contains('open'))showAuthView();
@@ -3087,6 +3188,7 @@ if(registerForm){
         const pass=document.getElementById('regPassword').value,confirm=document.getElementById('regPasswordConfirm').value;
         const minLen=10;
         if(username.length<3||! /^[A-Za-z0-9 _.\-]+$/.test(username))return showErr('Use 3–20 letters, numbers, spaces or _ . - for your username.');
+        const nameIssue=AccountPolicy.nameIssue(username);if(nameIssue)return showErr(nameIssue);
         if(email&&!EMAIL_RE.test(email))return showErr('Enter a valid email address or leave the field empty.');
         if(pass.length<minLen||pass.length>128)return showErr('Use a password with 10–128 characters.');
         if(pass!==confirm)return showErr('Passwords do not match.');
@@ -3097,12 +3199,16 @@ if(registerForm){
             if(validSupabaseConfig()&&!email){
                 await usernameAuth('register',username,pass);
                 registerForm.reset();
+                if(currentRoleUser())showRegistrationWelcome(currentRoleUser());
             }else if(validSupabaseConfig()){
                 const {data,error}=await cloud.auth.signUp({email,password:pass,options:{data:{username},emailRedirectTo:authRedirectTo()}});
                 if(error)throw new Error('Account could not be created. Check your details and try again.');
                 registerForm.reset();
-                if(data.session&&data.user)await restoreVerifiedAccount(data.user);
-                else authMsg('registerNote','Check your inbox to confirm your email, then sign in.');
+                if(data.session&&data.user){await restoreVerifiedAccount(data.user);if(currentRoleUser())showRegistrationWelcome(currentRoleUser());}
+                else{
+                    authMsg('registerNote','Check your inbox to confirm your email, then sign in.');
+                    if(data.user?.id)try{sessionStorage.setItem('spectral_pending_email_registration',JSON.stringify({id:data.user.id,at:Date.now()}));}catch{}
+                }
             }else{
                 const user={id:'su_'+crypto.randomUUID().replace(/-/g,''),username,email,password:await hashPassword(pass),role:roleForRegistration(),roleSource:'registration',displayName:username,bio:'',avatar:'',registeredAt:todayStr(),totalTimeSec:0,visitCount:0,lastSeen:new Date().toISOString(),banned:false,status:'',mcTimeSec:0};
                 if(!saveSiteUsers([...siteUsers,user]))throw new Error('This browser cannot save your account. Free some storage and try again.');
@@ -3114,17 +3220,19 @@ if(registerForm){
 }
 
 // ── Google sign-in (login + register buttons) ─────────────────
-async function startGoogleSignIn(){
+async function startGoogleSignIn(event){
     clearAuthMsgs();
     if(isFileProtocol){ authMsg('loginError','Google sign-in needs the site served over http(s) — use a local server or GitHub Pages, not a file:// page.'); return; }
     if(!authAvailable()){ authMsg('loginError','Google sign-in is unavailable (Supabase not connected).'); return; }
     try {
+        if(event?.currentTarget?.id==='googleRegisterBtn')try{sessionStorage.setItem('spectral_google_registration',String(Date.now()));}catch{}
         const { error } = await cloud.auth.signInWithOAuth({
             provider:'google',
             options:{ redirectTo: authRedirectTo(), queryParams:{ prompt:'select_account' } }
         });
-        if(error) authMsg('loginError', error.message);
+        if(error){try{sessionStorage.removeItem('spectral_google_registration');}catch{}authMsg('loginError', error.message);}
     } catch (error) {
+        try{sessionStorage.removeItem('spectral_google_registration');}catch{}
         console.warn('[auth] Google sign in failed:', error.message||error);
         authMsg('loginError','Google sign-in is temporarily unavailable. Please try again.');
     }
@@ -3482,7 +3590,7 @@ document.getElementById('openRoleStoreBtn')?.addEventListener('click',openRoleSt
 function rolePriceMarkup(role,veteranEligible=true){
     if(role==='VETERAN')return veteranEligible
         ? '<div class="role-card-price earned"><b>Earned</b><small>Permanent founder reward</small></div>'
-        : '<div class="role-card-price"><b>Legacy</b><small>Founder window closed January 1, 2027</small></div>';
+        : '<div class="role-card-price"><b>Legacy</b><small>Founder window closed May 1, 2027</small></div>';
     const plan=ROLE_STORE_PLANS[role];
     if(!plan)return '';
     const value=roleBillingCycle==='yearly'?plan.yearly:plan.monthly;
@@ -3524,7 +3632,7 @@ function renderRoleStore(){
         const buttonIcon=isCurrent?'check':!developerMode&&reserved?'clock':lockedVeteran?'lock':developerMode?'eye':'arrow-right';
         const collection=developerMode?(roleRank(roleKey)>=ROLES.MODERATOR.rank?'Staff access':'Account role'):(roleKey==='VETERAN'?'Legacy collection':'Premium collection');
         const kicker=developerMode?'Developer preview':roleKey==='VETERAN'?'Never sold':esc(plan.kicker);
-        const description=developerMode?info.tagline:(roleKey==='VETERAN'?'For every account registered before January 1, 2027.':plan.description);
+        const description=developerMode?info.tagline:(roleKey==='VETERAN'?'For every account registered before May 1, 2027.':plan.description);
         const price=developerMode?'<div class="role-card-price preview"><b>Live preview</b><small>Visual role only · permissions stay Developer</small></div>':rolePriceMarkup(roleKey,eligible);
         return `<article class="role-store-card role-card-${roleKey.toLowerCase()} ${state}" style="--role-color:${info.color};--role-gradient:${info.grad};--card-index:${index}" data-store-role="${roleKey}">
             <div class="role-card-shine"></div>
@@ -3602,7 +3710,7 @@ function showRegistrationWelcome(user){
     card.dataset.role=String(user.role||'USER').toLowerCase();
     const username=document.getElementById('welcomeUsername');if(username)username.textContent=user.displayName||user.username;
     const roleName=document.getElementById('welcomeRoleName');if(roleName)roleName.textContent=info.label;
-    const reason=document.getElementById('welcomeRoleReason');if(reason)reason.textContent=user.role==='VETERAN'?'Unlocked forever for joining before 2027':'Your starting Spectral identity';
+    const reason=document.getElementById('welcomeRoleReason');if(reason)reason.textContent=user.role==='VETERAN'?'Unlocked forever for joining before May 2027':'Your starting Spectral identity';
     const lead=document.getElementById('welcomeLead');if(lead)lead.textContent=user.role==='VETERAN'?'Your identity is ready — and your arrival date unlocked a permanent reward.':'Your identity is ready. Welcome to the Spectral community.';
     const emblem=document.getElementById('welcomeRoleEmblem');if(emblem){emblem.innerHTML=`<span><i class="${info.icon}"></i></span>`;emblem.style.setProperty('--welcome-role',info.color);}
     const perks=document.getElementById('welcomePerks');if(perks)perks.innerHTML=info.perks.map(perk=>`<span><i class="fas fa-check"></i>${esc(perk)}</span>`).join('');
@@ -3638,11 +3746,11 @@ async function prepareAvatarFile(file){
         const width=image.naturalWidth*scale,height=image.naturalHeight*scale;
         context.drawImage(image,(size-width)/2,(size-height)/2,width,height);
         const dataUrl=canvas.toDataURL('image/webp',.86);
-        if(!safeAvatarUrl(dataUrl))throw new Error('The processed avatar is too large.');
+        if(dataUrl.length>350000||!safeAvatarUrl(dataUrl))throw new Error('The processed avatar is too large.');
         return dataUrl;
     }finally{URL.revokeObjectURL(objectUrl);}
 }
-if(avatarUpload){avatarUpload.addEventListener('change',async event=>{const ownerId=currentUserId;const file=event.target.files?.[0];if(!file||!ownerId)return;avatarUpload.disabled=true;try{const dataUrl=await prepareAvatarFile(file);if(currentUserId!==ownerId)return;profileDraftFor(currentRoleUser()).avatar=dataUrl;updateProfileDraftState();const image=document.getElementById('profileAvatarImg');if(image)image.src=dataUrl;document.getElementById('profileEditForm')?.requestSubmit();}catch(error){showToast(error.message||'Avatar could not be processed.','triangle-exclamation');}finally{avatarUpload.disabled=false;avatarUpload.value='';}});}
+if(avatarUpload){avatarUpload.addEventListener('change',async event=>{const ownerId=currentUserId;const file=event.target.files?.[0];if(!file||!ownerId)return;avatarUpload.disabled=true;try{const dataUrl=await prepareAvatarFile(file);if(currentUserId!==ownerId)return;const draft=profileDraftFor(currentRoleUser());draft.avatar=dataUrl;draft.removeAvatarRequested=false;updateProfileDraftState();const image=document.getElementById('profileAvatarImg');if(image)image.src=dataUrl;document.getElementById('profileEditForm')?.requestSubmit();}catch(error){showToast(error.message||'Avatar could not be processed.','triangle-exclamation');}finally{avatarUpload.disabled=false;avatarUpload.value='';}});}
 
 // ── Logout ────────────────────────────────────────────────────
 const logoutBtn=document.getElementById('logoutBtn');
@@ -3658,10 +3766,10 @@ const PROFILE_FIELDS=['displayName','status','bio','avatar'];
 let profileSaving=false;
 let compareCategory='capacity';
 function profileDraftFor(user){
-    if(!profileDrafts.has(user.id))profileDrafts.set(user.id,{displayName:user.displayName||user.username,status:user.status||'',bio:user.bio||'',avatar:user.avatar||''});
+    if(!profileDrafts.has(user.id))profileDrafts.set(user.id,{displayName:user.displayName||user.username,status:user.status||'',bio:user.bio||'',avatar:user.avatar||'',removeAvatarRequested:false});
     return profileDrafts.get(user.id);
 }
-function profileIsDirty(user){return !!user&&PROFILE_FIELDS.some(key=>profileDraftFor(user)[key]!==String(user[key]||(key==='displayName'?user.username:'')));}
+function profileIsDirty(user){return !!user&&(profileDraftFor(user).removeAvatarRequested||PROFILE_FIELDS.some(key=>profileDraftFor(user)[key]!==String(user[key]||(key==='displayName'?user.username:''))));}
 function updateProfileDraftState(){
     const user=currentRoleUser();if(!user)return;
     const dirty=profileIsDirty(user);
@@ -3672,7 +3780,7 @@ function updateProfileDraftState(){
     document.getElementById('saveProfileBtn').disabled=!dirty||profileSaving;
     document.getElementById('resetProfileBtn').disabled=!dirty||profileSaving;
     const state=document.getElementById('profileSaveState');
-    state.textContent=profileSaving?'Saving your profile…':dirty?'Unsaved changes · kept while switching tabs':'All changes saved';
+    state.textContent=profileSaving?'Saving your profile…':dirty?'Unsaved changes · kept while switching tabs':user.pendingAvatar?'Avatar awaiting review':'All changes saved';
     state.classList.toggle('is-dirty',dirty);
     renderAccountStudio();
 }
@@ -3681,26 +3789,62 @@ for(const [id,key] of [['profileDisplayName','displayName'],['profileStatus','st
 }
 document.getElementById('resetProfileBtn')?.addEventListener('click',()=>{const user=currentRoleUser();if(!user)return;profileDrafts.delete(user.id);loadProfileViewData(user,{resetTab:false});});
 document.getElementById('changeAvatarBtn')?.addEventListener('click',()=>document.getElementById('avatarUpload').click());
-document.getElementById('removeAvatarBtn')?.addEventListener('click',()=>{const user=currentRoleUser();if(!user)return;profileDraftFor(user).avatar='';document.getElementById('profileAvatarImg').src=siteAvatarUrl({...user,avatar:''});updateProfileDraftState();document.getElementById('profileEditForm')?.requestSubmit();});
+document.getElementById('removeAvatarBtn')?.addEventListener('click',()=>{const user=currentRoleUser();if(!user)return;const draft=profileDraftFor(user);draft.avatar='';draft.removeAvatarRequested=true;document.getElementById('profileAvatarImg').src=siteAvatarUrl({...user,avatar:''});updateProfileDraftState();document.getElementById('profileEditForm')?.requestSubmit();});
 document.getElementById('profileEditForm')?.addEventListener('submit',async event=>{
     event.preventDefault();const user=currentRoleUser();if(!user||user.banned||profileSaving)return;
     const draft={...profileDraftFor(user)};
     const patch={displayName:sanitizeField(draft.displayName,24),status:sanitizeField(draft.status,100),bio:sanitizeField(draft.bio,120),avatar:safeAvatarUrl(draft.avatar)};
     if(!patch.displayName){document.getElementById('profileDisplayName').focus();showToast('Enter a display name.','circle-info');return;}
+    const nameIssue=AccountPolicy.nameIssue(patch.displayName);if(nameIssue){showToast(nameIssue,'circle-info');return;}
+    const avatarChanged=patch.avatar!==user.avatar||draft.removeAvatarRequested;
+    let pendingAvatar=avatarChanged&&patch.avatar?patch.avatar:avatarChanged?'':user.pendingAvatar||'';
+    let avatarDecision='pending';
     profileSaving=true;updateProfileDraftState();
     try{
         if(validSupabaseConfig()){
             if(!cloudReady()||cloudAuthUserId!==user.id)throw new Error('Reconnect to save your profile. Your draft is still here.');
-            const {error,data}=await cloud.from('site_users').update({display_name:patch.displayName,status:patch.status,bio:patch.bio,avatar:patch.avatar}).eq('id',user.id).select('id,avatar');
-            if(error||!data?.some(row=>row.id===user.id&&row.avatar===patch.avatar))throw new Error('Profile could not be saved online. Please try again.');
+            if(avatarChanged){
+                const queue=patch.avatar
+                    ? await cloud.from('spectral_avatar_queue').upsert({user_id:user.id,avatar:patch.avatar},{onConflict:'user_id'})
+                    : await cloud.from('spectral_avatar_queue').delete().eq('user_id',user.id);
+                if(queue.error)throw new Error('Avatar review queue is unavailable. Apply the moderation migration.');
+            }
+            const changes={display_name:patch.displayName,status:patch.status,bio:patch.bio};
+            if(avatarChanged&&!patch.avatar)changes.avatar='';
+            const {error,data}=await cloud.from('site_users').update(changes).eq('id',user.id).select('id,avatar');
+            if(error||!data?.some(row=>row.id===user.id))throw new Error('Profile could not be saved online. Please try again.');
+            if(avatarChanged&&patch.avatar){
+                try{
+                    const review=await cloud.functions.invoke('moderate-content',{body:{kind:'avatar'}});
+                    if(!review.error&&['approved','rejected'].includes(review.data?.decision)){
+                        avatarDecision=review.data.decision;
+                        pendingAvatar='';
+                    }
+                }catch(error){console.warn('[avatar] automatic review unavailable:',error.message||error);}
+            }
         }
         if(currentUserId!==user.id)return;
-        const next=siteUsers.map(item=>item.id===user.id?{...item,...patch}:item);
-        try{localStorage.setItem(K_USERS,JSON.stringify(next));}catch{if(!validSupabaseConfig())throw new Error('Storage is full. Free some space and try again.');}
+        const next=siteUsers.map(item=>item.id===user.id?{...item,...patch,avatar:avatarChanged&&patch.avatar?(avatarDecision==='approved'?patch.avatar:item.avatar):patch.avatar,pendingAvatar}:item);
+        if(validSupabaseConfig()){
+            try{localStorage.setItem(K_USERS,JSON.stringify(cacheableSiteUsers(next)));}catch{}
+        }else{
+            const changes=[];
+            if(user.displayName!==patch.displayName)changes.push({id:user.id,username:user.username,before:user.displayName,after:patch.displayName});
+            if(user.bio!==patch.bio)changes.push({id:user.id,username:user.username,before:'Bio',after:'Updated'});
+            if(user.status!==patch.status)changes.push({id:user.id,username:user.username,before:'Status',after:'Updated'});
+            if(avatarChanged)changes.push({id:user.id,username:user.username,before:user.pendingAvatar?'Pending avatar':user.avatar?'Visible avatar':'No avatar',after:pendingAvatar?'Pending review':patch.avatar?'Visible avatar':'No avatar'});
+            const audit=readJsonStorage(K_ADMIN_AUDIT,[],Array.isArray);
+            if(changes.length)audit.push({id:crypto.randomUUID(),actorId:user.id,actorName:user.username,action:'profile',reason:'Account owner edited profile',createdAt:new Date().toISOString(),changes});
+            persistAdminRecords(new Map([[K_USERS,next],[K_ADMIN_AUDIT,audit.slice(-200)]]));
+        }
         siteUsers=next;
         // Edits entered while the request ran remain a draft.
-        if(PROFILE_FIELDS.every(key=>profileDraftFor(user)[key]===draft[key]))profileDrafts.delete(user.id);
-        renderNavbar();renderFriends();loadProfileViewData(currentRoleUser(),{resetTab:false});showToast('Profile saved.','check');
+        if(PROFILE_FIELDS.every(key=>profileDraftFor(user)[key]===draft[key])&&profileDraftFor(user).removeAvatarRequested===draft.removeAvatarRequested)profileDrafts.delete(user.id);
+        renderNavbar();renderFriends();loadProfileViewData(currentRoleUser(),{resetTab:false});
+        const message=avatarChanged&&patch.avatar
+            ? avatarDecision==='approved'?'Avatar approved automatically.':avatarDecision==='rejected'?'Avatar was rejected by automatic review.': 'Avatar is waiting for review. Your current avatar stays visible.'
+            :'Profile saved.';
+        showToast(message,avatarDecision==='rejected'?'triangle-exclamation':'check');
     }catch(error){showToast(error.message,'triangle-exclamation');document.getElementById('profileSaveState').textContent=error.message;}
     finally{profileSaving=false;updateProfileDraftState();}
 });
@@ -4544,11 +4688,12 @@ function adminV2Template(){
     adminPanelV2.innerHTML=`<div class="admin-v2-shell"><header class="admin-v2-header"><div><span class="admin-v2-kicker">${workspaceIcon('shield-halved')} ADMIN WORKSPACE</span><h2>Keep access understandable.</h2><p>Review people, changes, community posts and site health from one calm workspace.</p></div><div id="adminV2Connection" class="admin-v2-connection"></div></header><div id="adminV2Metrics" class="admin-v2-metrics"></div><nav id="adminV2Nav" class="admin-v2-nav" role="tablist" aria-label="Admin workspace sections"><button data-admin-v2-tab="users" role="tab">${workspaceIcon('users')}<strong>Users</strong><small>Accounts &amp; access</small><b></b></button><button data-admin-v2-tab="forum" role="tab">${workspaceIcon('comments')}<strong>Forum</strong><small>Community queue</small><b></b></button><button data-admin-v2-tab="activity" role="tab">${workspaceIcon('clock-rotate-left')}<strong>Activity</strong><small>Reviewed changes</small><b></b></button><button data-admin-v2-tab="analytics" role="tab">${workspaceIcon('chart-line')}<strong>Analytics</strong><small>Site overview</small><b></b></button></nav><section id="adminV2Review" class="admin-v2-review" hidden></section><div id="adminV2Views"><section data-admin-v2-view="users" role="tabpanel"><div class="admin-v2-toolbar"><label>${workspaceIcon('search')}<input data-admin-v2-search type="search" placeholder="Find a person…" autocomplete="off"><kbd>Ctrl K</kbd></label><select data-admin-v2-filter="role" aria-label="Role filter"><option value="">All roles</option>${ROLE_ORDER.map(key=>`<option value="${key}">${esc(roleInfo(key).label)}</option>`).join('')}</select><select data-admin-v2-filter="status" aria-label="Status filter"><option value="">All statuses</option><option value="online">Online now</option><option value="banned">Banned</option><option value="active">Active this week</option></select><select data-admin-v2-filter="sort" aria-label="Sort users"><option value="role">Highest role</option><option value="recent">Recently active</option><option value="name">Name A–Z</option><option value="time">Most time</option></select></div><div class="admin-v2-list-head"><label><input data-admin-v2-select-all type="checkbox"> Select visible</label><span data-admin-v2-count></span><button data-admin-v2-clear>Clear selection</button></div><div data-admin-v2-bulk class="admin-v2-bulk" hidden></div><div class="admin-v2-users"><div data-admin-v2-list class="admin-v2-list"></div><aside data-admin-v2-inspector class="admin-v2-inspector"></aside></div><nav data-admin-v2-pages class="admin-v2-pages" aria-label="User pages"></nav></section><section data-admin-v2-view="forum" role="tabpanel" hidden><div class="admin-v2-section-heading"><div><small>COMMUNITY QUEUE</small><h3>Review ideas with context.</h3></div><span data-admin-v2-forum-count></span></div><div data-admin-v2-forum class="admin-v2-forum"></div></section><section data-admin-v2-view="activity" role="tabpanel" hidden><div class="admin-v2-section-heading"><div><small>ACCOUNT HISTORY</small><h3>Every reviewed change has a reason.</h3></div></div><div data-admin-v2-audit class="admin-v2-audit"></div></section><section data-admin-v2-view="analytics" role="tabpanel" hidden><div class="admin-v2-section-heading"><div><small>SITE OVERVIEW</small><h3>What is happening right now?</h3></div></div><div data-admin-v2-analytics class="admin-v2-analytics"></div></section></div></div>`;
     adminPanelV2.querySelector('[data-admin-v2-forum]').insertAdjacentHTML('beforebegin',`<div class="admin-v2-forum-tools"><label>${workspaceIcon('search')}<input data-admin-v2-forum-search type="search" placeholder="Search ideas or authors" aria-label="Search ideas or authors"></label><div role="group" aria-label="Idea status"><button type="button" data-admin-v2-forum-filter="pending">Pending</button><button type="button" data-admin-v2-forum-filter="all">All</button><button type="button" data-admin-v2-forum-filter="approved">Approved</button><button type="button" data-admin-v2-forum-filter="rejected">Rejected</button></div></div>`);
     adminPanelV2.querySelector('#adminV2Connection').insertAdjacentHTML('afterend',`<button type="button" class="admin-v2-refresh" data-admin-v2-refresh>${workspaceIcon('rotate')} Refresh data</button>`);
+    adminPanelV2.querySelector('[data-admin-v2-filter="status"]').insertAdjacentHTML('beforeend','<option value="avatar">Avatar awaiting review</option>');
 }
 
 function adminV2Users(){
     const viewer=workspaceUser(),search=adminV2.query.toLowerCase();
-    const filtered=siteUsers.filter(user=>{if(validSupabaseConfig()&&!adminCloudIds.has(user.id))return false;const hay=`${user.username} ${user.displayName} ${user.bio} ${user.email}`.toLowerCase();if(search&&!hay.includes(search))return false;if(adminV2.role&&user.role!==adminV2.role)return false;if(adminV2.status==='online'&&!isOnlineNow(user.lastSeen))return false;if(adminV2.status==='banned'&&!user.banned)return false;if(adminV2.status==='active'&&!isRecentlyActive(user.lastSeen,7))return false;return true;}).sort((a,b)=>adminV2.sort==='name'?(a.displayName||a.username).localeCompare(b.displayName||b.username):adminV2.sort==='time'?(b.totalTimeSec||0)-(a.totalTimeSec||0):adminV2.sort==='recent'?new Date(b.lastSeen||0)-new Date(a.lastSeen||0):roleRank(b.role)-roleRank(a.role));
+    const filtered=siteUsers.filter(user=>{if(validSupabaseConfig()&&!adminCloudIds.has(user.id))return false;const hay=`${user.username} ${user.displayName} ${user.bio} ${user.email}`.toLowerCase();if(search&&!hay.includes(search))return false;if(adminV2.role&&user.role!==adminV2.role)return false;if(adminV2.status==='online'&&!isOnlineNow(user.lastSeen))return false;if(adminV2.status==='banned'&&!user.banned)return false;if(adminV2.status==='active'&&!isRecentlyActive(user.lastSeen,7))return false;if(adminV2.status==='avatar'&&!user.pendingAvatar)return false;return true;}).sort((a,b)=>adminV2.sort==='name'?(a.displayName||a.username).localeCompare(b.displayName||b.username):adminV2.sort==='time'?(b.totalTimeSec||0)-(a.totalTimeSec||0):adminV2.sort==='recent'?new Date(b.lastSeen||0)-new Date(a.lastSeen||0):roleRank(b.role)-roleRank(a.role));
     const pages=Math.max(1,Math.ceil(filtered.length/adminV2.pageSize));adminV2.page=Math.min(adminV2.page,pages);const visible=filtered.slice((adminV2.page-1)*adminV2.pageSize,adminV2.page*adminV2.pageSize);const manageable=user=>!!viewer&&!viewer.banned&&AccountPolicy.canManage(viewer,user);
     return {viewer,filtered,visible,pages,manageable};
 }
@@ -4557,11 +4702,28 @@ function adminV2UserCard(user,state){
     return `<article class="admin-v2-user ${selected?'is-selected':''} ${inspected?'is-inspected':''} ${user.banned?'is-banned':''}" data-admin-v2-user="${esc(user.id)}"><div class="admin-v2-user-check">${can?`<input type="checkbox" data-admin-v2-select="${esc(user.id)}" ${selected?'checked':''} aria-label="Select ${esc(user.username)}">`:workspaceIcon('lock')}</div><div class="admin-v2-avatar"><img src="${esc(siteAvatarUrl(user))}" alt="" width="48" height="48" loading="lazy" data-avatar-fallback><i class="${isOnlineNow(user.lastSeen)?'online':''}"></i></div><div class="admin-v2-user-copy"><strong>${esc(user.displayName||user.username)}</strong><span>@${esc(user.username)} · ${esc(user.bio||'No bio yet')}</span><small>${workspaceIcon('clock')} ${formatDuration(user.totalTimeSec)} · ${workspaceIcon('cube')} ${(loadMcAccounts(user.id)||[]).length} profiles · ${user.banned?'Restricted':'Active'}</small></div><div class="admin-v2-user-action"><select data-admin-v2-role="${esc(user.id)}" aria-label="Role for ${esc(user.username)}" ${can?'':'disabled'}>${adminAllowedRoles(viewerForAdminV2(state.viewer)).map(key=>`<option value="${key}" ${key===user.role?'selected':''}>${esc(roleInfo(key).label)}</option>`).join('')}</select><button type="button" data-admin-v2-inspect="${esc(user.id)}">${workspaceIcon('arrow-right')}<span>Inspect</span></button></div></article>`;
 }
 function viewerForAdminV2(user){return user;}
+function adminV2Inspector(user,state){
+    if(!user)return `<div class="admin-v2-empty">${workspaceIcon('user-gear')}<strong>Select an account</strong><span>Inspect access and activity without leaving the list.</span></div>`;
+    const can=state.manageable(user)&&user.id!==state.viewer.id;
+    const id=esc(user.id);
+    const action=(key,icon,label)=>`<button type="button" data-admin-v2-inspect-action="${key}" data-admin-v2-inspect-id="${id}">${workspaceIcon(icon)} ${label}</button>`;
+    const pending=user.pendingAvatar?`<div class="admin-v2-pending"><small>AVATAR AWAITING REVIEW</small><img src="${esc(user.pendingAvatar)}" alt="Pending avatar for ${esc(user.username)}" width="96" height="96"></div>`:'';
+    const controls=can?`<div class="admin-v2-inspector-actions">
+        ${action('username','at','Change username')}
+        ${action('display_name','id-card','Change display name')}
+        ${user.pendingAvatar?`${action('avatar_approve','check','Approve avatar')}${action('avatar_reject','xmark','Reject avatar')}`:''}
+        ${user.avatar?action('avatar_clear','trash-can','Remove avatar'):''}
+        ${(!validSupabaseConfig()||/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(user.id))?action('password','key','Change password'):''}
+        ${action(user.banned?'unban':'ban',user.banned?'unlock':'ban',user.banned?'Restore sign-in':'Restrict sign-in')}
+        ${isDev(state.viewer)&&!validSupabaseConfig()?`<button type="button" data-admin-v2-inspect-action="delete" data-admin-v2-inspect-id="${id}" class="danger">${workspaceIcon('trash-can')} Delete local account</button>`:''}
+    </div>`:'';
+    return `<div class="admin-v2-inspector-top"><small>ACCOUNT DETAILS</small><h3>${esc(user.displayName||user.username)}</h3><span>${esc(roleInfo(user.role).label)} · ${user.banned?'Restricted':'Active'}</span></div><dl><div><dt>Username</dt><dd>@${esc(user.username)}</dd></div><div><dt>Joined</dt><dd>${esc(user.registeredAt||'—')}</dd></div><div><dt>Site time</dt><dd>${formatDuration(user.totalTimeSec)}</dd></div><div><dt>Account id</dt><dd><code>${id}</code></dd></div></dl>${pending}${controls}`;
+}
 function renderAdminV2Users(){
     const root=adminPanelV2,state=adminV2Users();if(!root)return;
     root.querySelector('[data-admin-v2-count]').textContent=`${state.filtered.length} account${state.filtered.length===1?'':'s'} · page ${adminV2.page}/${state.pages}`;
     root.querySelector('[data-admin-v2-list]').innerHTML=state.visible.length?state.visible.map(user=>adminV2UserCard(user,state)).join(''):`<div class="admin-v2-empty">${workspaceIcon(adminCloudError?'plug-circle-exclamation':'user-slash')}<strong>${esc(adminCloudError||'No accounts found')}</strong><span>${adminCloudError?'Use Refresh data after applying the administration migration.':'Clear a filter or try another name.'}</span></div>`;
-    const inspected=siteUsers.find(user=>user.id===adminV2.inspect)||state.visible[0];root.querySelector('[data-admin-v2-inspector]').innerHTML=inspected?`<div class="admin-v2-inspector-top"><small>ACCOUNT DETAILS</small><h3>${esc(inspected.displayName||inspected.username)}</h3><span>${esc(roleInfo(inspected.role).label)} · ${inspected.banned?'Restricted':'Active'}</span></div><dl><div><dt>Username</dt><dd>@${esc(inspected.username)}</dd></div><div><dt>Joined</dt><dd>${esc(inspected.registeredAt||'—')}</dd></div><div><dt>Site time</dt><dd>${formatDuration(inspected.totalTimeSec)}</dd></div><div><dt>Account id</dt><dd><code>${esc(inspected.id)}</code></dd></div></dl>${state.manageable(inspected)&&inspected.id!==state.viewer.id?`<div class="admin-v2-inspector-actions"><button type="button" data-admin-v2-inspect-action="${inspected.banned?'unban':'ban'}" data-admin-v2-inspect-id="${esc(inspected.id)}">${workspaceIcon(inspected.banned?'unlock':'ban')} ${inspected.banned?'Restore sign-in':'Restrict sign-in'}</button>${isDev(state.viewer)&&!validSupabaseConfig()?`<button type="button" data-admin-v2-inspect-action="delete" data-admin-v2-inspect-id="${esc(inspected.id)}" class="danger">${workspaceIcon('trash-can')} Delete local account</button>`:''}</div>`:''}`:`<div class="admin-v2-empty">${workspaceIcon('user-gear')}<strong>Select an account</strong><span>Inspect access and activity without leaving the list.</span></div>`;
+    const inspected=state.filtered.find(user=>user.id===adminV2.inspect)||state.visible[0];root.querySelector('[data-admin-v2-inspector]').innerHTML=adminV2Inspector(inspected,state);
     root.querySelector('[data-admin-v2-pages]').innerHTML=`<button data-admin-v2-page="prev" ${adminV2.page===1?'disabled':''}>${workspaceIcon('arrow-left')} Previous</button><span>${adminV2.page} / ${state.pages}</span><button data-admin-v2-page="next" ${adminV2.page===state.pages?'disabled':''}>Next ${workspaceIcon('arrow-right')}</button>`;
     const bulk=root.querySelector('[data-admin-v2-bulk]'),selected=[...adminV2.selected].filter(id=>state.filtered.some(user=>user.id===id));adminV2.selected=new Set(selected);bulk.hidden=!selected.length;bulk.innerHTML=selected.length?`<strong>${selected.length} selected</strong><select data-admin-v2-bulk-role aria-label="Bulk role">${adminAllowedRoles(state.viewer).map(key=>`<option value="${key}">${esc(roleInfo(key).label)}</option>`).join('')}</select><button data-admin-v2-bulk-action="role">Apply role</button><button data-admin-v2-bulk-action="ban">Restrict</button><button data-admin-v2-bulk-action="unban">Restore</button><button data-admin-v2-bulk-action="export">Export</button>`:'';
 }
@@ -4570,7 +4732,11 @@ function adminV2Review(action,ids,role){
     const viewer=workspaceUser(),targets=ids.map(id=>siteUsers.find(user=>user.id===id)).filter(Boolean);if(!targets.length||targets.some(user=>!AccountPolicy.canManage(viewer,user,action==='role'?role:null)))return showToast('This account is protected by the role hierarchy.','lock');
     adminV2.pending={action,role,actorId:viewer.id,targets:targets.map(user=>({id:user.id,username:user.username,role:user.role,banned:user.banned}))};
     const review=adminPanelV2.querySelector('[data-admin-v2-review]')||document.getElementById('adminV2Review');if(!review)return;
-    review.hidden=false;review.innerHTML=`<div class="admin-v2-review-head"><span>${workspaceIcon('code-compare')}</span><div><small>REVIEW BEFORE APPLYING</small><h3>${action==='role'?'Change role':action==='ban'?'Restrict sign-in':action==='unban'?'Restore sign-in':'Delete local account'}</h3></div></div><div class="admin-v2-diff">${targets.map(user=>`<div><strong>${esc(user.username)}</strong><span>${esc(action==='role'?roleInfo(user.role).label:user.banned?'Restricted':'Active')}</span>${workspaceIcon('arrow-right')}<b>${esc(action==='role'?roleInfo(role).label:action==='ban'?'Restricted':action==='unban'?'Active':'Deleted')}</b></div>`).join('')}</div><label>Why is this change needed?<input data-admin-v2-reason maxlength="160" placeholder="Short reason for the activity log"></label><p data-admin-v2-error></p><footer><button data-admin-v2-cancel>Cancel</button><button data-admin-v2-apply>${workspaceIcon('check')} Apply reviewed change</button></footer>`;
+    const labels={role:'Change role',ban:'Restrict sign-in',unban:'Restore sign-in',delete:'Delete local account',password:'Change password',username:'Change username',display_name:'Change display name',avatar_approve:'Approve avatar',avatar_reject:'Reject avatar',avatar_clear:'Remove avatar'};
+    if(!labels[action])return;
+    const input=action==='password'?'<label>New password (12–128 characters)<input data-admin-v2-new-value type="password" minlength="12" maxlength="128" autocomplete="new-password" spellcheck="false"></label><label>Confirm new password<input data-admin-v2-confirm-value type="password" minlength="12" maxlength="128" autocomplete="new-password" spellcheck="false"></label>'
+        :action==='username'||action==='display_name'?`<label>${action==='username'?'New username':'New display name'}<input data-admin-v2-new-value type="text" maxlength="${action==='username'?20:24}" value="${esc(action==='username'?targets[0].username:targets[0].displayName)}" autocomplete="off"></label>`:'';
+    review.hidden=false;review.innerHTML=`<div class="admin-v2-review-head"><span>${workspaceIcon('code-compare')}</span><div><small>REVIEW BEFORE APPLYING</small><h3>${labels[action]}</h3></div></div><div class="admin-v2-diff">${targets.map(user=>`<div><strong>${esc(user.username)}</strong><span>${esc(action==='role'?roleInfo(user.role).label:user.banned?'Restricted':'Active')}</span>${workspaceIcon('arrow-right')}<b>${esc(action==='role'?roleInfo(role).label:action==='ban'?'Restricted':action==='unban'?'Active':action==='delete'?'Deleted':labels[action])}</b></div>`).join('')}</div>${input}<label>Why is this change needed?<input data-admin-v2-reason maxlength="160" placeholder="Short reason for the activity log"></label><p data-admin-v2-error></p><footer><button data-admin-v2-cancel>Cancel</button><button data-admin-v2-apply>${workspaceIcon('check')} Apply reviewed change</button></footer>`;
     review.scrollIntoView({behavior:REDUCED_MOTION?'auto':'smooth',block:'nearest'});
 }
 function adminV2CascadeDelete(ids){
@@ -4580,6 +4746,47 @@ function adminV2CascadeDelete(ids){
     const nextForum=forumPosts.filter(post=>!idSet.has(post.authorId)).map(post=>({...post,upvotes:(post.upvotes||[]).filter(id=>!idSet.has(id))}));
     records.set(K_PROFILE_STYLES,styles);records.set(K_DEV_ROLE_PREVIEWS,previews);records.set(K_ROLE_ORDERS,loadRoleOrders().filter(order=>!idSet.has(order.userId)));records.set(K_FRIENDS,nextFriends);records.set(K_FORUM,nextForum);persistAdminRecords(records);
     friendships=nextFriends;forumPosts=nextForum;
+}
+async function adminV2ApplyIdentityChange(pending,reason,actor,target,review){
+    const action=pending.action;
+    const input=review.querySelector('[data-admin-v2-new-value]');
+    const value=input?.value||'';
+    if(action==='password'&&(value.length<12||value.length>128||!value.trim()))throw new Error('Use a password with 12–128 characters.');
+    if(action==='password'&&review.querySelector('[data-admin-v2-confirm-value]')?.value!==value)throw new Error('The passwords do not match.');
+    if(action==='username'&&(!/^[A-Za-z0-9 _.-]{3,20}$/.test(value)||AccountPolicy.nameIssue(value)))throw new Error(AccountPolicy.nameIssue(value)||'Use 3–20 letters, numbers, spaces or _ . - for the username.');
+    if(action==='display_name'&&(!value.trim()||value.length>24||AccountPolicy.nameIssue(value)))throw new Error(AccountPolicy.nameIssue(value)||'Use a display name of 1–24 characters.');
+    if(action==='avatar_approve'&&!target.pendingAvatar)throw new Error('The pending avatar is no longer available.');
+    if(action==='avatar_reject'&&!target.pendingAvatar)throw new Error('The pending avatar is no longer available.');
+    if(input?.type==='password'){input.value='';review.querySelector('[data-admin-v2-confirm-value]').value='';}
+    if(validSupabaseConfig()){
+        if(!authAvailable()||!cloudAuthUserId)throw new Error('Reconnect to administration.');
+        if(action==='password'){
+            const {error}=await cloud.functions.invoke('admin-password',{body:{targetId:target.id,password:value,reason,expectedRole:target.role,expectedBanned:target.banned}});
+            if(error)throw new Error('Password change was rejected. Refresh the account and audit history before retrying.');
+        }else{
+            const {error}=await cloud.rpc('spectral_admin_moderate_profile',{p_target_id:target.id,p_action:action,p_value:action==='username'||action==='display_name'?value:null,p_reason:reason});
+            if(error)throw new Error('Server rejected the moderation change. Refresh the account and try again.');
+        }
+        await loadAdminCloud();
+    }else{
+        const updated={...target};
+        let before='',after='';
+        if(action==='password'){updated.password=await hashPassword(value);before='Unchanged';after='Changed';}
+        if(action==='username'){
+            if(siteUsers.some(user=>user.id!==target.id&&user.username.toLowerCase()===value.trim().toLowerCase()))throw new Error('This username is already taken.');
+            before=target.username;after=value.trim();updated.username=after;
+        }
+        if(action==='display_name'){before=target.displayName;after=value.trim();updated.displayName=after;}
+        if(action==='avatar_approve'){before='Pending';after='Approved';updated.avatar=target.pendingAvatar;updated.pendingAvatar='';}
+        if(action==='avatar_reject'){before='Pending';after='Rejected';updated.pendingAvatar='';}
+        if(action==='avatar_clear'){before='Visible';after='Removed';updated.avatar='';updated.pendingAvatar='';}
+        const next=siteUsers.map(user=>user.id===target.id?updated:user);
+        const audit=readJsonStorage(K_ADMIN_AUDIT,[],Array.isArray);
+        audit.push({id:crypto.randomUUID(),actorId:actor.id,actorName:actor.username,action,reason,createdAt:new Date().toISOString(),changes:[{id:target.id,username:target.username,before,after}]});
+        persistAdminRecords(new Map([[K_USERS,next],[K_ADMIN_AUDIT,audit.slice(-200)]]));
+        siteUsers=next;
+    }
+    adminV2.pending=null;adminV2.selected.clear();renderAdminV2();showToast('Reviewed account change saved.','check');
 }
 async function adminV2Apply(){
     if(adminV2.forumPending){
@@ -4599,6 +4806,11 @@ async function adminV2Apply(){
     const actor=siteUsers.find(user=>user.id===pending.actorId),targets=pending.targets.map(before=>siteUsers.find(user=>user.id===before.id));
     try{
         if(!actor||targets.some((user,index)=>!user||!AccountPolicy.canManage(actor,user,pending.action==='role'?pending.role:null)||user.role!==pending.targets[index].role||user.banned!==pending.targets[index].banned))throw new Error('The account changed. Review the latest state.');
+        if(['password','username','display_name','avatar_approve','avatar_reject','avatar_clear'].includes(pending.action)){
+            if(targets.length!==1)throw new Error('Select one account for this change.');
+            await adminV2ApplyIdentityChange(pending,reason,actor,targets[0],review);
+            return;
+        }
         if(validSupabaseConfig()){
             if(!authAvailable()||!cloudAuthUserId)throw new Error('Reconnect to administration before applying changes.');
             const {error}=await cloud.rpc('spectral_admin_apply',{p_targets:pending.targets,p_action:pending.action,p_role:pending.role||null,p_reason:reason});
@@ -4608,7 +4820,7 @@ async function adminV2Apply(){
         const ids=new Set(targets.map(user=>user.id)),next=siteUsers.filter(user=>pending.action!=='delete'||!ids.has(user.id)).map(user=>ids.has(user.id)&&pending.action==='role'?{...user,role:pending.role,roleSource:'admin'}:ids.has(user.id)?{...user,banned:pending.action==='ban'}:user);
         if(!saveSiteUsers(next))throw new Error('Browser storage is full.');siteUsers=next;
         if(pending.action==='delete')adminV2CascadeDelete(ids);
-        const audit=readJsonStorage(K_ADMIN_AUDIT,[],Array.isArray);audit.push({id:crypto.randomUUID(),actorId:actor.id,actorName:actor.username,action:pending.action,reason,createdAt:new Date().toISOString(),changes:targets.map(user=>({id:user.id,username:user.username,before:user.role,after:pending.action==='role'?pending.role:pending.action}))});try{localStorage.setItem(K_ADMIN_AUDIT,JSON.stringify(audit.slice(-200)));}catch{}
+        const audit=readJsonStorage(K_ADMIN_AUDIT,[],Array.isArray);audit.push({id:crypto.randomUUID(),actorId:actor.id,actorName:actor.username,action:pending.action,reason,createdAt:new Date().toISOString(),changes:targets.map(user=>({id:user.id,username:user.username,before:pending.action==='role'?user.role:user.banned?'Restricted':'Active',after:pending.action==='role'?pending.role:pending.action==='ban'?'Restricted':pending.action==='unban'?'Active':'Deleted'}))});try{localStorage.setItem(K_ADMIN_AUDIT,JSON.stringify(audit.slice(-200)));}catch{}
         adminV2.pending=null;adminV2.selected.clear();renderAdminV2();showToast('Reviewed admin change saved.','check');
     }catch(error){const message=review?.querySelector('[data-admin-v2-error]');if(message)message.textContent=error.message;}finally{adminV2.busy=false;}
 }
@@ -4809,9 +5021,10 @@ async function loadCommunityCloud(){
 }
 async function submitCommunityIdea(title,body){
     if(!authAvailable()||!cloudAuthUserId)throw new Error('Sign in to submit an idea.');
-    const {error}=await cloud.rpc('spectral_idea_submit',{p_title:title,p_body:body});
-    if(error)throw new Error(error.message||'Could not submit the idea.');
+    const {data,error}=await cloud.functions.invoke('moderate-content',{body:{kind:'idea',title,body}});
+    if(error||!['approved','rejected'].includes(data?.decision))throw new Error('Automatic review is unavailable. Please try again later.');
     await loadCommunityCloud();
+    return data.decision;
 }
 async function voteCommunityIdea(id){
     if(!authAvailable()||!cloudAuthUserId)throw new Error('Sign in to vote.');
@@ -4926,7 +5139,7 @@ const NEWS_ICONS = new Set(['bolt','puzzle-piece','robot','gauge-high','language
 let newsViewState = { query:'', filter:'all' };
 let editingNewsId = null;
 let newsDraftTimer = 0;
-let newsTimelineObserver = null;
+let lastNewsTimelineKey = null;
 
 function validNewsType(type) { return Object.prototype.hasOwnProperty.call(NEWS_TYPES,type) ? type : 'add'; }
 function validNewsIcon(icon) { return NEWS_ICONS.has(icon) ? icon : 'bolt'; }
@@ -4984,10 +5197,12 @@ function releaseCardMarkup(item, isDev, preview) {
 }
 function renderNewsTimeline() {
     const timeline=document.getElementById('updatesTimeline');if(!timeline)return;
-    if(newsTimelineObserver){newsTimelineObserver.disconnect();newsTimelineObserver=null;}
     const user=siteUsers.find(u=>u.id===currentUserId);
     const isDev=Boolean(user&&user.role==='DEV');
     const query=newsViewState.query.trim().toLowerCase();
+    const renderKey=JSON.stringify([newsItems,query,newsViewState.filter,isDev]);
+    if(renderKey===lastNewsTimelineKey)return;
+    lastNewsTimelineKey=renderKey;
     let visible=newsItems.filter(item=>{
         const matchesType=newsViewState.filter==='all'||(item.items||[]).some(change=>validNewsType(change.type)===newsViewState.filter);
         const haystack=[item.title,item.date,item.version,item.channel,item.summary,...(item.items||[]).map(change=>change.text)].join(' ').toLowerCase();
@@ -5008,26 +5223,11 @@ function renderNewsTimeline() {
     timeline.style.display=visible.length?'block':'none';
     timeline.innerHTML='<div class="timeline-line" aria-hidden="true"></div>';
     visible.forEach(item=>{
-        const article=document.createElement('article');article.className='timeline-item';article.dataset.newsId=item.id;
+        const article=document.createElement('article');article.className='timeline-item in-view';article.dataset.newsId=item.id;
         article.innerHTML=`<div class="date-badge">${esc(item.date)}</div>${releaseCardMarkup(item,isDev,false)}`;
         const card=article.querySelector('.timeline-card');
         const expand=article.querySelector('.release-expand');
         if(expand)expand.addEventListener('click',()=>{const open=card.classList.toggle('expanded');expand.setAttribute('aria-expanded',String(open));expand.querySelector('span').textContent=open?'Hide details':'View details';});
-        if(!liteOn()&&!REDUCED_MOTION&&!IS_TOUCH){
-            let cardRect=null,cardPointer=null,cardMoveRaf=null;
-            card.addEventListener('pointerenter',()=>{cardRect=card.getBoundingClientRect();},{passive:true});
-            card.addEventListener('pointermove',event=>{
-                cardPointer=event;
-                if(cardMoveRaf)return;
-                cardMoveRaf=requestAnimationFrame(()=>{
-                    cardMoveRaf=null;
-                    if(!cardRect)cardRect=card.getBoundingClientRect();
-                    card.style.setProperty('--card-x',`${cardPointer.clientX-cardRect.left}px`);
-                    card.style.setProperty('--card-y',`${cardPointer.clientY-cardRect.top}px`);
-                });
-            },{passive:true});
-            card.addEventListener('pointerleave',()=>{cardRect=null;},{passive:true});
-        }
         article.querySelectorAll('[data-release-action]').forEach(button=>button.addEventListener('click',e=>{
             e.stopPropagation();const action=button.dataset.releaseAction;
             if(action==='copy')copyLocalText(releaseToMarkdown(item),'Release copied as Markdown');
@@ -5040,13 +5240,6 @@ function renderNewsTimeline() {
         }));
         timeline.appendChild(article);
     });
-    const reduce=liteOn()||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(reduce)timeline.querySelectorAll('.timeline-item').forEach(item=>item.classList.add('in-view'));
-    else {
-        const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('in-view');observer.unobserve(entry.target);}}),{threshold:.12,rootMargin:'0px 0px -35px'});
-        newsTimelineObserver=observer;
-        timeline.querySelectorAll('.timeline-item').forEach(item=>observer.observe(item));
-    }
 }
 
 const updatesSearchInput=document.getElementById('updatesSearchInput');
@@ -5154,7 +5347,7 @@ function renderForum() {
     if(loginHint)loginHint.style.display=currentUserId?'none':'inline-flex';
 
     // Admins see pending posts (awaiting review) on top, then all approved posts
-    const visible=[...forumPosts.filter(p=>!p.approved&&!p.rejected&&(isAdmin||p.authorId===currentUserId)),...forumPosts.filter(p=>p.approved)];
+    const visible=[...forumPosts.filter(p=>!p.approved&&!p.rejected&&(isAdmin||p.authorId===currentUserId)),...forumPosts.filter(p=>p.rejected&&p.authorId===currentUserId),...forumPosts.filter(p=>p.approved)];
 
     if(visible.length===0){if(empty){empty.style.display='block';empty.textContent=validSupabaseConfig()&&communityCloudError?communityCloudError:'No ideas yet. Be the first to share one.';}return;}
     if(empty)empty.style.display='none';
@@ -5164,10 +5357,10 @@ function renderForum() {
         const author=siteUsers.find(u=>u.id===p.authorId);
         const authorRole=validSupabaseConfig()?p.authorRole||'USER':author?.role||'USER';
         const featured=roleRank(authorRole)>=ROLES.LEGEND.rank;
-        card.className='forum-post-card'+(p.approved?'':' pending')+(featured?` role-featured role-featured-${authorRole.toLowerCase()}`:'');
+        card.className='forum-post-card'+(p.rejected?' rejected':p.approved?'':' pending')+(featured?` role-featured role-featured-${authorRole.toLowerCase()}`:'');
         if(featured)card.style.setProperty('--post-role-color',roleInfo(authorRole).color);
         const hasVoted=currentUserId&&(validSupabaseConfig()?p.viewerVoted:p.upvotes.includes(currentUserId));
-        const pendingBadge=!p.approved&&!p.rejected?'<span class="fp-status fp-pending">Pending review</span>':'';
+        const pendingBadge=p.rejected?'<span class="fp-status fp-rejected">Rejected by review</span>':!p.approved?'<span class="fp-status fp-pending">Pending review</span>':'';
         card.innerHTML=`
             <div class="fp-header">
                 <img class="fp-avatar" src="${avatarUrl(p.authorName)}" alt="${esc(p.authorName)}" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback>
@@ -5226,22 +5419,23 @@ if(forumPostForm){
         const titleEl=document.getElementById('forumPostTitle');
         const textEl=document.getElementById('forumPostText');
         const errEl=document.getElementById('forumPostError');
-        const title=sanitizeField(censor(titleEl?titleEl.value:''), 80);
-        const text=sanitizeField(censor(textEl?textEl.value:''), 500);
+        const title=sanitizeField(titleEl?titleEl.value:'', 80);
+        const text=sanitizeField(textEl?textEl.value:'', 500);
         if(!title){if(errEl){errEl.textContent='Please enter a title';errEl.style.display='block';}return;}
         if(!text){if(errEl){errEl.textContent='Please describe your idea';errEl.style.display='block';}return;}
         if(errEl)errEl.style.display='none';
         if(validSupabaseConfig()){
             const submit=forumPostForm.querySelector('[type="submit"]');if(submit)submit.disabled=true;
-            try{await submitCommunityIdea(title,text);closeForumPost();showToast('Idea submitted for moderator review.','check');}
+            try{const decision=await submitCommunityIdea(title,text);closeForumPost();showToast(decision==='approved'?'Idea published after automatic review.':'Idea rejected by automatic review.',decision==='approved'?'check':'triangle-exclamation');}
             catch(error){if(errEl){errEl.textContent=error.message||'Could not submit the idea.';errEl.style.display='block';}}
             finally{if(submit)submit.disabled=false;}
             return;
         }
         const user=siteUsers.find(u=>u.id===currentUserId);
+        const localTitle=censor(title),localText=censor(text);
         const today=new Date();
         const dateStr=`${String(today.getDate()).padStart(2,'0')}.${String(today.getMonth()+1).padStart(2,'0')}.${today.getFullYear()}`;
-        const post={id:'fp_'+Date.now(),authorId:currentUserId,authorName:user?user.displayName||user.username:'?',title,text,date:dateStr,upvotes:[],approved:false,rejected:false};
+        const post={id:'fp_'+Date.now(),authorId:currentUserId,authorName:user?user.displayName||user.username:'?',title:localTitle,text:localText,date:dateStr,upvotes:[],approved:false,rejected:false};
         forumPosts.unshift(post);saveForum(forumPosts);closeForumPost();
         renderForum();
         // notify user

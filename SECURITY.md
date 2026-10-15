@@ -32,9 +32,8 @@ credential; this does not apply to authenticated deployments.
    script. The Supabase SDK is loaded lazily at an exact version with
    Subresource Integrity after valid metadata is detected.
 5. The Content Security Policy restricts scripts, connections, images, forms,
-   base URLs, and plugins. `_headers` adds clickjacking, MIME-sniffing, referrer,
-   permissions, cross-origin opener, HSTS, and cache controls on compatible
-   hosts.
+   base URLs, and plugins. `_headers` configures response headers on compatible
+   hosts; `vercel.json` carries the corresponding security headers on Vercel.
 6. Cloud profile writes exclude email, password hashes, roles, and ban state.
    Queries select named fields and only run for an authenticated user.
 7. `supabase/security_hardening.sql` revokes anonymous table access, forces RLS,
@@ -53,13 +52,26 @@ credential; this does not apply to authenticated deployments.
     A case-insensitive unique index prevents duplicate display usernames.
 11. Security and build invariants are regression-tested by `pnpm test`; ESLint
    forbids dynamic code execution.
+12. `supabase/account_moderation.sql` applies server-side name rules and stores
+    uploaded avatars in a private review queue. Admin decisions and owner profile
+    edits are audited without storing image bytes in history.
+13. The `admin-password` Edge Function verifies the caller's JWT, asks a database
+    function to recheck role hierarchy and record the attempt, and uses the
+    server-only service key to update Auth. Passwords are never audited.
+14. `supabase/automated_moderation.sql` revokes direct idea submission. The
+    `moderate-content` Edge Function verifies the session, sends text and queued
+    avatars to the moderation API, and records decisions without image bytes.
+    Flagged ideas are rejected; safe ideas publish immediately. Image review
+    remains private and pending if the service is unavailable.
 
 ## Production checklist
 
 Before enabling Supabase in production:
 
 1. Apply `supabase/security_hardening.sql` and
-   `supabase/account_administration.sql` to a staging project and confirm their
+   `supabase/account_administration.sql`, then `supabase/account_moderation.sql`
+   and `supabase/automated_moderation.sql` after the community migration
+   to a staging project and confirm their
    column names and types match the live schema.
 2. Test reads, inserts, updates, and deletes as anonymous, authenticated owner,
    unrelated authenticated user, and friendship participant.
@@ -68,12 +80,18 @@ Before enabling Supabase in production:
    caller. Never authorize from a client-supplied role.
 4. Inject only the project URL and public publishable key. Never ship a Supabase
    service-role key, database password, OAuth client secret, or private API key.
+   Set `OPENAI_API_KEY` only in Supabase Edge Function secrets and deploy
+   `moderate-content` before publishing the frontend that calls it.
 5. Set the production Auth site URL and exact redirect allowlist. Restrict OAuth
    providers and enable suitable abuse controls in Supabase.
    Update `allowedOrigins` in the Edge Function before hosting away from
    `http://localhost:5500`.
-6. Ensure the hosting platform applies `_headers`, or translate those headers
-   into that platform's configuration.
+   Deploy `admin-password` with JWT verification enabled and the same allowed
+   origins as the site.
+   Redeploy `username-auth` so server-side registration uses the name filter.
+6. Check the deployed response headers. Vercel reads `vercel.json`; hosts that
+   support `_headers` use that file. GitHub Pages does not apply either file,
+   so the HTML meta CSP is the available page-level fallback there.
 7. Run `pnpm install --frozen-lockfile`, `pnpm audit`, and `pnpm check` from a
    clean checkout before deployment.
 
@@ -85,10 +103,16 @@ Before enabling Supabase in production:
   endpoint needs abuse monitoring and rate limits before broad release.
 - The optional database migration cannot be proven against a live schema from
   this repository alone; staging verification is required.
+- Automated classification can miss unsafe material or reject acceptable
+  material. Staff can review avatar decisions; retain an appeal route for ideas.
+- Uploaded cloud avatars are sent to OpenAI's Moderation API for screening.
+  Tell players about this processing in the site's privacy notice.
+- Changing a password does not immediately invalidate existing access-token
+  JWTs. Review the project's session lifetime and sign-out policy separately.
 - The CSP still permits inline styles because the current UI uses many inline
   style declarations. Migrating those declarations to classes would allow the
   removal of `style-src 'unsafe-inline'`.
-- Google Fonts, Font Awesome, Minotar, and optional avatar/Supabase providers
+- Font Awesome, Minotar, and optional avatar/Supabase providers
   receive ordinary network metadata when requested. Self-host them if that
   privacy tradeoff is unacceptable.
 - Browser-only controls cannot protect a compromised hosting origin, malicious

@@ -2,7 +2,7 @@
 try {
     if (localStorage.getItem('spectral_theme') === 'light') {
         document.body.classList.add('light-theme');
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#f4f6ff');
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#f7f8f6');
     }
 } catch (error) {
     // Storage can be disabled; the default dark palette still works.

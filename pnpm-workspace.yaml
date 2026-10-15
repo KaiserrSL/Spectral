@@ -1,4 +1,6 @@
 allowBuilds:
   lightningcss-cli: true
+overrides:
+  brace-expansion: 5.0.12
 minimumReleaseAgeExclude:
   - globals@17.9.0

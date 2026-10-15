@@ -3929,6 +3929,7 @@ body.light-theme .dev-tool-btn { background:rgba(99,102,241,0.08); color:#1e1b4b
     font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 8px; flex-shrink: 0; align-self: flex-start;
 }
 .fp-pending { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.fp-rejected { background: rgba(239,68,68,.12); color: #fca5a5; }
 .fp-text { color: var(--text-muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 14px; }
 .fp-footer { display: flex; align-items: center; gap: 12px; }
 .fp-upvote {
@@ -12126,6 +12127,22 @@ body.light-theme .auth-mode-note { color: #5d6680; background: rgba(91, 102, 194
     .hero-visual-block { flex: 1 1 60%; min-width: 0; }
     .hero-visual-block .launcher-ui { width: 100%; max-width: 100%; }
 }
+
+/* A short first-run path keeps the launcher details usable after the feature cards. */
+.launcher-start-guide { margin-top: 26px; padding: clamp(24px, 4vw, 42px); border: 1px solid var(--glass-border); border-radius: 22px; background: rgba(14, 18, 38, .72); }
+.launcher-start-heading > span { color: #a5b4fc; font-size: .76rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.launcher-start-heading > span i { margin-right: 8px; }
+.launcher-start-heading h3 { margin: 10px 0 8px; color: var(--text); font-size: clamp(1.4rem, 2.4vw, 2rem); }
+.launcher-start-heading p, .launcher-start-note { color: var(--text-muted); line-height: 1.6; }
+.launcher-start-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 28px 0; padding: 0; list-style: none; counter-reset: start-step; }
+.launcher-start-steps li { counter-increment: start-step; display: grid; grid-template-columns: 34px 1fr; align-content: start; column-gap: 12px; padding: 17px; border: 1px solid rgba(165, 180, 252, .15); border-radius: 14px; background: rgba(99, 102, 241, .07); }
+.launcher-start-steps li::before { content: counter(start-step, decimal-leading-zero); grid-row: span 2; color: #a5b4fc; font-size: .85rem; font-weight: 800; }
+.launcher-start-steps strong { color: var(--text); }
+.launcher-start-steps span { margin-top: 5px; color: var(--text-muted); font-size: .87rem; line-height: 1.55; }
+.launcher-start-note { margin: 0; font-size: .87rem; }
+body.light-theme .launcher-start-guide { background: rgba(255, 255, 255, .86); border-color: rgba(99, 102, 241, .15); }
+body.light-theme .launcher-start-steps li { background: rgba(99, 102, 241, .045); }
+@media (max-width: 680px) { .launcher-start-steps { grid-template-columns: 1fr; } }
 /* ═══════════════════════════════════════════════════════════════════════════
    ACCOUNT ROLES · VETERAN REWARD · PURCHASE-READY STORE
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -12171,6 +12188,10 @@ body.light-theme .auth-mode-note { color: #5d6680; background: rgba(91, 102, 194
 .veteran-registration-note.closed .veteran-registration-icon { color: #94a3b8; background: rgba(148,163,184,.09); box-shadow: none; }
 .veteran-registration-note.closed b { color: #cbd5e1; }
 .veteran-registration-note.closed::after { display: none; }
+.registration-role-menu { margin: -8px 0 18px; padding: 0 14px; color: #9ca8b9; border-left: 2px solid rgba(45,212,191,.32); }
+.registration-role-menu summary { width: max-content; max-width: 100%; color: #a7f3d0; font-size: .69rem; font-weight: 700; cursor: pointer; }
+.registration-role-menu summary:focus-visible { outline: 2px solid #5eead4; outline-offset: 4px; }
+.registration-role-menu p { margin: 9px 0 0; font-size: .68rem; line-height: 1.55; }
 @keyframes veteranNoteShine { 0%,58% { transform: translateX(-80%) rotate(18deg); } 85%,100% { transform: translateX(260%) rotate(18deg); } }
 
 .role-shop-tab { position: relative; }
@@ -12417,6 +12438,8 @@ body.light-theme .auth-mode-note { color: #5d6680; background: rgba(91, 102, 194
 .registration-welcome-card h2 span { color:var(--welcome-role); }
 .registration-welcome-card > p { margin:9px auto 0; max-width:410px; color:#8791aa; font-size:.71rem; line-height:1.5; }
 .welcome-role-reveal { display:grid; gap:2px; margin:20px 0 14px; padding:14px; border:1px solid color-mix(in srgb,var(--welcome-role) 24%,transparent); border-radius:18px; background:color-mix(in srgb,var(--welcome-role) 7%,rgba(255,255,255,.01)); }
+.registration-welcome-overlay.open .welcome-role-reveal { animation:welcomeRoleReveal .75s .2s both var(--ease-out-back); }
+@keyframes welcomeRoleReveal { from { opacity:0; transform:translateY(14px) scale(.94); } to { opacity:1; transform:translateY(0) scale(1); } }
 .welcome-role-reveal small { color:#768098; font-size:.48rem; letter-spacing:.13em; text-transform:uppercase; }
 .welcome-role-reveal strong { color:var(--welcome-role); font-size:1.18rem; }
 .welcome-role-reveal span { color:#a0a8ba; font-size:.58rem; }
@@ -12430,7 +12453,8 @@ body.light-theme .auth-mode-note { color: #5d6680; background: rgba(91, 102, 194
 .welcome-actions button:hover { transform:translateY(-2px); }
 .welcome-secondary:hover { background:rgba(255,255,255,.075); }
 .welcome-confetti { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
-.welcome-confetti i { position:absolute; top:-16px; left:var(--x); width:6px; height:12px; opacity:0; border-radius:2px; background:var(--c); animation:welcomeConfetti 2.5s var(--d) cubic-bezier(.2,.7,.2,1) forwards; }
+.welcome-confetti i { position:absolute; top:-16px; left:var(--x); width:6px; height:12px; opacity:0; border-radius:2px; background:var(--c); }
+.registration-welcome-overlay.open .welcome-confetti i { animation:welcomeConfetti 2.5s var(--d) cubic-bezier(.2,.7,.2,1) forwards; }
 @keyframes welcomeConfetti { 0% { opacity:0; transform:translateY(-10px) rotate(0); } 12% { opacity:1; } 100% { opacity:0; transform:translateY(480px) rotate(600deg); } }
 
 /* Distinct role identity follows the signed-in player through account surfaces. */
@@ -12446,6 +12470,8 @@ body[data-account-role="SPECTRAL"] .profile-avatar-wrapper img { border-color:#e
 body.light-theme .veteran-registration-note { border-color:rgba(13,148,136,.2); background:linear-gradient(120deg,rgba(20,184,166,.09),rgba(99,102,241,.055)); }
 body.light-theme .veteran-registration-note b { color:#134e4a; }
 body.light-theme .veteran-registration-note small { color:#5d7779; }
+body.light-theme .registration-role-menu { color:#667092; border-color:rgba(13,148,136,.25); }
+body.light-theme .registration-role-menu summary { color:#0f766e; }
 body.light-theme .profile-role-spotlight { color:#252850; background:linear-gradient(135deg,color-mix(in srgb,var(--spotlight-role) 8%,white),rgba(255,255,255,.82)); }
 body.light-theme .profile-role-spotlight-copy b { color:#252850; }
 body.light-theme .profile-role-spotlight-copy em,body.light-theme .profile-role-spotlight-copy small { color:#71779a; }
@@ -12502,7 +12528,7 @@ body.light-theme .role-checkout-copy input { color:#303454; border-color:rgba(79
     .welcome-actions { grid-template-columns:1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .veteran-registration-note::after,.role-store-orbit,.role-card-spectral .role-card-icon,.welcome-role-emblem,.welcome-role-emblem::before,.welcome-role-emblem::after,.welcome-confetti i,.role-badge.role-spectral,body[data-account-role="SPECTRAL"] .profile-avatar-wrapper::before { animation:none!important; }
+    .veteran-registration-note::after,.role-store-orbit,.role-card-spectral .role-card-icon,.welcome-role-emblem,.welcome-role-emblem::before,.welcome-role-emblem::after,.welcome-confetti i,.welcome-role-reveal,.role-badge.role-spectral,body[data-account-role="SPECTRAL"] .profile-avatar-wrapper::before { animation:none!important; }
     .role-store-card,.registration-welcome-card,.role-checkout-sheet { transition-duration:.01ms!important; }
 }
 html.lite-mode .veteran-registration-note::after,html.lite-mode .role-store-orbit,html.lite-mode .welcome-confetti,html.lite-mode .welcome-role-emblem::before,html.lite-mode .welcome-role-emblem::after { display:none!important; }
@@ -15981,6 +16007,9 @@ html.lite-mode .role-store-card,.html.lite-mode .admin-user-row { animation: non
 @media (max-width:620px){.roles-v2-hero,.admin-v2-header{padding:19px}.roles-v2-entitlements{grid-template-columns:1fr}.roles-v2-toolbar{align-items:stretch;flex-direction:column}.roles-v2-cycle{align-self:start}.roles-v2-checkout{grid-template-columns:auto minmax(0,1fr);bottom:5px}.roles-v2-checkout>strong{grid-column:2}.roles-v2-checkout .roles-v2-confirm{grid-column:1/-1}.admin-v2-nav{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-v2-toolbar{grid-template-columns:1fr}.admin-v2-toolbar label{grid-column:auto}.admin-v2-user{grid-template-columns:22px 38px minmax(0,1fr)}.admin-v2-avatar,.admin-v2-avatar img{width:38px;height:38px}.admin-v2-user-action{grid-column:3;justify-content:space-between;margin-top:3px}.admin-v2-user-action select{flex:1;max-width:none}.admin-v2-user-action button span{display:none}.admin-v2-forum article,.admin-v2-audit article{grid-template-columns:28px minmax(0,1fr)}.admin-v2-forum article>em{grid-column:2}.admin-v2-diff>div{grid-template-columns:1fr auto auto}.admin-v2-diff>div strong{grid-column:1/-1}.admin-v2-analytics-grid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.role-v2-card,.admin-v2-user,.admin-v2-review{animation:none}.role-v2-card,.admin-v2-nav button,.admin-v2-user,.roles-v2-checkout{transition-duration:.01ms}}
 html.lite-mode .role-v2-card,html.lite-mode .admin-v2-user,html.lite-mode .admin-v2-review{animation:none}
+.admin-v2-pending{display:grid;gap:8px;margin:12px 0;padding:11px;border:1px solid var(--workspace-line);border-radius:11px;background:rgba(129,116,255,.08)}
+.admin-v2-pending small{color:var(--workspace-muted);font:700 9px var(--font-data);letter-spacing:.1em}
+.admin-v2-pending img{width:96px;height:96px;border-radius:12px;object-fit:cover}
 /* A single account hub for profile, plans and administration. */
 .dashboard-modal.profile-wide,
 .dashboard-modal.profile-wide.store-wide,
@@ -17155,6 +17184,22 @@ body.light-theme :is(#updates .updates-search, #support .support-search, #accoun
 }
 html.lite-mode .tab-content.route-enter,
 html.lite-mode .tab-content.route-enter :is(.hero-text-block,.hero-visual-block,.account-cockpit-heading-copy,.account-cockpit-summary,.updates-heading-copy,.updates-featured,.dev-hero-copy,.dev-profile,.af-hero h2,.af-hero > p,.support-hero-copy,.support-response-card) { animation: none !important; }
+
+/* The update archive is long: keep its text steady while the user scrolls. */
+#updates.route-enter,
+#updates.route-enter .updates-heading-copy,
+#updates.route-enter .updates-featured,
+#updates .updates-header::before,
+#updates .updates-eyebrow i,
+#updates .timeline-line::after,
+#updates .updates-featured-live i,
+#updates .updates-header-decoration i { animation: none !important; }
+#updates .updates-header::before,
+#updates .timeline-line::after { display: none; }
+#updates .timeline-card::after { display: none; }
+#updates .animate-on-scroll,
+#updates .timeline-item { opacity: 1 !important; transform: none !important; transition: none !important; }
+#updates .release-details .changelog li { opacity: 1; transform: none; transition: none !important; }
 /* Spectral account surfaces: a calmer launcher workspace with one clear focus. */
 .dashboard-modal.glass-modal:not(.profile-wide){
   border:1px solid rgba(173,185,231,.22);
@@ -17883,14 +17928,6 @@ body.light-theme .nav-theme-toggle .theme-icon-moon { opacity: 1; transform: rot
 body.light-theme .navbar .nav-theme-toggle { color: #424d9d; border-color: rgba(77,91,154,.2); background: rgba(255,255,255,.72); box-shadow: inset 0 1px #fff, 0 5px 16px rgba(68,85,142,.08); }
 body.light-theme .navbar .nav-theme-toggle:hover { color: #27347d; border-color: rgba(69,83,176,.42); background: #fff; }
 
-/* A short reveal keeps gradients and illustrations coherent while changing palette. */
-::view-transition { pointer-events: none; }
-::view-transition-old(root) { animation: none; }
-::view-transition-new(root) { animation: themeReveal .56s cubic-bezier(.18,.8,.25,1) both; }
-@keyframes themeReveal {
-    from { clip-path: circle(0 at var(--theme-origin-x, 50%) var(--theme-origin-y, 50%)); }
-    to { clip-path: circle(var(--theme-radius, 150vmax) at var(--theme-origin-x, 50%) var(--theme-origin-y, 50%)); }
-}
 body.theme-switching :is(.navbar,.nav-links-container,.dashboard-modal,.acc-panel,.timeline-card,.feature-card,.support-channel,.faq-item) {
     transition: color .38s ease, background-color .42s ease, border-color .42s ease, box-shadow .42s ease;
 }
@@ -17935,11 +17972,8 @@ body.theme-switching :is(.navbar,.nav-links-container,.dashboard-modal,.acc-pane
     .navbar .logo-container { flex: 0 0 auto; }
 }
 @media (prefers-reduced-motion: reduce) {
-    ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
     .navbar .nav-theme-toggle, .nav-theme-toggle i { transition: none !important; }
 }
-html.lite-mode ::view-transition-old(root),
-html.lite-mode ::view-transition-new(root) { animation: none; }
 /* Site atmosphere and the product preview are the final visual layer. */
 body {
     background: radial-gradient(80% 70% at 68% 0%, #121b45 0%, #080e25 52%, #050916 100%);
@@ -19356,3 +19390,368 @@ body.light-theme .roles-v2-checkout p,body.light-theme .roles-v2-checkout-total 
 @media (hover: none) { .role-v2-card::after { display: none; } }
 html.lite-mode .role-v2-card,html.lite-mode .role-v2-art-emblem,html.lite-mode .role-v2-art-orbit,html.lite-mode .role-v2-card::after { animation: none; transition: none; }
 html.lite-mode .role-v2-card::after { display: none; }
+/* Visual repairs for the home, source walkthrough, features and ideas sections. */
+
+#home .hero-text-block h1 {
+    line-height: 1.12;
+    letter-spacing: -.055em;
+    padding-block: .035em .09em;
+}
+#home .hero-text-block h1 .text-gradient {
+    display: block;
+    padding-bottom: .035em;
+}
+
+/* Keep source text present even when page motion is paused mid-reveal. */
+#development.development-premium .code-editor {
+    border-radius: 20px;
+    overflow: hidden;
+}
+#development .code-pane--in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+}
+#development .code-pane--in::after { display: none; }
+#development .code-content pre {
+    width: max-content;
+    min-width: 100%;
+    color: #c7d0e5;
+}
+
+/* The legacy cards must occupy the explicit three-column grid one cell at a time. */
+#advanced-features.legacy-tab-style .af-features-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+}
+#advanced-features.legacy-tab-style .af-card,
+#advanced-features.legacy-tab-style .af-card.af-card--wide {
+    grid-column: auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 286px;
+    padding: 28px;
+    border-radius: 22px;
+}
+#advanced-features.legacy-tab-style .af-card:nth-child(7) { --legacy-accent: #858bff; }
+#advanced-features.legacy-tab-style .af-card:nth-child(8) { --legacy-accent: #59caa9; }
+#advanced-features.legacy-tab-style .af-card:nth-child(9) { --legacy-accent: #ed83c4; }
+#advanced-features.legacy-tab-style .af-card:nth-child(10) { --legacy-accent: #f1b95d; }
+#advanced-features.legacy-tab-style .af-card:nth-child(11) { --legacy-accent: #5ea7ff; }
+#advanced-features.legacy-tab-style .af-card:nth-child(12) { --legacy-accent: #b28bff; }
+#advanced-features.legacy-tab-style .af-card-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 20px;
+    border: 1px solid color-mix(in srgb, var(--legacy-accent) 33%, transparent);
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--legacy-accent) 12%, transparent);
+    font-size: 1.25rem;
+    line-height: 1;
+}
+#advanced-features.legacy-tab-style .af-card-icon i {
+    display: block;
+    line-height: 1;
+}
+#advanced-features.legacy-tab-style .af-card-num {
+    top: 28px;
+    right: 28px;
+    color: color-mix(in srgb, var(--legacy-accent) 47%, transparent);
+    font-size: 2rem;
+    line-height: 1;
+}
+#advanced-features.legacy-tab-style .af-card > h4 {
+    margin: 0 0 10px;
+}
+#advanced-features.legacy-tab-style .af-card > p {
+    flex: 1;
+    margin: 0 0 20px;
+}
+#advanced-features.legacy-tab-style .af-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: auto;
+}
+
+#support.legacy-tab-style .forum-section {
+    padding: 26px;
+    overflow: hidden;
+    border: 1px solid var(--returned-card-border);
+    border-radius: 24px;
+    background: linear-gradient(150deg, var(--returned-card-a), var(--returned-card-b));
+    box-shadow: var(--returned-shadow);
+}
+#support.legacy-tab-style .forum-header-row {
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 0 0 24px;
+    border-bottom: 1px solid var(--returned-card-border);
+}
+#support.legacy-tab-style .forum-header-row > div:first-child {
+    flex: 1 1 360px;
+    min-width: 0;
+}
+#support.legacy-tab-style .forum-header-row p {
+    margin-top: 8px !important;
+    line-height: 1.55;
+}
+#support.legacy-tab-style .forum-write-wrap {
+    align-self: center;
+}
+
+@media (max-width: 900px) {
+    #advanced-features.legacy-tab-style .af-features-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 620px) {
+    #advanced-features.legacy-tab-style .af-features-grid { grid-template-columns: minmax(0, 1fr); }
+    #advanced-features.legacy-tab-style .af-card,
+    #advanced-features.legacy-tab-style .af-card.af-card--wide { min-height: 0; }
+    #support.legacy-tab-style .forum-section { padding: 20px; }
+    #support.legacy-tab-style .forum-header-row { flex-direction: column; align-items: stretch; }
+    #support.legacy-tab-style .forum-header-row > div:first-child { flex-basis: auto; }
+    #support.legacy-tab-style .forum-write-wrap { align-self: flex-start; }
+}
+/* Daylight theme: quiet porcelain surfaces, readable ink and restrained color. */
+body.light-theme {
+    --bg-dark: #f7f8f6;
+    --text: #1d2b42;
+    --text-muted: #4d5d73;
+    --glass-bg: rgba(255, 255, 255, .9);
+    --glass-border: #d8e0e8;
+    --day-ink: #263650;
+    --day-heading: #17253c;
+    --day-copy: #4d5d73;
+    --day-muted: #586b80;
+    --day-line: #d9e1e9;
+    --day-line-strong: #b6c6d8;
+    --day-surface: #fff;
+    --day-surface-soft: #f2f6f7;
+    --day-shadow: 0 18px 44px rgba(31, 55, 83, .075), inset 0 1px #fff;
+    --returned-card-a: #fff;
+    --returned-card-b: #f5f8fa;
+    --returned-card-border: #d9e1e9;
+    --returned-shadow: 0 14px 36px rgba(29, 52, 78, .07), inset 0 1px #fff;
+    background: radial-gradient(80% 70% at 10% 4%, #eef3f0, transparent 72%),
+        radial-gradient(70% 65% at 100% 82%, #edf3f8, transparent 76%),
+        #f7f8f6;
+}
+body.light-theme #particles-canvas { opacity: .09; }
+body.light-theme .light-bg-shapes,
+body.light-theme .ambient-light { display: none; }
+body.light-theme .bg-gradient-overlay {
+    background: radial-gradient(55% 62% at 2% 2%, rgba(91, 121, 147, .055), transparent 75%),
+        radial-gradient(48% 62% at 96% 72%, rgba(48, 126, 144, .05), transparent 76%);
+    animation: none;
+}
+body.light-theme .bg-gradient-overlay::after,
+body.light-theme .vignette,
+body.light-theme::before { display: none; }
+
+body.light-theme .navbar.glass-nav,
+body.light-theme .navbar.glass-nav.is-scrolled {
+    background: rgba(247, 248, 246, .92) !important;
+    border-bottom: 1px solid rgba(194, 207, 217, .75);
+    box-shadow: 0 8px 30px rgba(30, 53, 78, .045);
+}
+body.light-theme .navbar.glass-nav .nav-links-container.glass {
+    border-color: #dce4eb;
+    background: rgba(255, 255, 255, .94) !important;
+    box-shadow: 0 5px 18px rgba(32, 55, 80, .055), inset 0 1px #fff;
+}
+body.light-theme .navbar .nav-active-indicator {
+    border-color: #c8d7df;
+    background: #e8f0f2;
+    box-shadow: none;
+}
+body.light-theme .navbar .nav-links-container .nav-btn { color: #4b6073; }
+body.light-theme .navbar .nav-links-container .nav-btn.active { color: #234b70; }
+body.light-theme .navbar .nav-links-container .nav-btn.active i { color: #33648b; }
+body.light-theme .navbar .btn-account,
+body.light-theme .navbar .nav-theme-toggle {
+    color: #285070;
+    border-color: #d6e1e9;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(31, 54, 77, .055);
+}
+body.light-theme .navbar .logo-text,
+body.light-theme #accountText { color: #1c2b42; }
+
+body.light-theme :is(#home,#accounts,#updates,#development,#advanced-features,#support) :is(h1,h2,h3,h4) {
+    color: var(--day-heading);
+}
+body.light-theme :is(#home,#accounts,#updates,#development,#advanced-features,#support) :is(p,small) {
+    color: var(--day-copy);
+}
+body.light-theme :is(#home,#accounts,#updates,#development,#advanced-features,#support) .text-gradient,
+body.light-theme #home .hero-text-block .text-gradient {
+    background: linear-gradient(105deg, #355d89, #4d5aab 54%, #765887);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+body.light-theme #home .hero-quick-points span { color: #41576d; }
+body.light-theme #home .hero-quick-points i { color: #39768a; }
+body.light-theme #home .launcher-ui {
+    border-color: #becddc;
+    color: #1d2b42;
+    background: #edf3f6;
+    box-shadow: 0 26px 55px rgba(28, 53, 83, .16), 0 0 0 7px rgba(255, 255, 255, .5);
+}
+body.light-theme .launcher-presentation::before {
+    background: radial-gradient(ellipse, rgba(74, 113, 151, .17), transparent 70%);
+}
+body.light-theme #home .lu-winbar { border-bottom-color: #cbdbe5; background: #f8fafb; }
+body.light-theme #home .lu-brand { color: #213950; text-shadow: none; }
+body.light-theme #home .lu-nav { border-color: #d4e0e9; background: #eaf0f4; box-shadow: none; }
+body.light-theme #home .lu-nav-tab { color: #50657b; }
+body.light-theme #home .lu-nav-tab.active { color: #fff; background: #436b95; box-shadow: 0 3px 9px rgba(36, 76, 116, .2); }
+body.light-theme #home .lu-winctl { color: #6b8091; }
+body.light-theme #home .lu-hero { border-right-color: #d3e1e9; }
+body.light-theme #home .lu-hero-bg {
+    background: radial-gradient(65% 70% at 58% 39%, #e3effa, transparent 72%),
+        radial-gradient(64% 75% at 85% 88%, #d9eeea, transparent 78%),
+        linear-gradient(150deg, #f8fbfd, #e8f0f5);
+}
+body.light-theme #home .lu-hero-bg::after { opacity: .2; }
+body.light-theme #home .lu-nebula { opacity: .2; }
+body.light-theme #home .lu-stars i { background: #8ca9c5; box-shadow: none; }
+body.light-theme #home .lu-orbit { border-color: rgba(70, 114, 164, .25); box-shadow: none; }
+body.light-theme #home .lu-build-tag { color: #2e5f6b; border-color: #bfddd9; background: #f5fcfa; box-shadow: none; }
+body.light-theme #home .lu-profile { border-color: #cfdee8; background: rgba(255,255,255,.82); box-shadow: 0 8px 20px rgba(30, 55, 81, .08); }
+body.light-theme #home .lu-profile b,
+body.light-theme #home .lu-game-copy > strong { color: #1b304c; }
+body.light-theme #home .lu-profile span > small,
+body.light-theme #home .lu-profile em,
+body.light-theme #home .lu-game-copy .lu-meta { color: #49667b; }
+body.light-theme #home .lu-game-copy { text-shadow: none; }
+body.light-theme #home .lu-game-copy .lu-eyebrow { color: #426b83; }
+body.light-theme #home .lu-version { color: #27445d; border-color: #c7d9e4; background: #fff; }
+body.light-theme #home .lu-friends { border-left-color: #d1dfe8; background: #f0f6f8; }
+body.light-theme #home .lu-social-kicker,
+body.light-theme #home .lu-friends-wait,
+body.light-theme #home .lu-friends-wait p,
+body.light-theme #home .lu-friends-foot { color: #526b7d; }
+body.light-theme #home .lu-friends-head { color: #243950; }
+body.light-theme #home .lu-friends-head span { color: #346078; border-color: #cbdde5; background: #fff; }
+body.light-theme #home .lu-friends-foot { border-top-color: #d5e2e9; }
+body.light-theme #accounts .account-cockpit-heading .text-gradient {
+    background: linear-gradient(105deg, #355d89, #4d5aab 54%, #765887);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+body.light-theme #accounts .account-cockpit-kicker,
+body.light-theme #updates .updates-eyebrow,
+body.light-theme #development .dev-eyebrow,
+body.light-theme #advanced-features .af-hero-badge,
+body.light-theme #advanced-features .af-showcase-tag,
+body.light-theme #support .support-badge {
+    color: #315f76;
+    border-color: #c4dbe0;
+    background: #e7f2f3;
+}
+body.light-theme #advanced-features.legacy-tab-style .af-card-num {
+    color: color-mix(in srgb, var(--legacy-accent) 70%, #244158);
+    opacity: .7;
+}
+
+/* Main routes share one surface hierarchy while retaining their own layouts. */
+body.light-theme #updates :is(.updates-heading,.updates-featured,.updates-toolbar,.timeline-card),
+body.light-theme #development.development-premium :is(.dev-hero,.dev-document-index,.dev-pipeline,.dev-systems,.dev-source),
+body.light-theme #advanced-features.legacy-tab-style :is(.af-hero,.af-showcase,.af-card,.af-stats-strip),
+body.light-theme #support.legacy-tab-style :is(.support-hub-hero,.support-channel,.support-knowledge-studio,.fix-card,.faq-item,.support-cta,.forum-section,.forum-post-card) {
+    border-color: var(--day-line) !important;
+    background: linear-gradient(155deg, #fff, #f5f8fa) !important;
+    box-shadow: var(--day-shadow) !important;
+}
+body.light-theme #updates .timeline-card,
+body.light-theme #advanced-features.legacy-tab-style .af-card,
+body.light-theme #support.legacy-tab-style :is(.faq-item,.forum-post-card) {
+    transition: transform .32s cubic-bezier(.22,.8,.28,1), border-color .24s ease, box-shadow .32s ease;
+}
+body.light-theme #updates .timeline-card:hover,
+body.light-theme #advanced-features.legacy-tab-style .af-card:hover,
+body.light-theme #support.legacy-tab-style :is(.faq-item,.forum-post-card):hover {
+    border-color: #b7cdd9 !important;
+    background: linear-gradient(155deg, #fff, #f0f6f7) !important;
+    box-shadow: 0 20px 42px rgba(31, 64, 83, .1) !important;
+}
+body.light-theme #updates :is(.updates-search,.updates-filter,.date-badge),
+body.light-theme #support :is(.support-search,.support-topic-strip button),
+body.light-theme #advanced-features .af-card-tags span {
+    border-color: #d5e0e8;
+    color: #36536c;
+    background: #f4f8f9;
+}
+body.light-theme #updates .updates-filter.active,
+body.light-theme #support .support-topic-strip button.active {
+    border-color: #aac5d4;
+    color: #1d5270;
+    background: #e5f1f3;
+}
+body.light-theme #support.legacy-tab-style .forum-section {
+    background: linear-gradient(155deg, #fff, #f5f8fa) !important;
+}
+
+/* Source editor and terminal use darker text on the daylight surface. */
+body.light-theme #development.development-premium .code-editor,
+body.light-theme #advanced-features .af-terminal {
+    border-color: #ccd9e4;
+    background: #f5f8fa !important;
+    box-shadow: 0 14px 34px rgba(31, 55, 83, .09);
+}
+body.light-theme #development .code-editor-header,
+body.light-theme #advanced-features .af-terminal-bar {
+    border-bottom-color: #d8e2e9;
+    background: #eaf1f4;
+}
+body.light-theme #development .code-content pre { color: #263950; }
+body.light-theme #development .comment { color: #617286; }
+body.light-theme #advanced-features .af-terminal-body,
+body.light-theme #advanced-features .t-text { color: #2a4056; }
+body.light-theme #advanced-features .t-info .t-text { color: #285e94; }
+body.light-theme #advanced-features :is(.t-ok,.t-success) .t-text { color: #176e58; }
+
+/* Profile and sign-in surfaces remain calm and legible over the page. */
+body.light-theme .dashboard-overlay { background: rgba(31, 47, 65, .38); }
+body.light-theme .dashboard-modal.glass-modal:not(.profile-wide) {
+    border-color: #cbd9e2;
+    background: linear-gradient(160deg, #fff, #f3f7f8) !important;
+    box-shadow: 0 28px 78px rgba(25, 46, 66, .2);
+}
+body.light-theme .dashboard-modal.profile-wide.glass-modal {
+    border-color: #cbd9e2;
+    background: #f7faf9 !important;
+}
+body.light-theme #profileView > .ptab-content { background: #f7faf9; }
+body.light-theme .dashboard-modal:not(.profile-wide) :is(.auth-sub,.auth-provider-hint,.auth-switch) { color: #53677a; }
+body.light-theme .dashboard-modal:not(.profile-wide) .input-group-animated input {
+    border-color: #bfceda;
+    background: #fff;
+    color: #1d2b42;
+}
+body.light-theme .dashboard-modal:not(.profile-wide) .input-group-animated input:focus {
+    border-color: #4d7fa2;
+    box-shadow: 0 0 0 3px rgba(72, 130, 159, .14);
+}
+body.light-theme .dashboard-modal:not(.profile-wide) .input-group-animated input::placeholder { color: #53677a; }
+
+/* Replace the circular wipe with a soft, directional crossfade. */
+::view-transition { pointer-events: none; }
+::view-transition-image-pair(root) { isolation: isolate; }
+::view-transition-old(root) { animation: themeOldAway .38s ease-in both; }
+::view-transition-new(root) { animation: themeNewArrive .64s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes themeOldAway { to { opacity: 0; } }
+@keyframes themeNewArrive {
+    from { opacity: 0; transform: translate3d(0, 8px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root), ::view-transition-new(root) { animation: none !important; }
+}
+html.lite-mode ::view-transition-old(root),
+html.lite-mode ::view-transition-new(root) { animation: none !important; }

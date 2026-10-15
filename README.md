@@ -49,6 +49,7 @@ minified assets loaded by `index.html`.
 ├── tools/                       # Source manifest and composition builder
 ├── supabase/                    # Optional RLS/database migrations
 ├── _headers                     # Security and cache headers for compatible hosts
+├── vercel.json                  # Security response headers on Vercel
 ├── boot.js / boot.min.js        # Generated pre-render performance detector
 ├── index.html                   # Generated compatibility markup
 ├── style.css / style.min.css    # Generated development/production styles
@@ -87,6 +88,8 @@ an Auth identity with an internal, confirmed address. The address is never
 shown as a contact email, and password recovery is unavailable until a real
 email is added through a future account-linking flow. The database trigger in
 `supabase/auth_profile_registration.sql` creates its `site_users` profile.
+Apply that SQL again to grant Veteran to existing Auth accounts created before
+May 1, 2027 (UTC). The migration keeps existing premium and staff roles.
 An authenticated session loads that profile and the owner's related data.
 Existing browser-only accounts are separate legacy demo data; they are not
 automatically converted to Auth identities.
@@ -107,8 +110,24 @@ for new rows without deleting that history. Reconcile the old rows before
 validating the constraints.
 
 The current Supabase project also has the account administration and community
-RPC migrations. Idea submissions wait for a moderator to approve them; assign
-staff roles only to a verified owner identity through a trusted database action.
+RPC migrations. Assign staff roles only to a verified owner identity through a
+trusted database action.
+Apply `supabase/account_moderation.sql` after `supabase/account_administration.sql`
+and `supabase/automated_moderation.sql` after account and community migrations.
+Deploy `supabase/functions/admin-password` with JWT verification enabled.
+Redeploy `supabase/functions/username-auth` for the registration name filter.
+The new migration keeps submitted avatars private until an administrator
+approves them, validates names at the database boundary, and records account
+and moderation changes in the audit history. Password changes use the Edge
+Function with a server-only service key; passwords never appear in audit rows.
+Set `OPENAI_API_KEY` as a Supabase Edge Function secret and deploy
+`supabase/functions/moderate-content` with JWT verification enabled. It uses
+OpenAI's free Moderation endpoint for submitted WebP avatars and idea text.
+Safe ideas publish immediately; flagged ideas are rejected and both decisions
+are audited. Avatars remain private while the service is unavailable and can
+still be reviewed by staff. The API key must never be placed in browser code.
+After applying the automated migration, deploy `moderate-content` before
+publishing the updated website: the old direct idea submission RPC is revoked.
 The developer identity `_Kaiserr_` is linked to the existing Google Auth user;
 use **Continue with Google** for that account. The old `su_dev` demo record
 remains as `legacy_kaiserr_` without staff permissions.
@@ -132,6 +151,11 @@ are public client identifiers. To connect a different project:
 1. Apply and review `supabase/security_hardening.sql` and
    `supabase/auth_profile_registration.sql` against its schema. Apply the
    administration and community migrations if those features are used. Apply
+   `supabase/account_moderation.sql` after the administration migration, then
+   `supabase/automated_moderation.sql` after the community migration. Set the
+   `OPENAI_API_KEY` Edge Function secret. Deploy `moderate-content` and
+   `admin-password` with JWT verification enabled.
+   Redeploy `username-auth` with its existing pre-sign-in JWT setting.
    `supabase/username_auth.sql` before deploying
    `supabase/functions/username-auth/index.ts`. The function must allow calls
    without a legacy JWT because registration starts before a session exists.

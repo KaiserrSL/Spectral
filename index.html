@@ -9,15 +9,15 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="spectral-supabase-url" content="https://iliokfdcwdcnyjfwmbie.supabase.co">
     <meta name="spectral-supabase-publishable-key" content="sb_publishable_QahB4QYGnHVw5Xx1Fs7Bbw_H2CYYI1t">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://minotar.net https://ely.by https://*.googleusercontent.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; manifest-src 'self'; worker-src 'none'">
-    <meta name="description" content="Spectral Launcher - Qt 6 C++ Minecraft launcher with local instances, Java management, console logs, accounts, mods, and RU/EN interface">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data: blob: https://minotar.net https://ely.by https://*.googleusercontent.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; manifest-src 'self'; worker-src 'none'">
+    <meta name="description" content="Spectral Launcher for Minecraft: Java Edition. Keep builds and worlds separate, install compatible mods and modpacks, select Java, and inspect launch errors.">
     <title>Spectral Launcher | Qt Minecraft Launcher</title>
     <link rel="icon" href="Icon-256.png" type="image/png">
     <script src="boot.min.js?v=1"></script>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preload" href="assets/fonts/Onest-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="style.min.css?v=53">
+    <link rel="stylesheet" href="style.min.css?v=59">
 </head>
 <body>
     <script src="theme-init.js?v=1"></script>
@@ -78,7 +78,7 @@
             <div class="hero-container">
                 <div class="hero-text-block animate-on-scroll">
                     <h1>Your worlds.<br><span class="text-gradient">Ready to launch.</span></h1>
-                    <p>Keep versions, mods and profiles in one place. If a game fails to start, follow the last error instead of guessing.</p>
+                    <p>A desktop launcher for Minecraft: Java Edition. Keep each build's worlds and mods separate, choose a compatible Java runtime, and inspect launch errors in the Console.</p>
                     <div class="cta-group">
                         <a href="https://github.com/KaiserrSL/spectral-downloads/releases/latest/download/SpectralSetup_Installer.exe" class="btn-primary ripple magnetic-btn" id="downloadBtn"><span>Download</span><i class="fas fa-download"></i></a>
                         <a href="#advanced-features" class="btn-secondary magnetic-btn"><span><i class="fas fa-layer-group"></i> Features</span></a>
@@ -159,18 +159,18 @@
                                 <div class="feature-instance-row is-ready"><span><i class="fas fa-cube"></i></span><div><strong>Survival 1.21.1</strong><small>Fabric · 4096 MB</small></div><em><i></i> Ready</em></div>
                                 <div class="feature-instance-row"><span><i class="fas fa-flask"></i></span><div><strong>Modded Lab</strong><small>Forge · 6144 MB</small></div><em>Local</em></div>
                             </div>
-                            <div class="feature-benefits"><span>Isolated folders</span><span>Per-instance Java</span><span>Fast switching</span></div>
+                            <div class="feature-benefits"><span>Isolated folders</span><span>Automatic Java matching</span><span>Fast switching</span></div>
                             </div>
                         </div>
                         <span class="feature-card-open"><b>In focus</b><i class="fas fa-arrow-right"></i></span>
                     </article>
                     <article class="feature-card animate-on-scroll delay-2" tabindex="0" role="button" aria-pressed="false" data-home-feature="mods">
                         <div class="feature-card-top"><span>02 / Content</span><div class="f-icon"><i class="fas fa-puzzle-piece"></i></div></div>
-                        <div class="feature-card-main"><small>Modrinth inside</small><h3>Mods</h3><p>Browse, install and update instance content without leaving the launcher.</p></div>
+                        <div class="feature-card-main"><small>Modrinth inside</small><h3>Mods</h3><p>Find compatible mods, resource packs and shaders; check installed Modrinth mods for updates.</p></div>
                         <div class="feature-card-extra">
                             <div class="feature-card-extra-inner">
                             <div class="feature-mini-window feature-mod-preview">
-                                <div class="feature-mini-head"><span><i class="fas fa-compass"></i> Discover</span><b>12 updates</b></div>
+                                <div class="feature-mini-head"><span><i class="fas fa-compass"></i> Discover</span><b>Compatible files</b></div>
                                 <div class="feature-mod-row"><span class="feature-mod-mark">S</span><div><strong>Sodium</strong><small>Performance · Fabric</small></div><em class="feature-update-pill">Update</em></div>
                                 <div class="feature-mod-row"><span class="feature-mod-mark alt">I</span><div><strong>Iris Shaders</strong><small>Visuals · Fabric</small></div><em>Installed</em></div>
                             </div>
@@ -181,12 +181,12 @@
                     </article>
                     <article class="feature-card animate-on-scroll delay-3" tabindex="0" role="button" aria-pressed="false" data-home-feature="accounts">
                         <div class="feature-card-top"><span>03 / Identity</span><div class="f-icon"><i class="fas fa-users-cog"></i></div></div>
-                        <div class="feature-card-main"><small>Player profiles</small><h3>Accounts</h3><p>Stable local identities with skin previews, playtime and instant profile switching.</p></div>
+                        <div class="feature-card-main"><small>Player profiles</small><h3>Accounts</h3><p>Switch offline or Ely.by profiles. Sign in to Spectral separately to sync profile details and see friends.</p></div>
                         <div class="feature-card-extra">
                             <div class="feature-card-extra-inner">
                             <div class="feature-mini-window feature-account-preview">
-                                <div class="feature-mini-head"><span><i class="fas fa-user-shield"></i> Active profile</span><b><i></i> Online</b></div>
-                                <div class="feature-profile-row"><span><i class="fas fa-user"></i></span><div><strong>Player</strong><small>Offline profile · skin ready</small></div><em class="feature-switch-icon"><i class="fas fa-repeat"></i></em></div>
+                                <div class="feature-mini-head"><span><i class="fas fa-user-shield"></i> Active profile</span><b><i></i> Local</b></div>
+                                <div class="feature-profile-row"><span><i class="fas fa-user"></i></span><div><strong>Player</strong><small>Offline profile · local play</small></div><em class="feature-switch-icon"><i class="fas fa-repeat"></i></em></div>
                                 <div class="feature-profile-meta"><span><small>Playtime</small><b>42h 18m</b></span><span><small>Identity</small><b>Stable UUID</b></span></div>
                             </div>
                             <div class="feature-benefits"><span>Skin preview</span><span>Offline UUID</span><span>Quick switch</span></div>
@@ -194,17 +194,17 @@
                         </div>
                         <span class="feature-card-open"><b>Focus this tool</b><i class="fas fa-arrow-right"></i></span>
                     </article>
-                    <article class="feature-card animate-on-scroll delay-4" tabindex="0" role="button" aria-pressed="false" data-home-feature="ai">
-                        <div class="feature-card-top"><span>04 / Assistant</span><div class="f-icon"><i class="fas fa-robot"></i></div></div>
-                        <div class="feature-card-main"><small>Launcher-aware AI</small><h3>SpectrAI</h3><p>Get help with mods, settings and real launch diagnostics in a built-in assistant.</p></div>
+                    <article class="feature-card animate-on-scroll delay-4" tabindex="0" role="button" aria-pressed="false" data-home-feature="diagnostics">
+                        <div class="feature-card-top"><span>04 / Recovery</span><div class="f-icon"><i class="fas fa-stethoscope"></i></div></div>
+                        <div class="feature-card-main"><small>When launch stops</small><h3>Diagnostics</h3><p>Check required files, copy a report, restore supported versions and review likely crash causes.</p></div>
                         <div class="feature-card-extra">
                             <div class="feature-card-extra-inner">
                             <div class="feature-mini-window feature-ai-preview">
-                                <div class="feature-mini-head"><span><i class="fas fa-wand-magic-sparkles"></i> SpectrAI</span><b><i></i> Ready</b></div>
-                                <div class="feature-ai-question">Why did my instance fail?</div>
-                                <div class="feature-ai-answer"><span><i class="fas fa-robot"></i></span><p>This version requires Java 17. I found Java 8 in the selected path.</p></div>
+                                <div class="feature-mini-head"><span><i class="fas fa-shield-halved"></i> Check &amp; repair</span><b><i></i> Report</b></div>
+                                <div class="feature-ai-question">Why did my build fail?</div>
+                                <div class="feature-ai-answer"><span><i class="fas fa-terminal"></i></span><p>Check the Console, Java, libraries and assets. Restore supported version files if needed.</p></div>
                             </div>
-                            <div class="feature-benefits"><span>Log-aware help</span><span>Mod guidance</span><span>Settings support</span></div>
+                            <div class="feature-benefits"><span>File checks</span><span>Crash analysis</span><span>Copyable report</span></div>
                             </div>
                         </div>
                         <span class="feature-card-open"><b>Focus this tool</b><i class="fas fa-arrow-right"></i></span>
@@ -220,7 +220,7 @@
                     <div class="account-cockpit-heading-copy">
                         <span class="account-cockpit-kicker"><i class="fas fa-fingerprint"></i> Identity cockpit</span>
                         <h2>One launcher.<br><span class="text-gradient">Every version of you.</span></h2>
-                        <p>Switch Minecraft identities, inspect the active signal and keep your player network close without leaving one workspace.</p>
+                        <p>Manage game profile details linked to your Spectral site account and keep your friends close. Sign in to Ely.by separately in the desktop launcher.</p>
                     </div>
                     <div class="account-cockpit-summary" aria-label="Account overview">
                         <span><i class="fas fa-layer-group"></i><b id="cockpitProfileCount">0</b><small>Profiles</small></span>
@@ -236,7 +236,7 @@
                     <div class="ln-icon"><i class="fas fa-gamepad"></i></div>
                     <div class="ln-body">
                         <strong>Site account required</strong>
-                        <span>Sign in to your Spectral account to manage your personal Minecraft profiles. Each user has their own separate set.</span>
+                        <span>Sign in to manage synced game profile details and friends. Game files and Ely.by authorization remain on your computer.</span>
                     </div>
                     <button type="button" class="ln-signin-btn" id="noticeSignInBtn"><i class="fas fa-sign-in-alt"></i> Sign In</button>
                 </div>
@@ -247,7 +247,7 @@
                             <div class="cockpit-rail-head">
                                 <div><small>Identity bank</small><h3 id="cockpitProfilesTitle">Your profiles</h3></div>
                             </div>
-                            <p class="cockpit-rail-hint">Select an identity to route it into the launcher core.</p>
+                            <p class="cockpit-rail-hint">Select a profile to save it as your preferred game identity.</p>
                             <button type="button" class="cockpit-add-profile" id="openAddAccountBtn" aria-label="Add Minecraft profile"><i class="fas fa-plus" aria-hidden="true"></i><span>Add profile</span></button>
                             <div class="accounts-grid" id="accountsGrid"></div>
                             <div class="accounts-empty" id="accountsEmpty" style="display:none;">
@@ -262,21 +262,21 @@
                             </div>
                         </aside>
 
-                        <div class="cockpit-core" id="activeAccountBanner" role="region" aria-label="Active launcher identity">
+                        <div class="cockpit-core" id="activeAccountBanner" role="region" aria-label="Selected game profile">
                             <div class="active-account-glow"></div>
                             <div class="cockpit-core-grid" aria-hidden="true"></div>
                             <div class="cockpit-core-rings" aria-hidden="true"><i></i><i></i><i></i></div>
                             <div class="cockpit-core-topline">
-                                <span id="cockpitCoreStatus"><i></i> Launcher identity online</span>
-                                <em><i class="fas fa-satellite-dish"></i> Local signal</em>
+                                <span id="cockpitCoreStatus"><i></i> Selected game profile</span>
+                                <em><i class="fas fa-satellite-dish"></i> Site metadata</em>
                             </div>
                             <div class="active-account-left">
                                 <div class="active-account-avatar" id="activeAvatar">
-                                    <img id="activeAvatarImg" src="" alt="Avatar" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer">
+                                    <img id="activeAvatarImg" src="assets/avatar-placeholder.svg" alt="Avatar" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer">
                                     <div class="active-badge"><i class="fas fa-check"></i></div>
                                 </div>
                                 <div class="active-account-info">
-                                    <div class="active-account-label">Currently routed</div>
+                                    <div class="active-account-label">Selected profile</div>
                                     <div class="active-account-name" id="activeAccountName">—</div>
                                     <div class="active-account-type" id="activeAccountType"></div>
                                 </div>
@@ -290,12 +290,12 @@
                                 <div class="acc-stat"><i class="fas fa-calendar-alt"></i><span id="activeAccountDate">—</span><small>added</small></div>
                             </div>
                             <div class="account-ready-state">
-                                <span><i></i> Ready to launch</span>
-                                <small>This identity will be used for the next game session.</small>
+                                <span><i></i> Profile saved</span>
+                                <small>Open the desktop launcher to choose a build and confirm game authorization.</small>
                             </div>
                             <div class="no-accounts-msg" id="noAccountsMsg">
                                 <i class="fas fa-user-plus" aria-hidden="true"></i>
-                                <div><b>No identity routed</b><p>Add your first Minecraft profile to activate the cockpit.</p></div>
+                                <div><b>No profile selected</b><p>Add a game profile to start syncing its details.</p></div>
                             </div>
                         </div>
 
@@ -353,25 +353,25 @@
         <section id="updates" class="tab-content">
             <div class="updates-header animate-on-scroll">
                 <div class="updates-heading-copy">
-                    <span class="updates-eyebrow"><i class="fas fa-satellite-dish"></i> Release stream</span>
+                    <span class="updates-eyebrow"><i class="fas fa-satellite-dish"></i> Spectral timeline</span>
                     <h2>Update <span class="text-gradient">History</span></h2>
-                    <p>Follow every launcher release, interface improvement and important fix.</p>
+                    <p>An editorial timeline of launcher and website features. Dates illustrate the product story; for official release dates and downloads, check <a href="https://github.com/KaiserrSL/spectral-downloads/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a>.</p>
                     <div class="updates-overview" aria-label="Update statistics">
-                        <div><strong id="updatesReleaseCount">0</strong><span>Releases</span></div>
+                        <div><strong id="updatesReleaseCount">0</strong><span>Entries</span></div>
                         <div><strong id="updatesChangeCount">0</strong><span>Changes</span></div>
                         <div><strong id="updatesLatestDate">—</strong><span>Latest</span></div>
                     </div>
                 </div>
-                <aside class="updates-featured" id="updatesFeatured" aria-label="Latest release">
+                <aside class="updates-featured" id="updatesFeatured" aria-label="Latest timeline entry">
                     <div class="updates-featured-top">
                         <span class="updates-featured-icon"><i class="fas fa-bolt" id="updatesFeaturedIcon"></i></span>
-                        <span class="updates-featured-live"><i></i> Latest release</span>
+                        <span class="updates-featured-live"><i></i> Latest milestone</span>
                     </div>
-                    <strong id="updatesFeaturedTitle">Loading release…</strong>
-                    <p id="updatesFeaturedSummary">Preparing the latest release notes.</p>
+                    <strong id="updatesFeaturedTitle">Loading update…</strong>
+                    <p id="updatesFeaturedSummary">Preparing the latest update notes.</p>
                     <div class="updates-featured-meta"><span id="updatesFeaturedVersion">Latest</span><span id="updatesFeaturedChannel">Stable</span></div>
                     <div class="updates-featured-actions">
-                        <button type="button" class="updates-featured-open" id="updatesFeaturedOpen"><span>View release</span><i class="fas fa-arrow-down"></i></button>
+                        <button type="button" class="updates-featured-open" id="updatesFeaturedOpen"><span>View update</span><i class="fas fa-arrow-down"></i></button>
                         <button type="button" class="dev-write-btn" id="devWriteNewsBtn" style="display:none;">
                             <i class="fas fa-pen-nib"></i><span>Write Update</span>
                         </button>
@@ -382,7 +382,7 @@
             <div class="updates-toolbar animate-on-scroll delay-1">
                 <label class="updates-search" for="updatesSearchInput">
                     <i class="fas fa-search"></i>
-                    <input id="updatesSearchInput" type="search" placeholder="Search releases and changes…" autocomplete="off">
+                    <input id="updatesSearchInput" type="search" placeholder="Search features and changes…" autocomplete="off">
                     <kbd>Ctrl K</kbd>
                 </label>
                 <div class="updates-filters" id="updatesFilters" role="group" aria-label="Filter updates">
@@ -574,7 +574,7 @@
                 <div class="af-hero animate-on-scroll">
                     <div class="af-hero-badge"><i class="fas fa-star"></i> Actual Launcher</div>
                     <h2>Features that <span class="text-gradient">are actually built.</span></h2>
-                    <p>Explore the tools available in the desktop launcher and see what each one does.</p>
+                    <p>Explore the desktop launcher documented from Spectral 1.9.9. Minecraft: Java Edition builds and game files stay on your computer.</p>
                 </div>
                 <div class="af-showcase animate-on-scroll delay-1">
                     <div class="af-showcase-left">
@@ -598,22 +598,38 @@
                     </div>
                 </div>
                 <div class="af-features-grid">
-                    <div class="af-card animate-on-scroll delay-1" data-color="#6366f1"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-cubes"></i></div><div class="af-card-num">01</div><h4>Instance Library</h4><p>Each local build has its own folder, version, loader metadata, memory profile and game settings.</p><div class="af-card-tags"><span>Mods</span><span>Configs</span><span>Worlds</span></div></div>
-                    <div class="af-card animate-on-scroll delay-2" data-color="#10b981"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-coffee"></i></div><div class="af-card-num">02</div><h4>Java Manager</h4><p>Finds a suitable Java version for the selected Minecraft release and passes it into the launch settings.</p><div class="af-card-tags"><span>Java 8</span><span>Java 17</span><span>Java 21</span></div></div>
-                    <div class="af-card animate-on-scroll delay-3" data-color="#ec4899"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-puzzle-piece"></i></div><div class="af-card-num">03</div><h4>Mod Manager</h4><p>Browse and install mods from Modrinth without leaving the launcher. Enable or disable files, auto-update everything and keep an update history.</p><div class="af-card-tags"><span>Modrinth</span><span>Auto-update</span><span>History</span></div></div>
-                    <div class="af-card animate-on-scroll delay-1" data-color="#f59e0b"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-download"></i></div><div class="af-card-num">04</div><h4>Version Installer</h4><p>Installs Minecraft versions and loader versions through dedicated dialogs with progress and error states.</p><div class="af-card-tags"><span>Multi-thread</span><span>Resume</span></div></div>
-                    <div class="af-card animate-on-scroll delay-2" data-color="#3b82f6"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fab fa-discord"></i></div><div class="af-card-num">05</div><h4>Discord RPC</h4><p>Discord Rich Presence integration is included in the launcher source, together with playtime tracking.</p><div class="af-card-tags"><span>RPC</span><span>Status</span><span>History</span></div></div>
-                    <div class="af-card animate-on-scroll delay-3" data-color="#8b5cf6"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-terminal"></i></div><div class="af-card-num">06</div><h4>Dev Console</h4><p>Built-in console with colored levels, search, timestamps, auto-scroll, copy and export.</p><div class="af-card-tags"><span>Logs</span><span>Crash</span><span>Export</span></div></div>
+                    <div class="af-card animate-on-scroll delay-1" data-color="#6366f1"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-cubes"></i></div><div class="af-card-num">01</div><h4>Instance Library</h4><p>Create, rename, copy, configure and launch separate builds. Each has its own mods, configs, worlds, resource packs, shaders, screenshots and logs. Back up saves before deleting a build.</p><div class="af-card-tags"><span>Separate folders</span><span>Worlds</span><span>Settings</span></div></div>
+                    <div class="af-card animate-on-scroll delay-2" data-color="#10b981"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-coffee"></i></div><div class="af-card-num">02</div><h4>Java Manager</h4><p>Finds installed or previously downloaded Java, checks compatibility with the selected Minecraft release and can download a suitable runtime. A custom Java path and JVM arguments are global settings.</p><div class="af-card-tags"><span>Version matching</span><span>Download</span><span>Custom path</span></div></div>
+                    <div class="af-card animate-on-scroll delay-3" data-color="#ec4899"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-puzzle-piece"></i></div><div class="af-card-num">03</div><h4>Mod Manager</h4><p>Add mods, resource packs and shaders from files or Modrinth. Check compatible Modrinth mods for updates, keep disabled mods disabled and review update history. Per-build auto-check is optional.</p><div class="af-card-tags"><span>Modrinth</span><span>Dependencies</span><span>Updates</span></div></div>
+                    <div class="af-card animate-on-scroll delay-1" data-color="#f59e0b"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-download"></i></div><div class="af-card-num">04</div><h4>Versions &amp; loaders</h4><p>Create Vanilla, Fabric or Forge builds and install or restore their version files. The Library version manager warns when a version is in use. Availability depends on the source and loader compatibility.</p><div class="af-card-tags"><span>Vanilla</span><span>Fabric</span><span>Forge</span></div></div>
+                    <div class="af-card animate-on-scroll delay-2" data-color="#3b82f6"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-box-open"></i></div><div class="af-card-num">05</div><h4>Modrinth modpacks</h4><p>Search Modrinth or import a .mrpack file to create a build with its game version, loader and configuration. Local packs can have no loader or use Fabric, Forge or Quilt; NeoForge packs are rejected.</p><div class="af-card-tags"><span>Catalog</span><span>.mrpack</span><span>Quilt import</span></div></div>
+                    <div class="af-card animate-on-scroll delay-3" data-color="#8b5cf6"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-terminal"></i></div><div class="af-card-num">06</div><h4>Console &amp; recovery</h4><p>Follow launch stages and game output with search, timestamps and export. Check required files without launching, copy a report and restore supported versions. Crash analysis suggests likely causes.</p><div class="af-card-tags"><span>Logs</span><span>File check</span><span>Crash report</span></div></div>
+                    <div class="af-card animate-on-scroll delay-1" data-color="#6366f1"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-user-shield"></i></div><div class="af-card-num">07</div><h4>Player profiles</h4><p>Create an offline profile or sign in through Ely.by, including its two-factor code. A Spectral site account separately syncs profile metadata and role-based slots; Ely.by authorization stays on this device.</p><div class="af-card-tags"><span>Offline</span><span>Ely.by</span><span>Site sync</span></div></div>
+                    <div class="af-card animate-on-scroll delay-2" data-color="#10b981"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-user-group"></i></div><div class="af-card-num">08</div><h4>Friends &amp; playtime</h4><p>When signed in to Spectral, the Play tab shows friends, status, roles and requests. The launcher also tracks playtime and the last launch for the selected build.</p><div class="af-card-tags"><span>Requests</span><span>Status</span><span>Playtime</span></div></div>
+                    <div class="af-card animate-on-scroll delay-3" data-color="#ec4899"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-image"></i></div><div class="af-card-num">09</div><h4>Screenshots</h4><p>Open a build's screenshot gallery from the Library to view images, reveal files or folders and remove unwanted screenshots. Minecraft usually captures them with F2.</p><div class="af-card-tags"><span>Gallery</span><span>Open folder</span><span>F2</span></div></div>
+                    <div class="af-card animate-on-scroll delay-1" data-color="#f59e0b"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-sliders"></i></div><div class="af-card-num">10</div><h4>Settings &amp; performance</h4><p>Choose RU or EN, memory and display defaults, window and tray behavior, and lighter visuals. First-run hardware recommendations can be recalculated later. Discord Rich Presence is optional.</p><div class="af-card-tags"><span>RU / EN</span><span>Memory</span><span>Display</span></div></div>
+                    <div class="af-card animate-on-scroll delay-2" data-color="#3b82f6"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-rotate"></i></div><div class="af-card-num">11</div><h4>Launcher updates</h4><p>Checks GitHub Releases on startup or from Settings. An update can be offered when a newer release includes a suitable package and verifiable SHA-256 checksum; GitHub access is required.</p><div class="af-card-tags"><span>Release notes</span><span>SHA-256</span><span>Restart</span></div></div>
+                    <div class="af-card animate-on-scroll delay-3" data-color="#8b5cf6"><div class="af-card-glow"></div><div class="af-card-icon"><i class="fas fa-play"></i></div><div class="af-card-num">12</div><h4>Play &amp; process</h4><p>Play shows the selected build, loader, profile, mod count and last launch. Spectral prepares libraries and native files, starts Minecraft as a separate process and records playtime when it ends normally.</p><div class="af-card-tags"><span>Launch stages</span><span>Console</span><span>Playtime</span></div></div>
                 </div>
                 <div class="af-stats-strip animate-on-scroll">
-                    <div class="af-stat-item"><div class="af-stat-num" data-count="6">0</div><div class="af-stat-label">Qt widgets tabs</div></div>
+                    <div class="af-stat-item"><div class="af-stat-num" data-count="5">0</div><div class="af-stat-label">main launcher tabs</div></div>
                     <div class="af-stat-divider"></div>
-                    <div class="af-stat-item"><div class="af-stat-num" data-count="221">0</div><div class="af-stat-label">translated strings</div></div>
+                    <div class="af-stat-item"><div class="af-stat-num" data-count="3">0</div><div class="af-stat-label">build types in the wizard</div></div>
                     <div class="af-stat-divider"></div>
-                    <div class="af-stat-item"><div class="af-stat-num" data-count="6">0</div><div class="af-stat-label">main tabs</div></div>
+                    <div class="af-stat-item"><div class="af-stat-num" data-count="2">0</div><div class="af-stat-label">interface languages</div></div>
                     <div class="af-stat-divider"></div>
                     <div class="af-stat-item"><div class="af-stat-num" data-count="1">0</div><div class="af-stat-label">local-first design</div></div>
                 </div>
+                <section class="launcher-start-guide animate-on-scroll" aria-labelledby="launcherStartTitle">
+                    <div class="launcher-start-heading"><span><i class="fas fa-play" aria-hidden="true"></i> First launch</span><h3 id="launcherStartTitle">From install to your first world</h3><p>Choose a profile, create a build and launch Minecraft: Java Edition.</p></div>
+                    <ol class="launcher-start-steps">
+                        <li><strong>Set up Spectral</strong><span>Open the launcher and use its first-run performance recommendation, or adjust settings yourself.</span></li>
+                        <li><strong>Choose a game profile</strong><span>In Accounts, create an offline profile or authorize Ely.by. Sign in to Spectral separately for friends and profile sync.</span></li>
+                        <li><strong>Create a build</strong><span>In Library, choose New build, then Vanilla, Fabric or Forge and a Minecraft version. The wizard can install missing version files.</span></li>
+                        <li><strong>Add content and play</strong><span>Add compatible mods, resource packs or shaders if you want them, set memory and window options, then select the build on Play.</span></li>
+                    </ol>
+                    <p class="launcher-start-note">Already have a Modrinth pack? Import it from the catalog or a .mrpack file. If launch stops, open Console and run Check &amp; Repair from Play. Version availability depends on the source; back up a build's saves before deleting it.</p>
+                </section>
             </div>
         </section>
 
@@ -650,13 +666,13 @@
                             <button type="button" id="supportFixAccount" class="support-symptom" role="tab" aria-selected="false" aria-controls="supportPanelAccount" data-support-fix="account"><i class="fas fa-user-shield"></i><span><small>04 / Identity</small><strong>Account or offline play</strong></span><i class="fas fa-arrow-right"></i></button>
                         </div>
                         <div class="support-solution" id="supportPanelCrash" role="tabpanel" aria-labelledby="supportFixCrash" data-support-panel="crash">
-                            <div class="support-solution-label"><i class="fas fa-bug"></i> STARTUP / CRASH</div><h4>Find where the launch stopped.</h4><p>Start with the last red Console line. It often identifies a missing dependency or an incompatible runtime.</p>
-                            <div class="support-checklist"><label><input type="checkbox"><span>Open Console and read the final error line.</span></label><label><input type="checkbox"><span>Confirm the instance has the Java version it requires.</span></label><label><input type="checkbox"><span>Try a sensible memory setting and leave RAM for the system.</span></label></div>
+                            <div class="support-solution-label"><i class="fas fa-bug"></i> STARTUP / CRASH</div><h4>Find where the launch stopped.</h4><p>Read the Console and use Check &amp; Repair on the Play tab to inspect the selected build's version files, Java, libraries and assets without starting Minecraft.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Open Console and read the final relevant error.</span></label><label><input type="checkbox"><span>Run Check &amp; Repair and copy its report.</span></label><label><input type="checkbox"><span>Confirm Java compatibility and leave RAM for the system.</span></label></div>
                             <div class="support-solution-actions"><button type="button" data-support-guide="logs">Read the Console guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
                         </div>
                         <div class="support-solution" id="supportPanelLoader" role="tabpanel" aria-labelledby="supportFixLoader" data-support-panel="loader" hidden>
-                            <div class="support-solution-label"><i class="fas fa-puzzle-piece"></i> MODDED / LOADER</div><h4>Check the version chain.</h4><p>Mod loaders need a matching Minecraft base version, Java runtime and compatible mods.</p>
-                            <div class="support-checklist"><label><input type="checkbox"><span>Match the Fabric or Forge build to the Minecraft version.</span></label><label><input type="checkbox"><span>Check Java's required major version.</span></label><label><input type="checkbox"><span>Disable the newest mod and retry if the error names it.</span></label></div>
+                            <div class="support-solution-label"><i class="fas fa-puzzle-piece"></i> MODDED / LOADER</div><h4>Check the version chain.</h4><p>Fabric and Forge builds need a compatible Minecraft base, Java and mods. A .mrpack import can also use Quilt; NeoForge packs are unsupported.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Match the loader build and mods to the Minecraft version.</span></label><label><input type="checkbox"><span>Check Java's required major version.</span></label><label><input type="checkbox"><span>Use Check &amp; Repair before changing the build's files.</span></label></div>
                             <div class="support-solution-actions"><button type="button" data-support-guide="fabric">Read the modded guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
                         </div>
                         <div class="support-solution" id="supportPanelPerformance" role="tabpanel" aria-labelledby="supportFixPerformance" data-support-panel="performance" hidden>
@@ -665,8 +681,8 @@
                             <div class="support-solution-actions"><button type="button" data-support-guide="fps">Read the FPS guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
                         </div>
                         <div class="support-solution" id="supportPanelAccount" role="tabpanel" aria-labelledby="supportFixAccount" data-support-panel="account" hidden>
-                            <div class="support-solution-label"><i class="fas fa-user-shield"></i> ACCOUNT / OFFLINE</div><h4>Check which identity you are using.</h4><p>A website account, a Minecraft profile and an online Microsoft session serve different purposes.</p>
-                            <div class="support-checklist"><label><input type="checkbox"><span>Select the intended Minecraft profile in the launcher.</span></label><label><input type="checkbox"><span>For online services, confirm your Microsoft session.</span></label><label><input type="checkbox"><span>For offline play, check that the selected profile is local.</span></label></div>
+                            <div class="support-solution-label"><i class="fas fa-user-shield"></i> ACCOUNT / OFFLINE</div><h4>Check which identity you are using.</h4><p>Your Spectral site account syncs profile details and friends. The game uses a selected offline profile or a separately authorized Ely.by session.</p>
+                            <div class="support-checklist"><label><input type="checkbox"><span>Select the intended game profile in the launcher.</span></label><label><input type="checkbox"><span>For Ely.by, sign in on this computer; a saved site profile has no game token.</span></label><label><input type="checkbox"><span>For offline play, confirm the server allows offline profiles.</span></label></div>
                             <div class="support-solution-actions"><button type="button" data-support-guide="account">Read the account guide <i class="fas fa-arrow-right"></i></button><button type="button" class="support-reset-checks">Reset checks</button></div>
                         </div>
                     </div>
@@ -710,12 +726,12 @@
                         <div class="support-faq-column">
                             <div class="support-faq-head"><strong>All questions</strong><span id="faqVisibleCount">7 guides</span></div>
                             <div class="faq-list" id="faqList">
-                                <div class="faq-item open" data-support-topic="accounts" data-support-id="account" style="--faq-accent:#8b7cff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-user-plus"></i></span><span class="faq-q-copy"><small>Accounts · 2 min</small><strong>How do I add a Minecraft account?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Go to the Accounts tab and click <b>Add Profile</b>. This website stores profile names for previews; connect Microsoft or Ely.by securely in the desktop launcher before playing. Offline profiles do not use online authentication.</p></div></div>
-                                <div class="faq-item" data-support-topic="accounts" style="--faq-accent:#b46cff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-id-card"></i></span><span class="faq-q-copy"><small>Identity · 1 min</small><strong>What's the difference between a site account and a Minecraft account?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Your <b>site account</b> is your identity on this website. It stores preferences and can contain several <b>Minecraft profiles</b>, which are the identities used to launch the game.</p></div></div>
-                                <div class="faq-item" data-support-topic="mods" data-support-id="fabric" style="--faq-accent:#ff6fcf"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-puzzle-piece"></i></span><span class="faq-q-copy"><small>Mods · 3 min</small><strong>Why does my Fabric/Forge build fail to start?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Loader builds need a compatible Minecraft base version and Java runtime. Reinstall the build, confirm the required Java major version, then read the final Console error if the launch still stops.</p></div></div>
+                                <div class="faq-item open" data-support-topic="accounts" data-support-id="account" style="--faq-accent:#8b7cff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-user-plus"></i></span><span class="faq-q-copy"><small>Accounts · 2 min</small><strong>How do I add a game profile?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>In the desktop launcher, open <b>Accounts</b> to create an offline profile or sign in through Ely.by. The website can save profile metadata, but Ely.by must be authorized separately on this computer. Microsoft sign-in is currently disabled in the launcher.</p></div></div>
+                                <div class="faq-item" data-support-topic="accounts" style="--faq-accent:#b46cff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-id-card"></i></span><span class="faq-q-copy"><small>Identity · 1 min</small><strong>What's the difference between a site account and a game profile?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>A <b>Spectral site account</b> syncs game profile metadata and gives access to friends and role-based profile slots. A <b>game profile</b> supplies the identity selected for launch. A site record alone does not provide an Ely.by game token.</p></div></div>
+                                <div class="faq-item" data-support-topic="mods" data-support-id="fabric" style="--faq-accent:#ff6fcf"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-puzzle-piece"></i></span><span class="faq-q-copy"><small>Mods · 3 min</small><strong>Why does my Fabric/Forge build fail to start?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Check that the Minecraft version, loader, Java and mods are compatible. On Play, run <b>Check &amp; Repair</b> and restore supported version files if recommended. Then read the Console error. The check is not meant to remove worlds or user mods.</p></div></div>
                                 <div class="faq-item" data-support-topic="performance" style="--faq-accent:#ffb84d"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-memory"></i></span><span class="faq-q-copy"><small>Memory · 2 min</small><strong>How much memory should I allocate?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Use 2–4 GB for vanilla, 4–6 GB for medium modpacks and up to 8 GB for heavy packs. Leave enough memory for your operating system instead of assigning nearly all system RAM.</p></div></div>
-                                <div class="faq-item" data-support-topic="launch" data-support-id="logs" style="--faq-accent:#4ca8ff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-terminal"></i></span><span class="faq-q-copy"><small>Diagnostics · 2 min</small><strong>Where can I see logs and errors?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>The Console tab streams JVM output with colored levels, search, copy and export. Start at the bottom: the final red lines usually name the failing stage or missing dependency.</p></div></div>
-                                <div class="faq-item" data-support-topic="accounts" style="--faq-accent:#45d6b5"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-wifi"></i></span><span class="faq-q-copy"><small>Offline play · 1 min</small><strong>Is the launcher free and does it work offline?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Yes. Spectral runs locally and supports offline profiles. A Microsoft account is required only when you want licensed online authentication and multiplayer services that depend on it.</p></div></div>
+                                <div class="faq-item" data-support-topic="launch" data-support-id="logs" style="--faq-accent:#4ca8ff"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-terminal"></i></span><span class="faq-q-copy"><small>Diagnostics · 2 min</small><strong>Where can I see logs and errors?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>The Console tab shows launch stages and Minecraft output with colored levels, timestamps, search, copy and export. The crash analyzer can suggest a likely cause from process output, crash reports or hs_err_pid files; its advice is not an automatic fix.</p></div></div>
+                                <div class="faq-item" data-support-topic="accounts" style="--faq-accent:#45d6b5"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-wifi"></i></span><span class="faq-q-copy"><small>Offline play · 1 min</small><strong>Can I use an offline profile?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Yes. Installed builds and offline profiles live on this computer. An offline profile works for local play and servers that allow it; it cannot pass official license checks. Installing versions, mods or Java and signing in to online services require access to their sources.</p></div></div>
                                 <div class="faq-item" data-support-topic="performance" data-support-id="fps" style="--faq-accent:#67e8f9"><button type="button" class="faq-q"><span class="faq-q-icon"><i class="fas fa-gauge-high"></i></span><span class="faq-q-copy"><small>Performance · 3 min</small><strong>How can I improve low FPS?</strong></span><span class="faq-q-toggle"><i class="fas fa-plus"></i></span></button><div class="faq-a"><p>Start with Sodium on Fabric or another compatible optimization stack. Keep render distance reasonable, avoid excessive memory allocation and compare changes in the same world and location.</p></div></div>
                             </div>
                             <div class="support-no-results" id="supportNoResults" hidden><i class="fas fa-magnifying-glass"></i><strong>No matching guide yet</strong><p>Try a shorter term such as Java, memory, mods or account.</p></div>
@@ -793,8 +809,9 @@
                 <p class="auth-sub">Choose a username and password. Email is optional.</p>
                 <div class="veteran-registration-note" id="veteranRegistrationNote">
                     <span class="veteran-registration-icon"><i class="fas fa-shield-halved"></i><i class="fas fa-wand-magic-sparkles"></i></span>
-                    <span><b>Founder's window is open</b><small>Accounts created before 2027 receive the permanent Veteran role automatically.</small></span>
+                    <span><b>Your starting role: Veteran</b><small>Assigned automatically to accounts created before May 1, 2027. No selection or payment needed.</small></span>
                 </div>
+                <details class="registration-role-menu"><summary>How do other roles work?</summary><p>Veteran is your permanent starting reward. You can explore Pro, Legend and Spectral from your account after signing up. Staff roles are assigned by the team.</p></details>
                 <button type="button" class="btn-google" id="googleRegisterBtn">
                     <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.2-5.6l-6.6-5.4C29.6 34.7 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.6 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.6l6.6 5.4C40.9 36.7 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
                     <span>Sign up with Google</span>
@@ -833,7 +850,7 @@
                 <header class="account-hub-head" aria-label="Account workspace">
                     <span class="account-hub-mark"><i class="fas fa-bolt" aria-hidden="true"></i></span>
                     <div class="account-hub-title"><small>SPECTRAL / ACCOUNT</small><strong id="accountHubTitle">Your space</strong><span id="accountHubSubtitle">Everything about your identity in one place</span></div>
-                    <div class="account-hub-person"><img id="accountHubAvatar" src="" alt="" width="40" height="40"><span><b id="accountHubName">Player</b><small id="accountHubRole">Account</small></span></div>
+                    <div class="account-hub-person"><img id="accountHubAvatar" src="assets/avatar-placeholder.svg" alt="" width="40" height="40"><span><b id="accountHubName">Player</b><small id="accountHubRole">Account</small></span></div>
                     <button type="button" class="account-hub-close" id="closeAccountHubBtn" aria-label="Close account panel"><i class="fas fa-xmark" aria-hidden="true"></i></button>
                 </header>
                 <!-- Tabs -->
@@ -908,13 +925,13 @@
                     </section>
                     <section class="account-editor" aria-labelledby="accountEditorTitle">
                         <header class="workspace-section-heading"><span><i class="fas fa-pen-nib" aria-hidden="true"></i></span><div><small>YOUR PUBLIC IDENTITY</small><h3 id="accountEditorTitle">Make yourself known</h3><p>Your display name, status and bio appear on your profile.</p></div></header>
-                        <div class="account-live-preview" aria-label="Profile preview"><img id="accountPreviewAvatar" src="" alt="" width="56" height="56"><div><small>LIVE PREVIEW</small><strong id="accountPreviewName">Your name</strong><span id="accountPreviewStatus">Your status appears here</span></div><i class="fas fa-sparkles" aria-hidden="true"></i></div>
+                        <div class="account-live-preview" aria-label="Profile preview"><img id="accountPreviewAvatar" src="assets/avatar-placeholder.svg" alt="" width="56" height="56"><div><small>LIVE PREVIEW</small><strong id="accountPreviewName">Your name</strong><span id="accountPreviewStatus">Your status appears here</span></div><i class="fas fa-sparkles" aria-hidden="true"></i></div>
                         <form id="profileEditForm" class="profile-settings">
                             <label class="account-field" for="profileDisplayName"><span><i class="fas fa-signature"></i> Display name <output id="profileDisplayNameCount">0 / 24</output></span><input type="text" id="profileDisplayName" maxlength="24" required autocomplete="nickname"></label>
                             <label class="account-field" for="profileStatus"><span><i class="fas fa-comment-dots"></i> Status <output id="profileStatusCount">0 / 100</output></span><input type="text" id="profileStatus" maxlength="100" placeholder="What are you working on?"></label>
                             <div class="account-status-presets" role="group" aria-label="Quick status ideas"><button type="button" data-account-status="Exploring new worlds">Exploring new worlds</button><button type="button" data-account-status="Building something new">Building something new</button><button type="button" data-account-status="Ready to play">Ready to play</button></div>
                             <label class="account-field" for="profileBio"><span><i class="fas fa-align-left"></i> About you <output id="profileBioCount">0 / 120</output></span><textarea id="profileBio" maxlength="120" rows="3" placeholder="A little about your Minecraft world…"></textarea></label>
-                            <div class="account-avatar-tools"><button type="button" id="changeAvatarBtn"><i class="fas fa-camera"></i> Change photo</button><button type="button" id="removeAvatarBtn"><i class="fas fa-eraser"></i> Reset photo</button><small>PNG, JPEG or WebP · up to 1 MB</small></div>
+                            <div class="account-avatar-tools"><button type="button" id="changeAvatarBtn"><i class="fas fa-camera"></i> Change photo</button><button type="button" id="removeAvatarBtn"><i class="fas fa-eraser"></i> Reset photo</button><small>PNG, JPEG or WebP · up to 1 MB. Cloud photos are sent to an automated moderation service before publication.</small></div>
                             <div class="account-save-bar"><span id="profileSaveState" role="status">All changes saved</span><button type="button" id="resetProfileBtn" disabled>Discard</button><button type="submit" class="btn-save-profile" id="saveProfileBtn" disabled><i class="fas fa-check"></i> Save profile</button></div>
                         </form>
                     </section>
@@ -1100,7 +1117,7 @@
             <div class="welcome-role-reveal">
                 <small>Your starting role</small>
                 <strong id="welcomeRoleName">Veteran</strong>
-                <span id="welcomeRoleReason">Unlocked forever for joining before 2027</span>
+                <span id="welcomeRoleReason">Unlocked forever for joining before May 2027</span>
             </div>
             <div class="welcome-perks" id="welcomePerks"></div>
             <div class="welcome-actions">
@@ -1189,7 +1206,7 @@
         <div class="dashboard-modal glass-modal" style="max-width:500px;width:95%;">
             <button type="button" class="close-dashboard" id="closeForumPostBtn" aria-label="Close idea form">&times;</button>
             <h2 id="forumPostDialogTitle" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><i class="fas fa-lightbulb" style="color:#f59e0b;font-size:1.4rem;"></i> Share Your Idea</h2>
-            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1.5rem;">Ideas are reviewed before appearing publicly. Inappropriate content is automatically filtered.</p>
+            <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1.5rem;">Cloud ideas are checked automatically before publication. Unsafe text is rejected.</p>
             <form id="forumPostForm">
                 <div class="input-group-animated"><input type="text" id="forumPostTitle" required placeholder=" " maxlength="80" aria-describedby="forumPostError"><label for="forumPostTitle">Idea title (max 80 chars)</label></div>
                 <div class="forum-textarea-wrap">
@@ -1204,6 +1221,6 @@
     </div>
 
     <button type="button" id="scrollToTop" class="scroll-to-top" aria-label="Scroll to top"><i class="fas fa-arrow-up"></i></button>
-    <script defer src="script.min.js?v=51"></script>
+    <script defer src="script.min.js?v=58"></script>
 </body>
 </html>
