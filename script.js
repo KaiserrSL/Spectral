@@ -49,6 +49,2176 @@ class Particle {
         }
     }
 }
+// Site copy is authored in English. The Russian catalog is loaded next in the
+// source manifest, before any application rendering begins.
+window.SpectralI18n = (() => {
+    const catalog = new Map();
+    const textOrigins = new WeakMap();
+    const attributeOrigins = new WeakMap();
+    const attributes = ['aria-label', 'aria-description', 'title', 'data-site-tip', 'placeholder', 'alt', 'content'];
+    const blockedText = 'script, style, pre, code, textarea, [contenteditable], [translate="no"]';
+    const blockedAttributes = 'script, style, pre, code, [contenteditable], [translate="no"]';
+    let language = 'en';
+    let observer;
+    let queued = false;
+    let changingLanguage = false;
+    let pendingLanguage = null;
+
+    try { language = localStorage.getItem('spectral-language') === 'ru' ? 'ru' : 'en'; }
+    catch { /* Storage can be disabled in private browser modes. */ }
+    document.documentElement.lang = language;
+
+    const normalize = value => value.replace(/\s+/g, ' ').trim();
+    function addCatalog(lines) {
+        for (const line of lines.split('\n')) {
+            const separator = line.indexOf('\t');
+            if (separator < 0) continue;
+            const english = line.slice(0, separator).trim();
+            const russian = line.slice(separator + 1).trim();
+            if (english && russian) catalog.set(english, russian);
+        }
+    }
+
+    function translate(value) {
+        const key = normalize(value);
+        let translated = catalog.get(key);
+        if (!translated) {
+            const accountLabel = key.match(/^Open account panel for (.+)$/);
+            if (accountLabel) translated = `Открыть панель аккаунта ${accountLabel[1]}`;
+        }
+        if (!translated) {
+            const dynamicLabel = key.match(/^(Role for|Select|Pending avatar for|by) (.+)$/);
+            if (dynamicLabel) {
+                const prefixes = { 'Role for':'Роль для', Select:'Выбрать', 'Pending avatar for':'Аватар на проверке у', by:'от' };
+                translated = `${prefixes[dynamicLabel[1]]} ${dynamicLabel[2]}`;
+            }
+        }
+        if (!translated) {
+            const deleteRelease = key.match(/^Delete update "(.+)"\?$/);
+            if (deleteRelease) translated = `Удалить обновление «${catalog.get(deleteRelease[1])||deleteRelease[1]}»?`;
+        }
+        if (!translated) {
+            const relativeTime = key.match(/^(\d+)\s?(m|h|d|mo) ago$/);
+            if (relativeTime) {
+                const units = { m:'мин', h:'ч', d:'дн', mo:'мес' };
+                translated = `${relativeTime[1]} ${units[relativeTime[2]]} назад`;
+            }
+        }
+        if (!translated) {
+            const voteCount = key.match(/^(\d+) upvotes?$/);
+            if (voteCount) {
+                const number = Number(voteCount[1]);
+                const noun = number % 10 === 1 && number % 100 !== 11 ? 'голос'
+                    : number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 12 || number % 100 > 14) ? 'голоса' : 'голосов';
+                translated = `${number} ${noun}`;
+            }
+        }
+        if (!translated) {
+            const count = key.match(/^(\d+) (changes?|added|improved|fixed|items?|users?|selected|ideas?|guides?|requests?|friends?|profiles?|favorites?|slots?)$/);
+            if (count) {
+                const number = Number(count[1]);
+                const ending = number % 10 === 1 && number % 100 !== 11 ? 0
+                    : number % 10 >= 2 && number % 10 <= 4 && (number % 100 < 12 || number % 100 > 14) ? 1 : 2;
+                const nouns = {
+                    changes: ['изменение', 'изменения', 'изменений'],
+                    change: ['изменение', 'изменения', 'изменений'],
+                    added: ['добавлено', 'добавлено', 'добавлено'],
+                    improved: ['улучшено', 'улучшено', 'улучшено'],
+                    fixed: ['исправлено', 'исправлено', 'исправлено'],
+                    items: ['пункт', 'пункта', 'пунктов'],
+                    item: ['пункт', 'пункта', 'пунктов'],
+                    users: ['пользователь', 'пользователя', 'пользователей'],
+                    user: ['пользователь', 'пользователя', 'пользователей'],
+                    selected: ['выбран', 'выбрано', 'выбрано'],
+                    ideas: ['идея', 'идеи', 'идей'],
+                    idea: ['идея', 'идеи', 'идей'],
+                    guides: ['руководство', 'руководства', 'руководств'],
+                    guide: ['руководство', 'руководства', 'руководств'],
+                    requests: ['запрос', 'запроса', 'запросов'],
+                    request: ['запрос', 'запроса', 'запросов'],
+                    friends: ['друг', 'друга', 'друзей'],
+                    friend: ['друг', 'друга', 'друзей'],
+                    profiles: ['профиль', 'профиля', 'профилей'],
+                    profile: ['профиль', 'профиля', 'профилей'],
+                    favorites: ['избранный', 'избранных', 'избранных'],
+                    favorite: ['избранный', 'избранных', 'избранных'],
+                    slots: ['слот', 'слота', 'слотов'],
+                    slot: ['слот', 'слота', 'слотов']
+                };
+                translated = `${number} ${nouns[count[2]][ending]}`;
+            }
+        }
+        if (!translated) {
+            const date = key.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{1,2}), (\d{4})$/);
+            if (date) {
+                const months = { Jan:'янв.', Feb:'февр.', Mar:'марта', Apr:'апр.', May:'мая', Jun:'июня', Jul:'июля', Aug:'авг.', Sep:'сент.', Oct:'окт.', Nov:'нояб.', Dec:'дек.' };
+                translated = `${date[2]} ${months[date[1]]} ${date[3]}`;
+            }
+        }
+        if (!translated) return value;
+        const leading = value.match(/^\s*/)?.[0] || '';
+        const trailing = value.match(/\s*$/)?.[0] || '';
+        return leading + translated + trailing;
+    }
+
+    function syncText(node) {
+        if (!node.nodeValue?.trim() || node.parentElement?.closest(blockedText)) return;
+        let origin = textOrigins.get(node);
+        if (!origin || node.nodeValue !== origin.output) {
+            origin = { english: node.nodeValue, output: node.nodeValue };
+            textOrigins.set(node, origin);
+        }
+        const next = language === 'ru' ? translate(origin.english) : origin.english;
+        if (node.nodeValue !== next) {
+            origin.output = next;
+            node.nodeValue = next;
+        }
+    }
+
+    function syncAttributes(element) {
+        if (element.closest(blockedAttributes)) return;
+        let origins = attributeOrigins.get(element);
+        if (!origins) {
+            origins = new Map();
+            attributeOrigins.set(element, origins);
+        }
+        for (const attribute of attributes) {
+            const current = element.getAttribute(attribute);
+            if (current === null) continue;
+            let origin = origins.get(attribute);
+            if (!origin || current !== origin.output) {
+                origin = { english: current, output: current };
+                origins.set(attribute, origin);
+            }
+            const next = language === 'ru' ? translate(origin.english) : origin.english;
+            if (current !== next) {
+                origin.output = next;
+                element.setAttribute(attribute, next);
+            }
+        }
+    }
+
+    function syncTree(root = document.body) {
+        if (!root) return;
+        if (root.nodeType === Node.TEXT_NODE) { syncText(root); return; }
+        if (root.nodeType !== Node.ELEMENT_NODE || root.closest(blockedAttributes)) return;
+        syncAttributes(root);
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            if (node.nodeType === Node.TEXT_NODE) syncText(node);
+            else syncAttributes(node);
+        }
+    }
+
+    function syncMetadata() {
+        const title = document.querySelector('title');
+        const description = document.querySelector('meta[name="description"]');
+        if (title) syncText(title.firstChild);
+        if (description) syncAttributes(description);
+    }
+
+    function refresh() {
+        syncTree();
+        syncMetadata();
+    }
+
+    function setLanguage(next) {
+        language = next === 'ru' ? 'ru' : 'en';
+        document.documentElement.lang = language;
+        document.documentElement.dataset.language = language;
+        try { localStorage.setItem('spectral-language', language); }
+        catch { /* The current page still changes language. */ }
+        const current = document.getElementById('siteLanguageCurrent');
+        if (current) current.textContent = language.toUpperCase();
+        document.querySelectorAll('#siteLanguageMenu [data-language]').forEach(option => {
+            option.setAttribute('aria-pressed', String(option.dataset.language === language));
+        });
+        refresh();
+        document.dispatchEvent(new CustomEvent('spectral:languagechange', { detail: { language } }));
+    }
+
+    function visibleTranslatedText() {
+        const candidates = new Set();
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            const origin = textOrigins.get(node);
+            if (!origin || translate(origin.english) === origin.english) continue;
+            const parent = node.parentElement;
+            if (!parent || parent.closest('.nav-language-control, [hidden], [aria-hidden="true"]')) continue;
+            const element = parent.closest('h1, h2, h3, h4, p, li, button, a, label, summary, small, strong') || parent;
+            if (element.closest('.nav-language-control')) continue;
+            const rect = element.getBoundingClientRect();
+            if (!rect.width || !rect.height || rect.bottom < 0 || rect.top > innerHeight || rect.right < 0 || rect.left > innerWidth) continue;
+            candidates.add(element);
+            if (candidates.size >= 70) break;
+        }
+        const selected = [];
+        for (const element of candidates) {
+            if (!selected.some(ancestor => ancestor.contains(element))) selected.push(element);
+        }
+        return selected;
+    }
+
+    async function animateLanguageChange(next) {
+        pendingLanguage = next === 'ru' ? 'ru' : 'en';
+        if (changingLanguage) return;
+        changingLanguage = true;
+        while (pendingLanguage && pendingLanguage !== language) {
+            const desired = pendingLanguage;
+            pendingLanguage = null;
+            const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches || !Element.prototype.animate;
+            if (reduced) { setLanguage(desired); continue; }
+
+            const outgoing = visibleTranslatedText().map(element => element.animate(
+                [{ opacity: 1, filter: 'blur(0)' }, { opacity: 0, filter: 'blur(2px)' }],
+                { duration: 115, easing: 'ease-in', fill: 'forwards' }
+            ));
+            await new Promise(resolve => setTimeout(resolve, 130));
+            setLanguage(desired);
+            outgoing.forEach(animation => animation.cancel());
+
+            // Dynamic sections can redraw in the languagechange listener.
+            await Promise.resolve();
+            visibleTranslatedText().forEach((element, index) => element.animate(
+                [{ opacity: 0, filter: 'blur(3px)', transform: 'translateY(4px)' },
+                    { opacity: 1, filter: 'blur(0)', transform: 'translateY(0)' }],
+                { duration: 300, delay: Math.min(index * 9, 72), easing: 'cubic-bezier(.2,.8,.25,1)', fill: 'backwards' }
+            ));
+            await new Promise(resolve => setTimeout(resolve, 390));
+        }
+        changingLanguage = false;
+    }
+
+    function bindLanguageControl() {
+        const control = document.getElementById('siteLanguageControl');
+        const trigger = document.getElementById('siteLanguageToggle');
+        const menu = document.getElementById('siteLanguageMenu');
+        if (!control || !trigger || !menu) return;
+        const options = [...menu.querySelectorAll('[data-language]')];
+        const close = (restoreFocus = false) => {
+            menu.hidden = true;
+            control.classList.remove('is-open');
+            trigger.setAttribute('aria-expanded', 'false');
+            if (restoreFocus) trigger.focus();
+        };
+        const open = (focusOption = false) => {
+            menu.hidden = false;
+            control.classList.add('is-open');
+            trigger.setAttribute('aria-expanded', 'true');
+            if (focusOption) options.find(option => option.dataset.language === language)?.focus();
+        };
+        trigger.addEventListener('click', () => menu.hidden ? open() : close());
+        trigger.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                open(true);
+            }
+        });
+        options.forEach((option, index) => {
+            option.addEventListener('click', () => {
+                close(true);
+                void animateLanguageChange(option.dataset.language);
+            });
+            option.addEventListener('keydown', event => {
+                if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+                event.preventDefault();
+                options[(index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length].focus();
+            });
+        });
+        document.addEventListener('pointerdown', event => {
+            if (!menu.hidden && !control.contains(event.target)) close();
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && !menu.hidden) close(true);
+        });
+        control.addEventListener('focusout', () => {
+            setTimeout(() => {
+                if (!control.contains(document.activeElement)) close();
+            }, 0);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        bindLanguageControl();
+        setLanguage(language);
+        observer = new MutationObserver(mutations => {
+            if (queued || !mutations.some(mutation => mutation.type !== 'attributes' || attributes.includes(mutation.attributeName))) return;
+            queued = true;
+            queueMicrotask(() => {
+                queued = false;
+                refresh();
+            });
+        });
+        observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: attributes });
+    });
+
+    return { addCatalog, setLanguage, getLanguage: () => language, translate, refresh };
+})();
+window.SpectralI18n.addCatalog(String.raw`
+Spectral Launcher | Qt Minecraft Launcher	Spectral Launcher | Лаунчер Minecraft на Qt
+Spectral Launcher for Minecraft: Java Edition. Keep builds and worlds separate, install compatible mods and modpacks, select Java, and inspect launch errors.	Spectral Launcher для Minecraft: Java Edition. Разделяйте сборки и миры, устанавливайте совместимые моды и сборки, выбирайте Java и изучайте ошибки запуска.
+Skip to main content	Перейти к основному содержимому
+Main navigation	Основная навигация
+Spectral Launcher — Home	Spectral Launcher — Главная
+Primary navigation	Основные разделы
+Home	Главная
+Accounts	Аккаунты
+Updates	Обновления
+Development	Разработка
+Features	Возможности
+Support	Поддержка
+Open account panel	Открыть панель аккаунта
+YOUR SPACE	ВАШЕ ПРОСТРАНСТВО
+Sign In	Войти
+Switch to light theme	Включить светлую тему
+Switch to dark theme	Включить тёмную тему
+Open menu	Открыть меню
+Close menu	Закрыть меню
+Website language	Язык сайта
+Language	Язык
+Clear search	Очистить поиск
+Show password	Показать пароль
+Hide password	Скрыть пароль
+Enter your email or username and password.	Введите почту или имя пользователя и пароль.
+Website 2.3	Сайт 2.3
+Website 2.2	Сайт 2.2
+Website 2.1	Сайт 2.1
+Website 2.0	Сайт 2.0
+Project Core	Основа проекта
+Email	Почта
+LAUNCHER	ЛАУНЧЕР
+Your worlds.	Ваши миры.
+Ready to launch.	Готовы к запуску.
+A desktop launcher for Minecraft: Java Edition. Keep each build's worlds and mods separate, choose a compatible Java runtime, and inspect launch errors in the Console.	Лаунчер для Minecraft: Java Edition. Храните миры и моды каждой сборки отдельно, выбирайте подходящую Java и проверяйте ошибки запуска в Консоли.
+Download	Скачать
+Launcher highlights	Главные возможности лаунчера
+Your builds	Ваши сборки
+One click launch	Запуск одним нажатием
+Clear diagnostics	Понятная диагностика
+Spectral desktop launcher preview: Play screen, local build, account and friends panel	Предпросмотр лаунчера Spectral: экран запуска, локальная сборка, аккаунт и друзья
+Play	Играть
+Console	Консоль
+Library	Библиотека
+Settings	Настройки
+Continue playing	Продолжить игру
+Survival Realm	Мир выживания
+Ready to launch	Готово к запуску
+Player profile	Игровой профиль
+Guest	Гость
+Ready	Готово
+Spectral social	Сообщество Spectral
+Friends	Друзья
+Sign in to see your friends here.	Войдите, чтобы увидеть здесь друзей.
+Network ready	Сеть готова
+Desktop experience	Приложение для компьютера
+Designed around the real Spectral launcher	Основано на настоящем лаунчере Spectral
+Explore Spectral	Ознакомиться со Spectral
+01 / What changed	01 / Что нового
+Release notes	Заметки о выпуске
+02 / Under the hood	02 / Как устроено
+How it works	Как это работает
+03 / Need a hand	03 / Нужна помощь
+Find a fix	Найти решение
+Core systems	Основные системы
+One launcher.	Один лаунчер.
+Four connected tools.	Четыре связанных инструмента.
+Interactive tour	Интерактивный обзор
+Select a tool for a closer look.	Выберите инструмент, чтобы узнать больше.
+01 / Library	01 / Библиотека
+Instance engine	Управление сборками
+Instances	Сборки
+Separate Minecraft builds with their own versions, mods, saves and launch settings.	Отдельные сборки Minecraft со своими версиями, модами, сохранениями и настройками запуска.
+3 builds	3 сборки
+Isolated folders	Отдельные папки
+Automatic Java matching	Автоматический подбор Java
+Fast switching	Быстрое переключение
+In focus	В центре внимания
+02 / Content	02 / Контент
+Modrinth inside	Modrinth внутри
+Mods	Моды
+Find compatible mods, resource packs and shaders; check installed Modrinth mods for updates.	Находите совместимые моды, наборы ресурсов и шейдеры; проверяйте обновления установленных модов Modrinth.
+Discover	Каталог
+Compatible files	Совместимые файлы
+Performance · Fabric	Производительность · Fabric
+Visuals · Fabric	Графика · Fabric
+Update	Обновить
+Installed	Установлено
+One-click install	Установка одним нажатием
+Update history	История обновлений
+Version matching	Подбор версии
+Focus this tool	Показать инструмент
+03 / Identity	03 / Профили
+Player profiles	Игровые профили
+Switch offline or Ely.by profiles. Sign in to Spectral separately to sync profile details and see friends.	Переключайтесь между автономными профилями и Ely.by. Отдельно войдите в Spectral, чтобы синхронизировать данные профиля и видеть друзей.
+Active profile	Активный профиль
+Local	Локальный
+Offline profile · local play	Автономный профиль · локальная игра
+Playtime	Время в игре
+Identity	Профиль
+Stable UUID	Постоянный UUID
+Skin preview	Просмотр скина
+Offline UUID	Автономный UUID
+Quick switch	Быстрое переключение
+04 / Recovery	04 / Восстановление
+When launch stops	Если игра не запускается
+Diagnostics	Диагностика
+Check required files, copy a report, restore supported versions and review likely crash causes.	Проверяйте нужные файлы, копируйте отчёт, восстанавливайте поддерживаемые версии и изучайте возможные причины сбоя.
+Check & repair	Проверить и исправить
+Report	Отчёт
+Why did my build fail?	Почему сборка не запустилась?
+Check the Console, Java, libraries and assets. Restore supported version files if needed.	Проверьте Консоль, Java, библиотеки и ресурсы. При необходимости восстановите файлы поддерживаемой версии.
+File checks	Проверка файлов
+Crash analysis	Анализ сбоев
+Copyable report	Отчёт для копирования
+Identity cockpit	Центр профилей
+Every version of you.	Все ваши игровые образы.
+Manage game profile details linked to your Spectral site account and keep your friends close. Sign in to Ely.by separately in the desktop launcher.	Управляйте игровыми профилями, связанными с аккаунтом Spectral, и оставайтесь на связи с друзьями. Вход в Ely.by выполняется отдельно в лаунчере.
+Account overview	Обзор аккаунта
+Profiles	Профили
+Role slots	Слоты роли
+Loading your profiles…	Загрузка профилей…
+Site account required	Требуется аккаунт сайта
+Sign in to manage synced game profile details and friends. Game files and Ely.by authorization remain on your computer.	Войдите, чтобы управлять синхронизированными данными игровых профилей и друзьями. Игровые файлы и авторизация Ely.by остаются на вашем компьютере.
+Identity bank	Ваши профили
+Your profiles	Ваши профили
+Select a profile to save it as your preferred game identity.	Выберите профиль, который будет использоваться по умолчанию.
+Add Minecraft profile	Добавить профиль Minecraft
+Add profile	Добавить профиль
+No Minecraft profiles	Нет профилей Minecraft
+Add your first profile	Добавьте первый профиль
+Role capacity	Лимит роли
+Explore role capacity	Узнать о лимитах ролей
+Selected game profile	Выбранный игровой профиль
+Site metadata	Данные сайта
+Avatar	Аватар
+Selected profile	Выбранный профиль
+Stable identity code	Постоянный идентификатор
+Copy UUID	Скопировать UUID
+Copy	Копировать
+in game	в игре
+added	добавлено
+Profile saved	Профиль сохранён
+Open the desktop launcher to choose a build and confirm game authorization.	Откройте лаунчер, чтобы выбрать сборку и подтвердить авторизацию в игре.
+No profile selected	Профиль не выбран
+Add a game profile to start syncing its details.	Добавьте игровой профиль, чтобы синхронизировать его данные.
+Player network	Сеть игроков
+Find by username…	Поиск по имени…
+Friend username	Имя друга
+Add friend	Добавить друга
+Your player network is empty. Search for someone above.	В списке друзей пока никого нет. Найдите игрока выше.
+Friend profiles open in the new public identity view.	Профили друзей открываются в публичном представлении.
+Close account dialog	Закрыть окно аккаунта
+Add Minecraft Profile	Добавить профиль Minecraft
+Profile type	Тип профиля
+Save profile name	Сохранить имя профиля
+Offline	Автономный
+No authentication	Без авторизации
+Profile name	Имя профиля
+This website saves only the profile name. Connect Ely.by securely in the desktop launcher.	Сайт сохраняет только имя профиля. Безопасно подключите Ely.by в лаунчере.
+Add Ely.by Profile	Добавить профиль Ely.by
+Username (up to 16 characters)	Имя игрока (до 16 символов)
+Offline accounts only work on servers without online verification.	Автономные профили работают только на серверах без онлайн-проверки.
+Create Profile	Создать профиль
+Spectral timeline	История Spectral
+History	История
+An editorial timeline of launcher and website features. Dates illustrate the product story; for official release dates and downloads, check	Хронология возможностей лаунчера и сайта. Даты показывают историю продукта; официальные даты выпусков и загрузки доступны в
+GitHub Releases	GitHub Releases
+Update statistics	Статистика обновлений
+Entries	Записи
+Changes	Изменения
+Latest	Последнее
+Latest timeline entry	Последняя запись хронологии
+Latest milestone	Последнее событие
+Loading update…	Загрузка обновления…
+Preparing the latest update notes.	Подготовка заметок о последнем обновлении.
+Stable	Стабильная
+View update	Открыть обновление
+Write Update	Написать обновление
+Search features and changes…	Поиск возможностей и изменений…
+Filter updates	Фильтр обновлений
+All	Все
+Added	Добавлено
+Improved	Улучшено
+Fixed	Исправлено
+Important	Важное
+No matching updates	Обновления не найдены
+Try a different search or change the active filter.	Измените запрос или выберите другой фильтр.
+Reset filters	Сбросить фильтры
+Under the hood	Как всё устроено
+Every launch should be	Каждый запуск должен быть
+explainable.	понятным.
+Spectral shows the decisions behind each launch, so a failed process leaves a useful trail instead of a silent exit.	Spectral показывает этапы каждого запуска, чтобы вместо внезапного закрытия игры оставался полезный след ошибки.
+Trace a launch	Проследить запуск
+Spectral build profile	Профиль сборки Spectral
+mapped	связано
+Interface layer	Уровень интерфейса
+Tabs · dialogs · animations · i18n	Вкладки · окна · анимации · перевод
+Orchestration	Управление запуском
+Command building · process state	Сборка команды · состояние процесса
+Services	Сервисы
+Java · Versions · Mods	Java · версии · моды
+Resolve · install · update	Поиск · установка · обновление
+Runtime	Среда запуска
+Logs · exit code · diagnostics	Журналы · код выхода · диагностика
+Development chapters	Разделы разработки
+Technical contents	Техническое содержание
+Launch pipeline	Этапы запуска
+Subsystems	Подсистемы
+Source paths	Исходный код
+From Play to process	От кнопки «Играть» до процесса
+Pick a step to see what goes in, what the launcher does, and what you can check when it stops.	Выберите этап и узнайте, какие данные поступают, что делает лаунчер и что проверить при сбое.
+Launch sequence	Последовательность запуска
+Launch steps	Этапы запуска
+Read profile	Чтение профиля
+Instance & account	Сборка и аккаунт
+Resolve version	Проверка версии
+Libraries & assets	Библиотеки и ресурсы
+Match Java	Подбор Java
+Compatible runtime	Совместимая среда
+Assemble launch	Подготовка запуска
+Command & natives	Команда и нативные файлы
+Observe result	Контроль результата
+Console & errors	Консоль и ошибки
+Step	Этап
+Ready to inspect	Готово к просмотру
+Read the selected profile	Чтение выбранного профиля
+Spectral gathers the instance, account, memory, window and launch preferences before touching the game files.	Spectral собирает настройки сборки, аккаунта, памяти, окна и запуска до работы с игровыми файлами.
+Input	Входные данные
+Selected instance + player profile	Выбранная сборка + игровой профиль
+Output	Результат
+One validated GameSettings object	Проверенный объект GameSettings
+If the wrong instance opens, check the selection and account before changing Java or mods.	Если открылась не та сборка, сначала проверьте выбор сборки и аккаунта, затем настройки Java и модов.
+Previous launch step	Предыдущий этап запуска
+1 of 5	1 из 5
+Next launch step	Следующий этап запуска
+Engineering principle	Принцип разработки
+If a launch fails, the last successful stage and the real process error should remain visible.	При сбое должны быть видны последний успешный этап и фактическая ошибка процесса.
+Subsystem atlas	Карта подсистем
+Choose a layer	Выберите уровень
+Launcher architecture	Архитектура лаунчера
+Inspect each layer's responsibilities and the data it passes on.	Изучите задачи каждого уровня и передаваемые им данные.
+Launcher subsystems	Подсистемы лаунчера
+Presentation	Интерфейс
+UI, motion and translation	Интерфейс, анимация и перевод
+Launcher Core	Ядро лаунчера
+Launch state and arguments	Состояние запуска и аргументы
+Java Manager	Менеджер Java
+Discovery and matching	Поиск и подбор
+Content	Контент
+Versions & Mods	Версии и моды
+Install, browse and update	Установка, каталог и обновление
+Profiles, UUIDs and skins	Профили, UUID и скины
+Observability	Мониторинг
+Console & Logs	Консоль и журналы
+Search, export and failures	Поиск, экспорт и сбои
+Layer	Уровень
+Switch launcher layer	Переключить уровень лаунчера
+Show interface layer	Показать интерфейс
+Show core layer	Показать ядро
+Show Java layer	Показать Java
+Show content layer	Показать контент
+Show identity layer	Показать профили
+Show diagnostics layer	Показать диагностику
+The desktop surface for Play, Library, Accounts, Console, settings and dialog flows, with shared styling and RU / EN translation.	Интерфейс вкладок «Играть», «Библиотека», «Аккаунты» и «Консоль», настроек и диалогов с единым стилем и переводом RU / EN.
+Technologies	Технологии
+Keeps product surfaces visually consistent	Обеспечивает единый стиль интерфейса
+Translates state into clear player actions	Превращает состояние в понятные действия
+Delivers accessible feedback and dialogs	Показывает понятные сообщения и диалоги
+Subsystem signal path	Путь сигнала между подсистемами
+Signal path	Путь сигнала
+Connected	Связано
+Player action	Действие игрока
+Handled by	Обработчик
+Qt event	Событие Qt
+Owns	Отвечает за
+Tabs · dialogs · interaction	Вкладки · диалоги · взаимодействие
+Connects to	Связано с
+LauncherCore · managers	LauncherCore · менеджеры
+Source walkthrough	Обзор исходного кода
+Read the critical paths	Изучите ключевые участки
+Switch files to see how the launcher separates process control, runtime choice and account identity.	Переключайте файлы, чтобы увидеть, как лаунчер разделяет управление процессом, выбор среды и работу с аккаунтом.
+Source examples	Примеры исходного кода
+File focus	О файле
+Launch orchestration	Управление запуском
+Turns validated settings and an account into a prepared Minecraft process while keeping failure signals available to the UI.	Превращает проверенные настройки и аккаунт в готовый процесс Minecraft, сохраняя сведения об ошибках для интерфейса.
+Responsibility	Задача
+Build the classpath and game arguments	Собрать путь классов и аргументы игры
+Prepare native libraries	Подготовить нативные библиотеки
+Forward output and failures to Console	Передать вывод и ошибки в Консоль
+Architecture qualities	Свойства архитектуры
+Data model	Модель данных
+Local-first	Сначала локально
+Localization	Локализация
+Explicit errors	Явные ошибки
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+Actual Launcher	Настоящий лаунчер
+Features that	Возможности, которые
+are actually built.	уже работают.
+Explore the desktop launcher documented from Spectral 1.9.9. Minecraft: Java Edition builds and game files stay on your computer.	Узнайте о лаунчере Spectral версии 1.9.9. Сборки Minecraft: Java Edition и игровые файлы остаются на вашем компьютере.
+Desktop architecture	Архитектура приложения
+Desktop Launcher Core	Ядро лаунчера
+Written in C++17 with Qt 6 Widgets. The launcher uses native desktop UI, local files and explicit Minecraft process control.	Лаунчер написан на C++17 с Qt 6 Widgets. Он использует нативный интерфейс, локальные файлы и прямое управление процессом Minecraft.
+Spectral Console	Консоль Spectral
+live	работает
+Instance Library	Библиотека сборок
+Create, rename, copy, configure and launch separate builds. Each has its own mods, configs, worlds, resource packs, shaders, screenshots and logs. Back up saves before deleting a build.	Создавайте, переименовывайте, копируйте, настраивайте и запускайте отдельные сборки. У каждой свои моды, настройки, миры, ресурсы, шейдеры, скриншоты и журналы. Перед удалением сборки сохраните копию миров.
+Separate folders	Отдельные папки
+Worlds	Миры
+Finds installed or previously downloaded Java, checks compatibility with the selected Minecraft release and can download a suitable runtime. A custom Java path and JVM arguments are global settings.	Находит установленную или ранее загруженную Java, проверяет совместимость с выбранной версией Minecraft и при необходимости загружает подходящую среду. Собственный путь к Java и аргументы JVM задаются для всего лаунчера.
+Custom path	Свой путь
+Mod Manager	Менеджер модов
+Add mods, resource packs and shaders from files or Modrinth. Check compatible Modrinth mods for updates, keep disabled mods disabled and review update history. Per-build auto-check is optional.	Добавляйте моды, наборы ресурсов и шейдеры из файлов или Modrinth. Проверяйте обновления совместимых модов, сохраняйте отключённые моды отключёнными и просматривайте историю обновлений. Автопроверка настраивается для каждой сборки.
+Dependencies	Зависимости
+Versions & loaders	Версии и загрузчики
+Create Vanilla, Fabric or Forge builds and install or restore their version files. The Library version manager warns when a version is in use. Availability depends on the source and loader compatibility.	Создавайте сборки Vanilla, Fabric и Forge, устанавливайте или восстанавливайте файлы версий. Менеджер версий в Библиотеке предупредит, если версия используется. Доступность зависит от источника и совместимости загрузчика.
+Modrinth modpacks	Сборки Modrinth
+Search Modrinth or import a .mrpack file to create a build with its game version, loader and configuration. Local packs can have no loader or use Fabric, Forge or Quilt; NeoForge packs are rejected.	Ищите сборки на Modrinth или импортируйте файл .mrpack вместе с версией игры, загрузчиком и настройками. Локальные пакеты могут быть без загрузчика или с Fabric, Forge и Quilt; NeoForge не поддерживается.
+Catalog	Каталог
+Quilt import	Импорт Quilt
+Console & recovery	Консоль и восстановление
+Follow launch stages and game output with search, timestamps and export. Check required files without launching, copy a report and restore supported versions. Crash analysis suggests likely causes.	Следите за этапами запуска и выводом игры с поиском, временем событий и экспортом. Проверяйте файлы без запуска игры, копируйте отчёт и восстанавливайте поддерживаемые версии. Анализ сбоев подсказывает вероятные причины.
+Logs	Журналы
+File check	Проверка файлов
+Crash report	Отчёт о сбое
+Create an offline profile or sign in through Ely.by, including its two-factor code. A Spectral site account separately syncs profile metadata and role-based slots; Ely.by authorization stays on this device.	Создайте автономный профиль или войдите через Ely.by, при необходимости указав код двухфакторной проверки. Аккаунт Spectral отдельно синхронизирует данные профилей и слоты роли; авторизация Ely.by хранится на этом устройстве.
+Site sync	Синхронизация сайта
+Friends & playtime	Друзья и время в игре
+When signed in to Spectral, the Play tab shows friends, status, roles and requests. The launcher also tracks playtime and the last launch for the selected build.	После входа в Spectral вкладка «Играть» показывает друзей, статусы, роли и запросы. Лаунчер также отслеживает время в игре и последний запуск выбранной сборки.
+Requests	Запросы
+Status	Статус
+Screenshots	Скриншоты
+Open a build's screenshot gallery from the Library to view images, reveal files or folders and remove unwanted screenshots. Minecraft usually captures them with F2.	Откройте галерею скриншотов сборки в Библиотеке, чтобы просматривать изображения, открывать файлы и папки или удалять лишние снимки. В Minecraft они обычно создаются клавишей F2.
+Gallery	Галерея
+Open folder	Открыть папку
+Settings & performance	Настройки и производительность
+Choose RU or EN, memory and display defaults, window and tray behavior, and lighter visuals. First-run hardware recommendations can be recalculated later. Discord Rich Presence is optional.	Выберите RU или EN, параметры памяти и экрана, поведение окна и системного трея, а также упрощённые эффекты. Рекомендации для устройства можно пересчитать позже. Discord Rich Presence включается по желанию.
+Memory	Память
+Display	Экран
+Launcher updates	Обновления лаунчера
+Checks GitHub Releases on startup or from Settings. An update can be offered when a newer release includes a suitable package and verifiable SHA-256 checksum; GitHub access is required.	Проверяет GitHub Releases при запуске или из Настроек. Обновление предлагается, если новый выпуск содержит подходящий пакет с проверяемой суммой SHA-256. Нужен доступ к GitHub.
+Restart	Перезапуск
+Play & process	Игра и процесс
+Play shows the selected build, loader, profile, mod count and last launch. Spectral prepares libraries and native files, starts Minecraft as a separate process and records playtime when it ends normally.	Вкладка «Играть» показывает сборку, загрузчик, профиль, число модов и последний запуск. Spectral готовит библиотеки и нативные файлы, запускает Minecraft отдельным процессом и записывает время игры после нормального завершения.
+Launch stages	Этапы запуска
+main launcher tabs	основных вкладок лаунчера
+build types in the wizard	типа сборок в мастере
+interface languages	языка интерфейса
+local-first design	локальное хранение
+First launch	Первый запуск
+From install to your first world	От установки до первого мира
+Choose a profile, create a build and launch Minecraft: Java Edition.	Выберите профиль, создайте сборку и запустите Minecraft: Java Edition.
+Set up Spectral	Настройте Spectral
+Open the launcher and use its first-run performance recommendation, or adjust settings yourself.	Откройте лаунчер и примите рекомендованные настройки производительности либо настройте их сами.
+Choose a game profile	Выберите игровой профиль
+In Accounts, create an offline profile or authorize Ely.by. Sign in to Spectral separately for friends and profile sync.	Во вкладке «Аккаунты» создайте автономный профиль или авторизуйтесь через Ely.by. Для друзей и синхронизации профилей отдельно войдите в Spectral.
+Create a build	Создайте сборку
+In Library, choose New build, then Vanilla, Fabric or Forge and a Minecraft version. The wizard can install missing version files.	В Библиотеке нажмите «Новая сборка», выберите Vanilla, Fabric или Forge и версию Minecraft. Мастер сможет установить недостающие файлы версии.
+Add content and play	Добавьте контент и играйте
+Add compatible mods, resource packs or shaders if you want them, set memory and window options, then select the build on Play.	При желании добавьте совместимые моды, наборы ресурсов и шейдеры, настройте память и окно, затем выберите сборку на вкладке «Играть».
+Already have a Modrinth pack? Import it from the catalog or a .mrpack file. If launch stops, open Console and run Check & Repair from Play. Version availability depends on the source; back up a build's saves before deleting it.	Уже есть сборка Modrinth? Импортируйте её из каталога или файла .mrpack. При сбое откройте Консоль и запустите «Проверить и исправить» на вкладке «Играть». Доступность версий зависит от источника; перед удалением сборки создайте копию миров.
+Spectral Help Center	Справка Spectral
+Find the issue.	Найдите причину.
+Get back in game.	Возвращайтесь в игру.
+Search a guide or choose a symptom below. If you still need help, prepare a note with your version and error details.	Найдите руководство или выберите проблему ниже. Если помощь всё ещё нужна, подготовьте сообщение с версией и подробностями ошибки.
+Search Java, memory, mods, accounts...	Поиск: Java, память, моды, аккаунты...
+Search across 7 guides and 4 guided checks	Поиск по 7 руководствам и 4 сценариям проверки
+Live help and community chat	Помощь и общение с сообществом
+Browse the public issue history	Просмотр открытых обращений
+Guided checks	Пошаговые проверки
+What went wrong?	Что случилось?
+Select a symptom and work through its checks.	Выберите проблему и выполните проверки.
+Checklist progress	Ход проверки
+Choose a symptom	Выберите проблему
+01 / Startup	01 / Запуск
+Game crashes or freezes	Игра закрывается или зависает
+02 / Modded	02 / Моды
+Fabric or Forge fails	Fabric или Forge не запускается
+03 / In game	03 / В игре
+Low FPS or stutter	Низкий FPS или подёргивания
+04 / Identity	04 / Аккаунт
+Account or offline play	Аккаунт или автономная игра
+STARTUP / CRASH	ЗАПУСК / СБОЙ
+Find where the launch stopped.	Найдите этап сбоя.
+Read the Console and use Check & Repair on the Play tab to inspect the selected build's version files, Java, libraries and assets without starting Minecraft.	Прочитайте Консоль и используйте «Проверить и исправить» во вкладке «Играть», чтобы проверить файлы версии, Java, библиотеки и ресурсы без запуска Minecraft.
+Open Console and read the final relevant error.	Откройте Консоль и найдите последнюю важную ошибку.
+Run Check & Repair and copy its report.	Запустите «Проверить и исправить» и скопируйте отчёт.
+Confirm Java compatibility and leave RAM for the system.	Проверьте совместимость Java и оставьте системе достаточно памяти.
+Read the Console guide	Открыть руководство по Консоли
+Reset checks	Сбросить проверки
+MODDED / LOADER	МОДЫ / ЗАГРУЗЧИК
+Check the version chain.	Проверьте версии компонентов.
+Fabric and Forge builds need a compatible Minecraft base, Java and mods. A .mrpack import can also use Quilt; NeoForge packs are unsupported.	Для сборок Fabric и Forge нужны совместимые версии Minecraft, Java и модов. Импорт .mrpack может использовать Quilt; NeoForge не поддерживается.
+Match the loader build and mods to the Minecraft version.	Сопоставьте версии загрузчика и модов с версией Minecraft.
+Check Java's required major version.	Проверьте требуемую основную версию Java.
+Use Check & Repair before changing the build's files.	Перед изменением файлов сборки запустите «Проверить и исправить».
+Read the modded guide	Открыть руководство по модам
+PERFORMANCE	ПРОИЗВОДИТЕЛЬНОСТЬ
+Change one variable at a time.	Меняйте по одному параметру.
+Compare FPS in the same world and location so you can see which adjustment helped.	Сравнивайте FPS в одном мире и месте, чтобы понять, какое изменение помогло.
+Lower render distance and restart the game.	Уменьшите дальность прорисовки и перезапустите игру.
+Use a compatible optimization mod for your loader.	Используйте мод оптимизации, совместимый с вашим загрузчиком.
+Set reasonable memory without assigning all system RAM.	Выделите разумный объём памяти, не отдавая игре всю оперативную память.
+Read the FPS guide	Открыть руководство по FPS
+ACCOUNT / OFFLINE	АККАУНТ / АВТОНОМНО
+Check which identity you are using.	Проверьте выбранный профиль.
+Your Spectral site account syncs profile details and friends. The game uses a selected offline profile or a separately authorized Ely.by session.	Аккаунт сайта Spectral синхронизирует данные профилей и друзей. Для игры используется автономный профиль или отдельно авторизованный сеанс Ely.by.
+Select the intended game profile in the launcher.	Выберите нужный игровой профиль в лаунчере.
+For Ely.by, sign in on this computer; a saved site profile has no game token.	Для Ely.by войдите на этом компьютере: сохранённый профиль сайта не содержит игровой токен.
+For offline play, confirm the server allows offline profiles.	Для автономной игры убедитесь, что сервер допускает такие профили.
+Read the account guide	Открыть руководство по аккаунтам
+No guided path matches that search.	Проверка по запросу не найдена.
+Try a shorter term or browse the guides below.	Сократите запрос или просмотрите руководства ниже.
+Still stuck? Prepare a support note with the details you found.	Проблема осталась? Подготовьте сообщение для поддержки с найденными подробностями.
+Build a support note	Составить обращение
+Before you ask for help	Перед обращением за помощью
+Build a useful support note.	Составьте полезное обращение.
+A clear version and the final error line help others reproduce the problem. Fill in what you know, then copy a note for Discord, email or an issue.	Версия и последняя строка ошибки помогут другим воспроизвести проблему. Заполните известные данные и скопируйте сообщение для Discord, почты или GitHub Issues.
+What happened?	Что произошло?
+Something else	Другое
+Minecraft version	Версия Minecraft
+For example, 1.21.1	Например, 1.21.1
+Java version, if relevant	Версия Java, если важно
+For example, Java 21	Например, Java 21
+Final Console error or what you observed	Последняя ошибка Консоли или ваши наблюдения
+Paste a short, relevant excerpt. Remove account details or tokens first.	Вставьте короткий фрагмент. Сначала удалите данные аккаунта и токены.
+Copy support note	Скопировать обращение
+Clear fields	Очистить поля
+Support note preview	Предпросмотр обращения
+Your note	Ваше сообщение
+Live preview	Предпросмотр
+Check the note for personal information before sharing it.	Проверьте сообщение на наличие личных данных перед отправкой.
+Knowledge base	База знаний
+Answers without the guesswork.	Ответы без догадок.
+Filter by topic or search for a specific issue.	Выберите тему или найдите конкретную проблему.
+Filter guides by topic	Фильтр руководств по темам
+All guides	Все руководства
+Launch	Запуск
+All questions	Все вопросы
+7 guides	7 руководств
+Accounts · 2 min	Аккаунты · 2 мин
+How do I add a game profile?	Как добавить игровой профиль?
+In the desktop launcher, open	В лаунчере откройте
+to create an offline profile or sign in through Ely.by. The website can save profile metadata, but Ely.by must be authorized separately on this computer. Microsoft sign-in is currently disabled in the launcher.	чтобы создать автономный профиль или войти через Ely.by. Сайт может сохранять данные профиля, но Ely.by нужно отдельно авторизовать на этом компьютере. Вход через Microsoft пока отключён в лаунчере.
+Identity · 1 min	Профили · 1 мин
+What's the difference between a site account and a game profile?	Чем аккаунт сайта отличается от игрового профиля?
+A	Аккаунт
+Spectral site account	сайта Spectral
+syncs game profile metadata and gives access to friends and role-based profile slots. A	синхронизирует данные игровых профилей и даёт доступ к друзьям и слотам роли. А
+game profile	игровой профиль
+supplies the identity selected for launch. A site record alone does not provide an Ely.by game token.	задаёт имя, используемое при запуске. Одной записи на сайте недостаточно для игрового токена Ely.by.
+Mods · 3 min	Моды · 3 мин
+Why does my Fabric/Forge build fail to start?	Почему сборка Fabric/Forge не запускается?
+Check that the Minecraft version, loader, Java and mods are compatible. On Play, run	Убедитесь, что версии Minecraft, загрузчика, Java и модов совместимы. На вкладке «Играть» запустите
+and restore supported version files if recommended. Then read the Console error. The check is not meant to remove worlds or user mods.	и при необходимости восстановите поддерживаемые файлы версии. Затем изучите ошибку в Консоли. Проверка не должна удалять миры и пользовательские моды.
+Memory · 2 min	Память · 2 мин
+How much memory should I allocate?	Сколько памяти выделить?
+Use 2–4 GB for vanilla, 4–6 GB for medium modpacks and up to 8 GB for heavy packs. Leave enough memory for your operating system instead of assigning nearly all system RAM.	Для Vanilla используйте 2–4 ГБ, для средних сборок 4–6 ГБ, для больших — до 8 ГБ. Оставьте достаточно памяти операционной системе.
+Diagnostics · 2 min	Диагностика · 2 мин
+Where can I see logs and errors?	Где посмотреть журналы и ошибки?
+The Console tab shows launch stages and Minecraft output with colored levels, timestamps, search, copy and export. The crash analyzer can suggest a likely cause from process output, crash reports or hs_err_pid files; its advice is not an automatic fix.	Консоль показывает этапы запуска и вывод Minecraft с цветными уровнями, временем событий, поиском, копированием и экспортом. Анализатор сбоев может предположить причину по выводу процесса, отчётам или файлам hs_err_pid; его совет не исправляет проблему автоматически.
+Offline play · 1 min	Автономная игра · 1 мин
+Can I use an offline profile?	Можно ли играть с автономным профилем?
+Yes. Installed builds and offline profiles live on this computer. An offline profile works for local play and servers that allow it; it cannot pass official license checks. Installing versions, mods or Java and signing in to online services require access to their sources.	Да. Установленные сборки и автономные профили хранятся на этом компьютере. Автономный профиль подходит для локальной игры и серверов, которые его допускают; официальную проверку лицензии он не проходит. Для установки версий, модов и Java, а также входа в онлайн-сервисы нужен доступ к их источникам.
+Performance · 3 min	Производительность · 3 мин
+How can I improve low FPS?	Как повысить FPS?
+Start with Sodium on Fabric or another compatible optimization stack. Keep render distance reasonable, avoid excessive memory allocation and compare changes in the same world and location.	Начните с Sodium на Fabric или другого совместимого набора оптимизации. Не ставьте слишком большую дальность прорисовки и не выделяйте лишнюю память; сравнивайте изменения в одном мире и месте.
+No matching guide yet	Подходящее руководство не найдено
+Try a shorter term such as Java, memory, mods or account.	Попробуйте короткий запрос: Java, память, моды или аккаунт.
+Ideas & Suggestions	Идеи и предложения
+Share your ideas for the launcher and site — the best ones become real features	Поделитесь идеями для лаунчера и сайта — лучшие из них станут новыми возможностями
+Share Idea	Предложить идею
+Sign in to share an idea	Войдите, чтобы предложить идею
+No ideas yet — be the first!	Идей пока нет — станьте первым!
+Independent desktop launcher	Независимый лаунчер для компьютера
+© 2026 Spectral Launcher — Not affiliated with Mojang or Microsoft	© 2026 Spectral Launcher — не связан с Mojang или Microsoft
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+Spectral account	Аккаунт Spectral
+Close account panel	Закрыть панель аккаунта
+Site Account	Аккаунт сайта
+Sign in to manage your Minecraft profiles and access community features	Войдите, чтобы управлять профилями Minecraft и пользоваться возможностями сообщества
+Local demo mode: account data stays in this browser. Do not reuse a password from another service.	Локальный деморежим: данные аккаунта остаются в этом браузере. Не используйте пароль от другого сервиса.
+Continue with Google	Продолжить через Google
+Used Google before? Sign in here, even if your profile has a username.	Ранее использовали Google? Войдите здесь, даже если у профиля есть имя пользователя.
+or	или
+Email or username	Почта или имя пользователя
+Password	Пароль
+Forgot password?	Забыли пароль?
+No account?	Нет аккаунта?
+Create one	Создать
+Create Account	Создать аккаунт
+Choose a username and password. Email is optional.	Выберите имя пользователя и пароль. Почта необязательна.
+Your starting role: Veteran	Ваша начальная роль: Veteran
+Assigned automatically to accounts created before May 1, 2027. No selection or payment needed.	Автоматически назначается аккаунтам, созданным до 1 мая 2027 года. Ничего выбирать и оплачивать не нужно.
+How do other roles work?	Как работают другие роли?
+Veteran is your permanent starting reward. You can explore Pro, Legend and Spectral from your account after signing up. Staff roles are assigned by the team.	Veteran — постоянная награда при регистрации. После создания аккаунта вы сможете узнать о ролях Pro, Legend и Spectral. Служебные роли назначает команда.
+Sign up with Google	Зарегистрироваться через Google
+Username (3–20 chars)	Имя пользователя (3–20 символов)
+Email saved only on this device	Почта хранится только на этом устройстве
+Without configured cloud authentication, this creates a device-local demo account only.	Без настроенной облачной авторизации будет создан только локальный демоаккаунт на этом устройстве.
+Use at least 10 characters and do not reuse another account password.	Используйте не менее 10 символов и не повторяйте пароль от другого аккаунта.
+Confirm Password	Подтвердите пароль
+Already registered?	Уже зарегистрированы?
+Set a new password	Установить новый пароль
+Enter a new password for your account	Введите новый пароль для аккаунта
+New password	Новый пароль
+Confirm new password	Подтвердите новый пароль
+Update password	Обновить пароль
+Account workspace	Пространство аккаунта
+SPECTRAL / ACCOUNT	SPECTRAL / АККАУНТ
+Your space	Ваше пространство
+Everything about your identity in one place	Все сведения о вашем профиле в одном месте
+Player	Игрок
+Account	Аккаунт
+Account menu	Меню аккаунта
+WORKSPACE	ПРОСТРАНСТВО
+Profile	Профиль
+Identity & settings	Профиль и настройки
+Roles	Роли
+Plans & perks	Планы и преимущества
+Admin	Администрирование
+People & activity	Люди и активность
+Local demo	Локальное демо
+Changes to your profile are saved when you press Save.	Изменения профиля сохраняются после нажатия «Сохранить».
+Core collection	Основная коллекция
+Customize	Настроить
+Upload avatar	Загрузить аватар
+Online identity	Сетевой профиль
+Username	Имя пользователя
+USER	ПОЛЬЗОВАТЕЛЬ
+Profile signal	Стиль профиля
+Soft reveal	Плавное появление
+1 header unlocked	Открыт 1 фон профиля
+Your access	Ваш доступ
+Player role	Роль игрока
+Explore role perks and profile styles	Изучите преимущества ролей и стили профиля
+View roles	Посмотреть роли
+Identity studio	Студия профиля
+Animated profile headers	Анимированные фоны профиля
+Choose a role-powered scene and the way your account menu appears.	Выберите фон, доступный для вашей роли, и анимацию появления меню аккаунта.
+Close identity studio	Закрыть студию профиля
+Menu entrance	Появление меню
+Soft signal	Мягкий сигнал
+Appearance & performance	Вид и производительность
+Device preferences are saved locally in this browser.	Настройки устройства сохраняются локально в этом браузере.
+Light theme	Светлая тема
+Dark palette is active	Активна тёмная палитра
+Lightweight mode	Облегчённый режим
+Full visual quality	Полное качество эффектов
+Reduces motion, blur, particles and decorative rendering. The page reloads once when this setting changes.	Уменьшает анимацию, размытие, частицы и декоративные эффекты. После изменения страница один раз перезагрузится.
+YOUR PUBLIC IDENTITY	ВАШ ПУБЛИЧНЫЙ ПРОФИЛЬ
+Make yourself known	Расскажите о себе
+Your display name, status and bio appear on your profile.	Отображаемое имя, статус и описание видны в вашем профиле.
+Profile preview	Предпросмотр профиля
+LIVE PREVIEW	ПРЕДПРОСМОТР
+Your name	Ваше имя
+Your status appears here	Здесь появится ваш статус
+Display name	Отображаемое имя
+What are you working on?	Над чем вы работаете?
+Quick status ideas	Примеры статуса
+Exploring new worlds	Исследую новые миры
+Building something new	Строю что-то новое
+Ready to play	Готов играть
+About you	О себе
+A little about your Minecraft world…	Немного о вашем мире Minecraft…
+Change photo	Сменить фото
+Reset photo	Сбросить фото
+PNG, JPEG or WebP · up to 1 MB. Cloud photos are sent to an automated moderation service before publication.	PNG, JPEG или WebP · до 1 МБ. Облачные фото проходят автоматическую проверку перед публикацией.
+All changes saved	Все изменения сохранены
+Discard	Отменить
+Save profile	Сохранить профиль
+SESSION & DATA	СЕАНС И ДАННЫЕ
+Your account, explained	Ваш аккаунт
+Export my data	Экспортировать мои данные
+Send password reset	Отправить ссылку для сброса пароля
+Logout	Выйти
+Spectral roles	Роли Spectral
+Make your account	Сделайте аккаунт
+unmistakable.	узнаваемым.
+Unlock more launcher profiles, rare identity effects and a badge that follows you across the community.	Откройте больше профилей лаунчера, редкие эффекты оформления и значок, который виден всему сообществу.
+Current role	Текущая роль
+Standard access	Стандартный доступ
+Your current limits	Ваши текущие лимиты
+Choose your signal	Выберите свой стиль
+Role collection	Коллекция ролей
+Billing period	Период оплаты
+Monthly	Ежемесячно
+Yearly	Ежегодно
+COMPARE THE DETAILS	ПОДРОБНОЕ СРАВНЕНИЕ
+Find your fit	Найдите подходящую роль
+Compare capacity, appearance and staff permissions separately.	Сравните лимиты, оформление и служебные права отдельно.
+Compare role features	Сравнить возможности ролей
+Capacity	Лимиты
+Appearance	Оформление
+Permissions	Права
+Role comparison, scroll horizontally on small screens	Сравнение ролей; на маленьком экране прокручивайте по горизонтали
+Saving a launch choice does not activate a role. Staff roles are assigned by authorized administrators.	Сохранение выбора на запуске не активирует роль. Служебные роли назначают уполномоченные администраторы.
+Close checkout	Закрыть оформление
+Local launch choice	Локальный выбор
+Reserve Pro	Выбрать Pro
+Your choice will be saved for the payment launch. No payment is taken now.	Ваш выбор сохранится до запуска оплаты. Сейчас деньги не списываются.
+Saved in this browser. No email is sent and no subscription starts.	Выбор сохранён в браузере. Письмо не отправляется, подписка не начинается.
+Yearly plan	Годовой план
+No charge today	Сегодня без оплаты
+Save launch choice	Сохранить выбор
+Administration	Администрирование
+Control center	Центр управления
+Review accounts, understand access and track every local management change.	Проверяйте аккаунты, управляйте доступом и отслеживайте локальные изменения.
+Moderator access	Доступ модератора
+Local mode	Локальный режим
+Administration overview	Обзор администрирования
+Users	Пользователи
+Active 7d	Активны за 7 дней
+Pending	Ожидает
+Banned	Заблокированы
+Accounts & access	Аккаунты и доступ
+Forum	Форум
+Community queue	Очередь сообщества
+Activity	Активность
+Change history	История изменений
+Analytics	Аналитика
+Usage overview	Обзор использования
+REVIEW BEFORE APPLYING	ПРОВЕРЬТЕ ПЕРЕД СОХРАНЕНИЕМ
+Review change	Проверить изменение
+Reason for this change	Причина изменения
+Add context for the activity log	Добавьте пояснение для журнала действий
+Cancel	Отмена
+Apply change	Применить изменение
+CHANGE HISTORY	ИСТОРИЯ ИЗМЕНЕНИЙ
+Activity log	Журнал действий
+Role and access changes, with the actor and reason. Local history is stored on this device.	Изменения ролей и доступа с указанием автора и причины. Локальная история хранится на этом устройстве.
+Search name, username or bio...	Поиск по имени или описанию...
+Filter by role	Фильтр по роли
+All roles	Все роли
+Developer	Разработчик
+Moderator	Модератор
+Legend	Легенда
+Pro	Про
+Veteran	Ветеран
+Filter by status	Фильтр по статусу
+All statuses	Все статусы
+Online now	Сейчас в сети
+Active this week	Активны на этой неделе
+Inactive 30d+	Неактивны более 30 дней
+Sort users	Сортировка пользователей
+Highest role	По старшей роли
+Recently active	По последней активности
+Newest users	Сначала новые
+Most time	По времени
+Name A–Z	По имени А–Я
+Select visible	Выбрать видимые
+0 users	0 пользователей
+0 selected	0 выбрано
+Bulk actions only affect manageable users	Массовые действия применяются только к доступным пользователям
+Bulk role	Массовое назначение роли
+Choose role...	Выберите роль...
+Apply role	Назначить роль
+Ban	Заблокировать
+Unban	Разблокировать
+Export	Экспорт
+Clear selection	Очистить выбор
+User pages	Страницы пользователей
+Select a user	Выберите пользователя
+Open any account to inspect its activity, identities and access level.	Откройте аккаунт, чтобы проверить активность, профили и уровень доступа.
+Community moderation	Модерация сообщества
+Idea review queue	Очередь идей
+Approve useful suggestions, reject unsuitable posts or restore them later.	Одобряйте полезные предложения, отклоняйте неподходящие записи или восстанавливайте их позже.
+0 ideas	0 идей
+Search ideas or authors...	Поиск по идеям и авторам...
+Filter ideas	Фильтр идей
+Approved	Одобрено
+Rejected	Отклонено
+Live overview	Текущий обзор
+Site analytics	Аналитика сайта
+Accounts, engagement, Minecraft profiles and community activity.	Аккаунты, вовлечённость, профили Minecraft и активность сообщества.
+Refresh	Обновить
+Close	Закрыть
+Account created	Аккаунт создан
+Welcome to Spectral,	Добро пожаловать в Spectral,
+Your identity is ready. We also found something special for you.	Ваш профиль готов. Мы приготовили для вас особый подарок.
+Your starting role	Ваша начальная роль
+Unlocked forever for joining before May 2027	Получена навсегда за регистрацию до мая 2027 года
+Enter my account	Перейти в аккаунт
+Explore roles	Посмотреть роли
+Friend profile	Профиль друга
+Close friend profile	Закрыть профиль друга
+Delete?	Удалить?
+This action is permanent.	Это действие нельзя отменить.
+Delete	Удалить
+Close editor	Закрыть редактор
+New release	Новый выпуск
+Update editor	Редактор обновлений
+Compose, preview and publish without leaving the page.	Создавайте, просматривайте и публикуйте, не покидая страницу.
+Release title	Заголовок выпуска
+Library & Mod Manager refresh	Обновление Библиотеки и менеджера модов
+Version	Версия
+Date	Дата
+Jun 27, 2026	27 июня 2026 г.
+Channel	Канал
+Beta	Бета
+Website	Сайт
+Release icon	Значок выпуска
+Bolt	Молния
+SpectrAI	SpectrAI
+Interface	Интерфейс
+Launcher core	Ядро лаунчера
+Security	Безопасность
+Short summary	Краткое описание
+A short overview shown before the full changelog.	Краткий обзор перед полным списком изменений.
+Mark as current release	Сделать текущим выпуском
+Highlights this update at the top of the timeline.	Показывает это обновление вверху хронологии.
+Changelog	Список изменений
+1 item	1 пункт
+Add changelog item	Добавить пункт изменений
+Feature	Возможность
+Improvement	Улучшение
+Fix	Исправление
+Change type	Тип изменения
++ Added	+ Добавлено
+↑ Improved	↑ Улучшено
+✧ Fixed	✧ Исправлено
+Describe the change...	Опишите изменение...
+Changelog item	Пункт изменений
+Remove	Удалить
+Remove changelog item	Удалить пункт изменений
+Save draft	Сохранить черновик
+Copy Markdown	Скопировать Markdown
+Clear	Очистить
+Changes saved locally	Изменения сохранены локально
+Publish Update	Опубликовать обновление
+Close idea form	Закрыть форму идеи
+Share Your Idea	Предложить идею
+Cloud ideas are checked automatically before publication. Unsafe text is rejected.	Идеи в облаке автоматически проверяются перед публикацией. Небезопасный текст отклоняется.
+Idea title (max 80 chars)	Название идеи (до 80 символов)
+Description (max 500 chars)	Описание (до 500 символов)
+Describe your idea in detail...	Подробно опишите вашу идею...
+Submit Idea	Отправить идею
+Scroll to top	Прокрутить наверх
+Sign in to see	Войдите, чтобы увидеть
+Performance	Производительность
+Check & Repair	Проверить и исправить
+Core	Ядро
+Signals	Сигналы
+UI	Интерфейс
+your friends here.	здесь ваших друзей.
+`);
+
+// Seeded release history is rendered after load; keeping it here also makes
+// language changes apply to already expanded timeline entries.
+window.SpectralI18n.addCatalog(String.raw`
+stable	стабильная
+website	сайт
+beta	бета
+CURRENT	ТЕКУЩАЯ
+Copy release as Markdown	Скопировать выпуск в Markdown
+Sign in or open account panel	Войти или открыть панель аккаунта
+Mark as current	Сделать текущим
+Mark as current release	Сделать текущим выпуском
+Edit update	Изменить обновление
+Duplicate update	Создать копию обновления
+Delete update	Удалить обновление
+Copy as Markdown	Скопировать в Markdown
+Untitled release	Выпуск без названия
+Release notes and product changes.	Заметки о выпуске и изменения продукта.
+Release notes are ready.	Заметки о выпуске готовы.
+Latest release	Последний выпуск
+Release	Выпуск
+Add at least one changelog item.	Добавьте хотя бы один пункт изменений.
+Release copied as Markdown	Выпуск скопирован в Markdown
+Update deleted	Обновление удалено
+View details	Показать подробности
+Hide details	Скрыть подробности
+Check, Restore & Understand Crashes	Проверка, восстановление и разбор сбоев
+The Play tab now gives a clearer path from a failed launch to a file check, a copyable report and a likely cause.	Вкладка «Играть» помогает пройти путь от неудачного запуска до проверки файлов, отчёта и вероятной причины сбоя.
+Check & Repair inspects the selected build’s version files, Java, libraries and assets without launching the game	«Проверить и исправить» проверяет файлы версии, Java, библиотеки и ресурсы выбранной сборки без запуска игры
+When a supported Vanilla, Fabric, Forge or Quilt version needs repair, the launcher can restore files and repeat the check	Если поддерживаемой версии Vanilla, Fabric, Forge или Quilt нужно восстановление, лаунчер восстановит файлы и повторит проверку
+Crash analysis combines process output, crash reports and hs_err_pid files to suggest likely causes and next steps	Анализ сбоев объединяет вывод процесса, отчёты и файлы hs_err_pid, чтобы подсказать причины и дальнейшие действия
+Diagnostic reports can be copied for support while worlds and personal mods stay in their build folders	Отчёт диагностики можно скопировать для поддержки; миры и личные моды остаются в папках сборки
+A Clearer Home for Profiles & Friends	Удобное место для профилей и друзей
+The site brings game profile details, role-based slots and the friend network into one account workspace.	Сайт объединяет данные игровых профилей, слоты ролей и друзей в одном пространстве аккаунта.
+The account page makes the selected game profile, UUID and available profile slots easier to inspect	На странице аккаунта проще просмотреть выбранный игровой профиль, UUID и доступные слоты
+Friend requests, player search and profile links are grouped around the signed-in Spectral account	Запросы в друзья, поиск игроков и ссылки на профили собраны в аккаунте Spectral
+Profile copy explains that Ely.by authorization remains on the computer running the launcher	Описание профиля объясняет, что авторизация Ely.by остаётся на компьютере с лаунчером
+Updates with a Verifiable Package	Обновления с проверяемым пакетом
+Launcher updates now explain what changed and require a suitable package with a matching SHA-256 checksum.	Обновления лаунчера теперь показывают изменения и требуют подходящий пакет с совпадающей суммой SHA-256.
+Spectral checks GitHub Releases at startup and offers a manual check under Settings → General → About	Spectral проверяет GitHub Releases при запуске; ручная проверка доступна в «Настройки → Общие → О программе»
+Available updates show release notes before installation and offer a restart afterward	Перед установкой доступны заметки о выпуске, после неё предлагается перезапуск
+An update is offered only when a newer release has a compatible package and a verifiable SHA-256 checksum	Обновление предлагается только при наличии совместимого пакета с проверяемой суммой SHA-256
+More Control over Modrinth Content	Больше контроля над контентом Modrinth
+Mod discovery and updates stay tied to the build’s Minecraft version and loader instead of treating every file as interchangeable.	Поиск и обновление модов учитывают версию Minecraft и загрузчик сборки, а не считают все файлы взаимозаменяемыми.
+Discover compatible mods, resource packs and shaders from inside a build’s Content view	Находите совместимые моды, наборы ресурсов и шейдеры в разделе контента сборки
+Required dependencies can be offered during installation; Auto-libraries can download missing ones automatically	Необходимые зависимости предлагаются при установке; «Автобиблиотеки» могут загружать недостающие файлы автоматически
+Mod update checks retain disabled state, show update history and can be enabled separately for each build	Проверка обновлений модов сохраняет их отключённое состояние, показывает историю и включается отдельно для каждой сборки
+Local files without a matching Modrinth project or compatible release remain under the player’s control	Локальные файлы без соответствующего проекта или совместимого выпуска на Modrinth остаются под контролем игрока
+From Modrinth Pack to New Build	Из сборки Modrinth в новую установку
+A Modrinth search result or .mrpack file can set up a separate build with its required game version and configuration.	Результат поиска Modrinth или файл .mrpack может создать отдельную сборку с нужной версией игры и настройками.
+Search for a pack on Modrinth or choose a local .mrpack file during build creation	При создании сборки найдите пакет на Modrinth или выберите локальный файл .mrpack
+The installer reads the pack’s Minecraft version and supports no loader, Fabric, Forge and Quilt packs	Установщик считывает версию Minecraft из пакета и поддерживает сборки без загрузчика, а также Fabric, Forge и Quilt
+NeoForge .mrpack files are not accepted by the current installer	Текущий установщик не принимает файлы .mrpack для NeoForge
+A Gentler First Run	Более простой первый запуск
+Spectral helps new players choose sensible performance defaults, with room to tune them later.	Spectral предлагает новичкам разумные настройки производительности, которые позже можно изменить.
+A local first-run check considers available memory, processor, storage and screen before suggesting a performance profile	Локальная проверка при первом запуске учитывает память, процессор, накопитель и экран перед выбором профиля производительности
+Settings can recalculate recommendations and adjust memory, resolution, fullscreen mode and JVM arguments	В Настройках можно пересчитать рекомендации и изменить память, разрешение, полноэкранный режим и аргументы JVM
+Lower-motion visuals, reduced background effects and interface refresh limits help on weaker computers	Меньше анимации, фоновых эффектов и обновлений интерфейса помогают на слабых компьютерах
+Help Center with a Path Forward	Справка с понятным планом действий
+Guided checks and a copyable support note make it easier to explain a launch problem clearly.	Пошаговые проверки и обращение для копирования помогают понятно описать проблему с запуском.
+Choose a startup, modded, performance or account symptom to see focused checks	Выберите проблему запуска, модов, производительности или аккаунта для точных проверок
+Build a support note with Minecraft version, Java version and the final relevant Console error	Составьте обращение с версией Minecraft и Java и последней важной ошибкой Консоли
+Searchable answers link site account details, game profiles, offline play and launcher diagnostics	Ответы с поиском связывают сведения об аккаунте сайта, игровых профилях, автономной игре и диагностике лаунчера
+A Library for Every Kind of World	Библиотека для любого мира
+Separate build folders make experimenting with loaders and mods less disruptive to existing worlds.	Отдельные папки сборок позволяют экспериментировать с загрузчиками и модами без риска для других миров.
+Create, rename, configure and copy builds with their own mods, settings, worlds and screenshots	Создавайте, переименовывайте, настраивайте и копируйте сборки с отдельными модами, настройками, мирами и скриншотами
+The last selected build is restored when the launcher opens again	Последняя выбранная сборка восстанавливается при следующем открытии лаунчера
+A screenshot gallery can preview, open and remove images from each build	Галерея позволяет просматривать, открывать и удалять скриншоты каждой сборки
+Deleting a build requires confirmation because its local files, including saves, are removed	Удаление сборки требует подтверждения, поскольку вместе с ней удаляются локальные файлы, включая миры
+The Right Java for the Right Version	Подходящая Java для каждой версии
+Spectral matches Java to the selected Minecraft release and can fetch a suitable runtime when one is missing.	Spectral подбирает Java для выбранной версии Minecraft и может загрузить подходящую среду, если её нет.
+Installed and previously downloaded Java runtimes are scanned and checked for compatibility	Установленные и ранее загруженные версии Java обнаруживаются и проверяются на совместимость
+A suitable runtime can be downloaded automatically when none is available	Подходящая среда может загрузиться автоматически, если её нет на компьютере
+Advanced users can set a global custom Java path and JVM arguments; older game versions still use compatibility checks	Опытные пользователи могут задать собственный путь к Java и аргументы JVM; для старых версий игры также проверяется совместимость
+Ideas with More Context	Больше информации об идеях
+Community proposals became easier to browse and connect to the people behind them.	Предложения сообщества стало проще просматривать и связывать с авторами.
+Idea cards make votes and moderation status easier to see	В карточках идей удобнее видеть голоса и статус модерации
+Profile and role pages give community contributions a clearer identity	Страницы профилей и ролей делают вклад участников заметнее
+Developers can publish update entries from the site editor	Разработчики могут публиковать обновления через редактор сайта
+Profiles, Play & a Useful Console	Профили, игра и удобная Консоль
+The five-tab desktop launcher ties a selected game profile and build to a visible launch process.	Пять вкладок лаунчера связывают выбранный профиль и сборку с видимым процессом запуска.
+Create a local offline profile or authorize Ely.by in Accounts, including its two-factor code	Создайте локальный автономный профиль или авторизуйтесь в Ely.by во вкладке «Аккаунты», включая двухфакторный код
+Play shows the selected build, loader, game profile, mod count, playtime and last launch	Вкладка «Играть» показывает сборку, загрузчик, профиль, число модов, время в игре и последний запуск
+Console displays launch stages and Minecraft output with search, timestamps, copy and export	Консоль показывает этапы запуска и вывод Minecraft с поиском, временем событий, копированием и экспортом
+Mod Manager Redesign	Новый дизайн менеджера модов
+A cleaner two-panel mod workflow with faster discovery, clearer actions and a more consistent launcher interface.	Более удобный двухпанельный интерфейс модов с быстрым поиском, понятными действиями и единым стилем лаунчера.
+Mod Manager rebuilt to match the Library layout — the mod list sits on the left, with every action grouped in a panel on the right	Менеджер модов теперь похож на Библиотеку: список слева, действия в панели справа
+Bigger window and a cleaner header bar with a segmented Installed / Discover switch	Окно стало больше, заголовок проще, а переключатель «Установлено / Каталог» — компактнее
+Unified icons and styling across the dialog — removed the icon chip backings and the dark box behind the tabs	Единые иконки и стили во всём окне: убраны подложки значков и тёмный фон вкладок
+Website 2.0 — Accounts, Forum & Themes	Сайт 2.0 — аккаунты, форум и темы
+The community site now feels like a real product surface with profiles, ideas, themes and developer controls.	Сайт сообщества получил профили, идеи, темы и инструменты разработчиков.
+Two-tier accounts: a site account now holds your own set of Minecraft launcher profiles	Два уровня аккаунтов: аккаунт сайта хранит набор ваших профилей лаунчера Minecraft
+Community Ideas & Suggestions forum with upvotes and automatic content moderation	Форум идей и предложений с голосованием и автоматической модерацией
+Admin panel to manage users, roles and forum posts — developers can publish updates right from the site	Панель администратора для управления пользователями, ролями и записями форума; разработчики могут публиковать обновления прямо на сайте
+Brand-new light theme with an animated aurora background and a one-click dark/light toggle	Новая светлая тема с анимированным фоном и переключением тёмной и светлой палитры одним нажатием
+Polished login dialog, crisper 100px avatars and dozens of layout and colour fixes	Улучшенное окно входа, чёткие аватары 100 px и множество исправлений раскладки и цветов
+Typography & SpectrAI Prototype	Типографика и прототип SpectrAI
+New refined fonts across the app — Sora for headings and Plus Jakarta Sans for the interface	Новые шрифты приложения: Sora для заголовков и Plus Jakarta Sans для интерфейса
+Experimental SpectrAI panel added in source; it is not advertised as a ready-to-use assistant	В исходный код добавлена экспериментальная панель SpectrAI; она пока не представлена как готовый помощник
+Accounts tab rebuilt to match the Library layout — list on the left, detailed profile card on the right	Вкладка «Аккаунты» перестроена по образцу Библиотеки: список слева, подробности профиля справа
+Performance & Launch Reliability	Производительность и надёжность запуска
+Modded builds now auto-install their required vanilla base, so they actually start	Сборки с модами автоматически устанавливают нужную базовую версию Vanilla и запускаются
+Step-by-step console diagnostics that help identify likely launch failures	Пошаговая диагностика в Консоли помогает находить вероятные причины сбоя
+Smoother animations: cached particle background and paused effects on hidden tabs	Анимации стали плавнее: фоновые частицы сохраняются, а эффекты скрытых вкладок приостанавливаются
+Native libraries are cached after first launch for faster restarts	Нативные библиотеки сохраняются после первого запуска для ускорения следующих
+Interface, Console & Localization	Интерфейс, Консоль и локализация
+Full RU / EN coverage across every tab and dialog	Полный перевод RU / EN во всех вкладках и диалогах
+Redesigned Console with colored log levels, search, copy and export	Обновлённая Консоль с цветными уровнями журнала, поиском, копированием и экспортом
+Unified glassmorphism panels, centered titles and consistent controls	Единый стиль полупрозрачных панелей, центрированные заголовки и согласованные элементы управления
+Launcher Foundation	Основа лаунчера
+Qt 6 / C++17 desktop app built with CMake and MinGW	Приложение Qt 6 / C++17, собранное с CMake и MinGW
+Instance library, Java manager, version installer and mod manager	Библиотека сборок, менеджер Java, установщик версий и менеджер модов
+Discord Rich Presence, news system, settings and crash/log tooling	Discord Rich Presence, новости, настройки и инструменты для ошибок и журналов
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+GUEST	ГОСТЬ
+SIGNED IN	ВЫ ВОШЛИ
+Sign in to your site account to see your Minecraft profiles	Войдите в аккаунт сайта, чтобы увидеть профили Minecraft
+No Minecraft profiles yet	Профилей Minecraft пока нет
+No profiles match your filters	Профили по фильтрам не найдены
+Time in game	Время в игре
+Date added	Дата добавления
+Online	В сети
+Enter a username to add.	Введите имя пользователя.
+Player search is temporarily unavailable.	Поиск игроков временно недоступен.
+You can't add yourself.	Нельзя добавить себя.
+Remove friend	Удалить друга
+Decline	Отклонить
+Cancel request	Отменить запрос
+View profile	Открыть профиль
+Friend request received	Получен запрос в друзья
+Friend request sent	Запрос в друзья отправлен
+Community profile	Профиль участника
+This player has not added a biography yet.	Игрок пока не добавил описание.
+In Minecraft	В Minecraft
+On site	На сайте
+Member since	Участник с
+Last seen	Последняя активность
+Mutual friends	Общие друзья
+Copied!	Скопировано!
+Authenticated mode: remote data is limited to your account by Row Level Security.	Авторизованный режим: доступ к удалённым данным вашего аккаунта ограничен политиками безопасности.
+Connection unavailable. Reconnect to sign in to your cloud account.	Нет соединения. Подключитесь к сети для входа в облачный аккаунт.
+Email address (optional)	Адрес почты (необязательно)
+Email saved only on this device (optional)	Почта хранится только на этом устройстве (необязательно)
+Leave this blank to create an account with only a username and password. Without email, password recovery is unavailable.	Оставьте поле пустым, чтобы создать аккаунт только с именем и паролем. Без почты восстановить пароль не получится.
+Account service unavailable. Try again.	Сервис аккаунтов недоступен. Попробуйте ещё раз.
+Account service returned an incomplete session.	Сервис аккаунтов вернул неполные данные сеанса.
+Sign-in could not be completed. Try again.	Не удалось завершить вход. Попробуйте ещё раз.
+Minecraft player	Игрок Minecraft
+This account has been banned	Этот аккаунт заблокирован
+Signed out.	Вы вышли из аккаунта.
+Sign-out failed. Check your connection and try again.	Не удалось выйти. Проверьте соединение и попробуйте ещё раз.
+Account data could not be verified. Please retry.	Не удалось проверить данные аккаунта. Повторите попытку.
+Session could not be restored.	Не удалось восстановить сеанс.
+Invalid email/username or password	Неверная почта, имя пользователя или пароль
+Connection unavailable. Please reconnect.	Нет соединения. Подключитесь к сети.
+Incorrect username or password. If you used Google, choose Google sign-in.	Неверное имя или пароль. Если вы использовали Google, выберите вход через Google.
+Sign-in is temporarily unavailable. Please try again.	Вход временно недоступен. Попробуйте позже.
+Use 3–20 letters, numbers, spaces or _ . - for your username.	Для имени пользователя используйте 3–20 букв, цифр, пробелов или символов _ . -.
+Enter a valid email address or leave the field empty.	Введите правильный адрес почты или оставьте поле пустым.
+Use a password with 10–128 characters.	Используйте пароль длиной от 10 до 128 символов.
+Passwords do not match.	Пароли не совпадают.
+Connection unavailable. Reconnect to create your account.	Нет соединения. Подключитесь к сети, чтобы создать аккаунт.
+This username or email is already used on this device.	Это имя или адрес почты уже используется на устройстве.
+Account could not be created. Check your details and try again.	Не удалось создать аккаунт. Проверьте данные и повторите попытку.
+Check your inbox to confirm your email, then sign in.	Проверьте почту, подтвердите адрес и войдите.
+This browser cannot save your account. Free some storage and try again.	Браузер не может сохранить аккаунт. Освободите место и попробуйте ещё раз.
+Account could not be created. Try again.	Не удалось создать аккаунт. Попробуйте ещё раз.
+Google sign-in is unavailable (Supabase not connected).	Вход через Google недоступен (нет подключения к Supabase).
+Google sign-in is temporarily unavailable. Please try again.	Вход через Google временно недоступен. Попробуйте позже.
+Password recovery needs a real email. For a username-only account, keep your password safe; Google accounts should use Google sign-in.	Для восстановления пароля нужен действующий адрес почты. Если у аккаунта только имя пользователя, берегите пароль; для аккаунта Google используйте вход через Google.
+Password recovery needs the site served over http(s), not a file:// page.	Восстановление пароля работает на сайте по HTTP(S), а не при открытии файла напрямую.
+Password recovery is unavailable (Supabase not connected).	Восстановление пароля недоступно (нет подключения к Supabase).
+If an account exists for that email, a recovery link will arrive shortly.	Если аккаунт с этим адресом существует, скоро придёт ссылка для восстановления.
+Password must be at least 10 characters	Пароль должен содержать не менее 10 символов
+Passwords do not match	Пароли не совпадают
+Recovery is unavailable (Supabase not connected).	Восстановление недоступно (нет подключения к Supabase).
+Password updated! Signing you in…	Пароль обновлён! Выполняется вход…
+Password update is temporarily unavailable. Please try again.	Обновление пароля временно недоступно. Попробуйте позже.
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+Indigo starlight with quiet drifting orbits.	Звёздный свет индиго с плавно движущимися орбитами.
+Veteran Archive	Архив ветерана
+Founder collection	Коллекция основателей
+Layered jade contours and a soft founder glow.	Нефритовые контуры и мягкое свечение основателей.
+Solar Flux	Солнечный поток
+Pro collection	Коллекция Pro
+Warm horizon light across a deep dusk field.	Тёплый свет горизонта на глубоком сумеречном фоне.
+Violet Crown	Фиолетовая корона
+Legend collection	Коллекция Legend
+Violet depth with fine refracted light.	Фиолетовая глубина и тонкие преломления света.
+Spectral Prism	Призма Spectral
+Signature identity	Фирменный стиль
+Cyan, violet and rose light crossing in fine planes.	Пересечение бирюзового, фиолетового и розового света.
+Guardian Grid	Сетка хранителя
+Staff collection	Служебная коллекция
+Cool blue signal lines with a steady glow.	Холодные голубые линии с ровным свечением.
+Command Core	Командное ядро
+Admin collection	Коллекция администратора
+Rose red scanlines over a dark command field.	Розово-красные линии поверх тёмного командного поля.
+Developer Protocol	Протокол разработчика
+Internal build	Внутренняя сборка
+Rose and cyan traces across a quiet developer field.	Розовые и бирюзовые следы на спокойном фоне разработчика.
+Aurora rise	Восход сияния
+Portal fold	Складка портала
+Stardust	Звёздная пыль
+Prism rift	Призматический разлом
+Terminal boot	Запуск терминала
+Animated header	Анимированный фон
+Player favorite	Выбор игроков
+More room for profiles with a warm gold identity across Spectral.	Больше места для профилей и тёплый золотой стиль во всём Spectral.
+Most popular	Самая популярная
+A rare violet presence, expanded capacity and earlier community visibility.	Редкое фиолетовое оформление, увеличенные лимиты и заметность в сообществе.
+Everything unlocked	Открыто всё
+Unlimited identities and the complete prismatic Spectral treatment.	Неограниченное число профилей и полный призматический стиль Spectral.
+/ year	/ год
+/ month	/ месяц
+Cancel whenever payments launch	Можно отменить после запуска оплаты
+Developer is viewing	Просмотр разработчика
+Preview only · Developer permissions stay active	Только предпросмотр · права разработчика сохраняются
+Founder reward · permanent	Награда основателя · навсегда
+Viewing this role	Просмотр роли
+Reserved for launch	Выбрано к запуску
+Assigned automatically	Назначено автоматически
+Founder window closed	Период получения роли основателя завершён
+Choose role	Выбрать роль
+Staff access	Служебный доступ
+Account role	Роль аккаунта
+Legacy collection	Коллекция ветеранов
+Premium collection	Премиальная коллекция
+Developer preview	Предпросмотр разработчика
+Never sold	Не продаётся
+For every account registered before May 1, 2027.	Для всех аккаунтов, зарегистрированных до 1 мая 2027 года.
+Yearly plan · indicative launch price	Годовой план · ориентировочная цена при запуске
+Monthly plan	Месячный план
+Developer role preview restored.	Предпросмотр роли разработчика восстановлен.
+Storage is full. Your choice was not saved.	Недостаточно места. Ваш выбор не сохранён.
+Your starting Spectral identity	Ваш начальный стиль Spectral
+Your identity is ready — and your arrival date unlocked a permanent reward.	Ваш профиль готов, а дата регистрации открыла постоянную награду.
+Your identity is ready. Welcome to the Spectral community.	Ваш профиль готов. Добро пожаловать в сообщество Spectral.
+The selected file is not a valid image.	Выбранный файл не является изображением.
+Choose a PNG, JPEG or WebP image.	Выберите изображение PNG, JPEG или WebP.
+Avatar images must be 1 MB or smaller.	Аватар должен быть не больше 1 МБ.
+Avatar dimensions must be between 1 and 4096 pixels.	Размеры аватара должны быть от 1 до 4096 пикселей.
+This browser cannot process the image.	Браузер не может обработать изображение.
+The processed avatar is too large.	Обработанный аватар слишком большой.
+Avatar could not be processed.	Не удалось обработать аватар.
+Saving your profile…	Сохранение профиля…
+Unsaved changes · kept while switching tabs	Несохранённые изменения · сохраняются при переключении вкладок
+Avatar awaiting review	Аватар ожидает проверки
+Enter a display name.	Введите отображаемое имя.
+Reconnect to save your profile. Your draft is still here.	Подключитесь к сети, чтобы сохранить профиль. Черновик останется здесь.
+Avatar review queue is unavailable. Apply the moderation migration.	Очередь проверки аватаров недоступна. Примените обновление схемы модерации.
+Profile could not be saved online. Please try again.	Не удалось сохранить профиль в сети. Попробуйте ещё раз.
+Updated	Обновлено
+Pending avatar	Аватар на проверке
+Visible avatar	Видимый аватар
+No avatar	Нет аватара
+Pending review	Ожидает проверки
+Account owner edited profile	Владелец изменил профиль
+Avatar approved automatically.	Аватар одобрен автоматически.
+Avatar was rejected by automatic review.	Аватар отклонён автоматической проверкой.
+Avatar is waiting for review. Your current avatar stays visible.	Аватар ожидает проверки. Текущий аватар остаётся видимым.
+Profile saved.	Профиль сохранён.
+Connected account	Подключённый аккаунт
+Local demo account	Локальный демоаккаунт
+Your profile uses authenticated cloud access.	Ваш профиль использует авторизованный облачный доступ.
+This identity exists in this browser. It is separate from a Minecraft or Microsoft account.	Этот профиль существует в браузере отдельно от аккаунтов Minecraft и Microsoft.
+Authenticated	Авторизовано
+This device	Это устройство
+Unknown	Неизвестно
+Email reset link	Ссылка для сброса пароля
+Unavailable for local demos	Недоступно для локального демо
+Your account export is ready.	Экспорт данных аккаунта готов.
+Check your inbox for a password reset link.	Проверьте почту: ссылка для сброса пароля отправлена.
+Reset email could not be sent. Try again.	Не удалось отправить письмо для сброса пароля. Попробуйте ещё раз.
+Launcher profiles	Профили лаунчера
+Favorite profiles	Избранные профили
+Above your current limit · remove profiles before adding more	Лимит превышен · удалите профили перед добавлением новых
+Staff	Команда
+Manage lower roles and community access	Управление младшими ролями и доступом сообщества
+Review community ideas	Проверка идей сообщества
+Personal profile, friends and launcher identities	Личный профиль, друзья и игровые профили
+Launch choice removed.	Выбор к запуску удалён.
+Could not remove your choice. Try again.	Не удалось убрать выбор. Попробуйте ещё раз.
+Role source	Источник роли
+Founder reward	Награда основателя
+Planned premium	Планируемая премиальная роль
+Default	По умолчанию
+Signature header	Фирменный фон
+Included	Включено
+Entrance	Анимация появления
+Community badge	Значок сообщества
+Standard identity	Стандартный профиль
+Manage own profile	Управлять своим профилем
+Review ideas	Проверять идеи
+Manage lower roles	Управлять младшими ролями
+Developer previews	Предпросмотры разработчика
+Access	Доступ
+Not included	Не включено
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+No reason recorded	Причина не указана
+Choose an account and an action first.	Сначала выберите аккаунт и действие.
+Your account cannot make this change.	Ваш аккаунт не может выполнить это изменение.
+Change role	Изменить роль
+Delete local account	Удалить локальный аккаунт
+Restrict sign-in	Ограничить вход
+Restore sign-in	Восстановить вход
+Restricted	Ограничен
+Active	Активен
+Deleted with local data	Удалён с локальными данными
+Add a short reason (at least 3 characters).	Добавьте краткую причину (не менее 3 символов).
+Your session changed. Review this action again.	Сеанс изменился. Проверьте действие ещё раз.
+Permissions changed. Review the account again.	Права изменились. Проверьте аккаунт ещё раз.
+An account changed after your review. Cancel and review the latest state.	Аккаунт изменился после проверки. Отмените действие и изучите новое состояние.
+Reconnect to administration before applying changes.	Восстановите соединение с панелью администратора перед применением изменений.
+Server rejected the change. Refresh the directory and review your permissions.	Сервер отклонил изменение. Обновите список и проверьте свои права.
+Deleted	Удалён
+Reviewed changes saved.	Проверенные изменения сохранены.
+Could not save the change. Try again.	Не удалось сохранить изменение. Попробуйте ещё раз.
+Server administration is unavailable. Install the administration migration to enable roles, bans and activity history.	Управление на сервере недоступно. Примените обновление схемы администрирования для ролей, блокировок и истории действий.
+Previous page	Предыдущая страница
+Next page	Следующая страница
+just now	только что
+m ago	мин назад
+h ago	ч назад
+d ago	дн назад
+mo ago	мес назад
+Select at least one user	Выберите хотя бы одного пользователя
+Cloud accounts: roles and bans are checked and applied by the server. The directory shows up to 250 profiles.	Облачные аккаунты: роли и блокировки проверяются и применяются сервером. В списке отображается до 250 профилей.
+Local demo: changes affect accounts in this browser. Role checks here do not secure a remote service.	Локальное демо: изменения затрагивают аккаунты в этом браузере. Проверка ролей здесь не защищает удалённый сервис.
+Unnamed	Без имени
+Close details	Закрыть подробности
+No biography has been added yet.	Описание пока не добавлено.
+Not provided	Не указано
+User ID copied	ID пользователя скопирован
+No bio yet	Описания пока нет
+Minecraft identities	Игровые профили Minecraft
+Total time on site	Общее время на сайте
+Visits	Посещения
+Inspect user	Просмотреть пользователя
+This account is protected by the role hierarchy.	Этот аккаунт защищён иерархией ролей.
+This account is protected.	Этот аккаунт защищён.
+Select users to export.	Выберите пользователей для экспорта.
+Untitled idea	Идея без названия
+No date	Дата не указана
+Restore	Восстановить
+Approve	Одобрить
+Post approved.	Запись одобрена.
+Post moved to rejected.	Запись отклонена.
+Delete this idea permanently?	Удалить эту идею навсегда?
+Site Users	Пользователи сайта
+Avg Time / User	Среднее время на пользователя
+Minecraft Profiles	Профили Minecraft
+Ideas Approved	Одобренные идеи
+Total Time on Site	Общее время на сайте
+Total Visits	Всего посещений
+Active (7 days)	Активны за 7 дней
+New This Week	Новые за неделю
+Avg MC / User	Среднее игровое время
+Ideas Pending	Идеи на проверке
+Banned Users	Заблокированные пользователи
+Total Ideas	Всего идей
+authenticated account only	только для авторизованного аккаунта
+none — local demo only	нет — только локальное демо
+Account sync failed	Ошибка синхронизации аккаунта
+Clear ALL local demo data on this device? Authenticated remote data is not deleted.	Удалить ВСЕ локальные демоданные с этого устройства? Удалённые данные авторизованного аккаунта сохранятся.
+Current account limits	Текущие лимиты аккаунта
+Role comparison	Сравнение ролей
+Close role choice	Закрыть выбор роли
+Favorites	Избранное
+Full workspace and safe role previews	Полный доступ и безопасный предпросмотр ролей
+Manage lower roles and access	Управление младшими ролями и доступом
+Review community queue	Проверка очереди сообщества
+Manage your own identities	Управление своими профилями
+Saved for launch	Сохранено к запуску
+Founder role	Роль основателя
+Explore plan	Изучить план
+ACTIVE	АКТИВНО
+SAVED	СОХРАНЕНО
+VISUAL PREVIEW	ПРЕДПРОСМОТР
+FOUNDER LEGACY	НАСЛЕДИЕ ОСНОВАТЕЛЕЙ
+COMMUNITY FAVORITE	ВЫБОР СООБЩЕСТВА
+COMPLETE ACCESS	ПОЛНЫЙ ДОСТУП
+EVERYDAY UPGRADE	ПОВСЕДНЕВНОЕ УЛУЧШЕНИЕ
+Earned forever	Получено навсегда
+Founders only	Только для основателей
+Indicative monthly price · no charge today	Ориентировочная месячная цена · сегодня без оплаты
+Appearance preview · no purchase	Предпросмотр оформления · без покупки
+A permanent badge from the founding year	Постоянный значок года основания
+Source	Источник
+Founder	Основатель
+Launch choice	Выбор к запуску
+Header	Фон профиля
+Badge	Значок
+Own profile	Свой профиль
+Manage roles	Управлять ролями
+Preview only · Developer access stays active	Только предпросмотр · доступ разработчика сохраняется
+Unlimited	Без ограничений
+per year	за год
+per month	за месяц
+This browser could not save the choice.	Браузер не смог сохранить выбор.
+Saved plan removed.	Сохранённый план удалён.
+Admin workspace sections	Разделы панели администратора
+Find a person…	Найти человека…
+Role filter	Фильтр ролей
+Status filter	Фильтр статусов
+Search ideas or authors	Поиск по идеям и авторам
+Idea status	Статус идеи
+Change username	Изменить имя пользователя
+Change display name	Изменить отображаемое имя
+Approve avatar	Одобрить аватар
+Reject avatar	Отклонить аватар
+Remove avatar	Удалить аватар
+Change password	Изменить пароль
+No accounts found	Аккаунты не найдены
+Use Refresh data after applying the administration migration.	После обновления схемы администрирования нажмите «Обновить данные».
+Clear a filter or try another name.	Сбросьте фильтр или попробуйте другое имя.
+New username	Новое имя пользователя
+New display name	Новое отображаемое имя
+Short reason for the activity log	Краткая причина для журнала действий
+Use a password with 12–128 characters.	Используйте пароль длиной от 12 до 128 символов.
+The passwords do not match.	Пароли не совпадают.
+Use 3–20 letters, numbers, spaces or _ . - for the username.	Для имени пользователя используйте 3–20 букв, цифр, пробелов или символов _ . -.
+Use a display name of 1–24 characters.	Для отображаемого имени используйте 1–24 символа.
+The pending avatar is no longer available.	Аватар, ожидавший проверки, больше недоступен.
+Reconnect to administration.	Восстановите соединение с панелью администратора.
+Password change was rejected. Refresh the account and audit history before retrying.	Смена пароля отклонена. Обновите аккаунт и историю действий перед повторной попыткой.
+Server rejected the moderation change. Refresh the account and try again.	Сервер отклонил решение модерации. Обновите аккаунт и попробуйте ещё раз.
+Unchanged	Без изменений
+Changed	Изменено
+This username is already taken.	Это имя пользователя уже занято.
+Visible	Видно
+Removed	Удалено
+Reviewed account change saved.	Проверенное изменение аккаунта сохранено.
+Add a short reason before applying.	Добавьте краткую причину перед применением.
+The idea changed. Refresh the queue.	Идея изменилась. Обновите очередь.
+Idea	Идея
+Idea review saved.	Решение по идее сохранено.
+Could not save the review.	Не удалось сохранить решение.
+The account changed. Review the latest state.	Аккаунт изменился. Проверьте новое состояние.
+Select one account for this change.	Выберите один аккаунт для этого действия.
+Reviewed admin change saved.	Проверенное изменение сохранено.
+Browser storage is full.	Хранилище браузера переполнено.
+Loaded accounts	Загруженные аккаунты
+Syncing…	Синхронизация…
+Database connected	База данных подключена
+Database disconnected	База данных отключена
+Local demo mode	Локальный деморежим
+No matching ideas	Идеи не найдены
+Refresh after checking the community migration.	Проверьте обновление схемы сообщества и нажмите «Обновить».
+Try another filter or search.	Выберите другой фильтр или запрос.
+Local data refreshed.	Локальные данные обновлены.
+Reject	Отклонить
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+Copied to clipboard	Скопировано в буфер обмена
+Change type	Тип изменения
+Describe the change…	Опишите изменение…
+Move up	Переместить вверх
+Move item up	Переместить пункт вверх
+Move down	Переместить вниз
+Move item down	Переместить пункт вниз
+Bold	Жирный
+Inline code	Код в строке
+Link	Ссылка
+Release date	Дата выпуска
+Draft saved locally	Черновик сохранён локально
+Editing release	Редактирование выпуска
+Duplicate release	Копия выпуска
+Restored local draft	Локальный черновик восстановлен
+Save Changes	Сохранить изменения
+Draft copied as Markdown	Черновик скопирован в Markdown
+Clear every field in this draft?	Очистить все поля черновика?
+Add a release title and date	Добавьте заголовок и дату выпуска
+Add at least one changelog item	Добавьте хотя бы один пункт изменений
+Update saved	Обновление сохранено
+Update published locally	Обновление опубликовано локально
+No ideas yet. Be the first to share one.	Идей пока нет. Предложите первую!
+Could not save your vote.	Не удалось сохранить голос.
+Please enter a title	Введите название
+Please describe your idea	Опишите идею
+Idea published after automatic review.	Идея опубликована после автоматической проверки.
+Idea rejected by automatic review.	Идея отклонена автоматической проверкой.
+Could not submit the idea.	Не удалось отправить идею.
+Idea submitted for moderator review. Thank you!	Идея отправлена на проверку модератору. Спасибо!
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+Light palette is active	Активна светлая палитра
+Optimized rendering is active	Активна оптимизированная отрисовка
+Enabled automatically for this device. Blur, particles and continuous motion are paused.	Включено автоматически для этого устройства. Размытие, частицы и постоянная анимация приостановлены.
+Blur, particles and continuous motion are paused. The page reloads once when this setting changes.	Размытие, частицы и постоянная анимация приостановлены. После изменения страница один раз перезагрузится.
+Uses the complete visual experience. The page reloads once when this setting changes.	Включает все визуальные эффекты. После изменения страница один раз перезагрузится.
+Runtime selection	Выбор среды запуска
+Matches the Minecraft version to a compatible Java major and chooses the best installed runtime, with download as an explicit fallback.	Сопоставляет версию Minecraft с совместимой основной версией Java и выбирает лучшую установленную среду; загрузка предлагается отдельно.
+MC version → Java major → runtime	Версия Minecraft → версия Java → среда
+Derive the required Java major	Определить нужную версию Java
+Scan installed runtimes	Найти установленные среды
+Return a compatible, deterministic match	Выбрать подходящую среду
+Stable player identity	Постоянный игровой профиль
+Keeps local profiles predictable by generating the same vanilla-compatible offline UUID for the same Minecraft username.	Создаёт один и тот же совместимый с Vanilla автономный UUID для каждого имени игрока Minecraft.
+username → offline UUID → profile	имя игрока → автономный UUID → профиль
+Normalize the OfflinePlayer input	Привести имя OfflinePlayer к нужному виду
+Apply the UUID v3 bit layout	Применить структуру битов UUID v3
+Keep identity stable between launches	Сохранять профиль между запусками
+Resolve the game version	Определение версии игры
+Version metadata tells the launcher which libraries, assets and inherited settings this instance actually needs.	Данные версии подсказывают лаунчеру, какие библиотеки, ресурсы и унаследованные настройки нужны сборке.
+Minecraft version + instance files	Версия Minecraft + файлы сборки
+Resolved libraries, assets and metadata	Найденные библиотеки, ресурсы и данные версии
+A missing file or mismatched loader often shows up here. Run Check & Repair and restore a supported version if recommended.	Здесь часто обнаруживаются отсутствующие файлы и несовместимый загрузчик. Запустите «Проверить и исправить» и при необходимости восстановите поддерживаемую версию.
+Match a compatible Java runtime	Подбор совместимой Java
+The required Java major version comes from the selected game build. Spectral looks for a runtime that meets it.	Нужная основная версия Java определяется выбранной сборкой. Spectral ищет подходящую среду.
+Required Java major version	Требуемая версия Java
+Compatible Java executable	Совместимый исполняемый файл Java
+If Java cannot be found, check the version requirement and select or install a matching runtime.	Если Java не найдена, проверьте требуемую версию и выберите или установите подходящую среду.
+Assemble the launch command	Подготовка команды запуска
+LauncherCore prepares native files, builds the classpath and passes the right game and JVM arguments to the process.	LauncherCore готовит нативные файлы, собирает путь классов и передаёт процессу нужные аргументы игры и JVM.
+Resolved files + settings + account	Найденные файлы + настройки + аккаунт
+Complete Minecraft command	Готовая команда Minecraft
+A missing native or invalid argument should be diagnosed from the exact command stage, not guessed from the game window.	Отсутствующий нативный файл или неверный аргумент следует искать на этапе команды запуска, а не по окну игры.
+Observe the running process	Наблюдение за процессом
+QProcess streams output and exit state into Console, so a failure remains inspectable after the game closes.	QProcess передаёт вывод и состояние завершения в Консоль, поэтому сбой можно изучить после закрытия игры.
+Minecraft JVM process	Процесс Minecraft JVM
+Logs, exit code and visible errors	Журналы, код выхода и видимые ошибки
+When asking for help, share the final relevant Console lines and the selected Minecraft and Java versions.	При обращении за помощью приложите последние важные строки Консоли и выбранные версии Minecraft и Java.
+Coordinates launch preparation, builds the final Minecraft command and owns the QProcess lifecycle exposed to the interface.	Управляет подготовкой запуска, собирает команду Minecraft и контролирует жизненный цикл QProcess в интерфейсе.
+Arguments · process state	Аргументы · состояние процесса
+UI · Java · version data	Интерфейс · Java · данные версии
+Builds the classpath and game arguments	Собирает путь классов и аргументы игры
+Prepares native libraries before launch	Готовит нативные библиотеки до запуска
+Emits output, state and real failure signals	Передаёт вывод, состояние и реальные сигналы ошибок
+Discovers installed Java runtimes and matches them to the major version required by the selected Minecraft metadata.	Находит установленную Java и сопоставляет её с основной версией, требуемой выбранной версией Minecraft.
+Discovery · compatibility	Поиск · совместимость
+Version metadata · LauncherCore	Данные версии · LauncherCore
+Java major	Версия Java
+Runtime scan	Поиск среды
+Fallback	Резервный вариант
+Version JSON	JSON версии
+Java path	Путь к Java
+Scans available Java installations	Ищет установленные версии Java
+Selects by required major version	Выбирает по нужной основной версии
+Supports an explicit runtime download path	Поддерживает отдельную загрузку среды
+Installs Minecraft versions and manages instance content, including Modrinth discovery, version files and compatible mod updates.	Устанавливает версии Minecraft и управляет содержимым сборок: поиском на Modrinth, файлами версий и обновлениями совместимых модов.
+Versions · mods · assets	Версии · моды · ресурсы
+Modrinth · instance library	Modrinth · библиотека сборок
+Content manager	Менеджер контента
+Instance files	Файлы сборки
+Resolves inherited version metadata	Обрабатывает унаследованные данные версий
+Keeps every instance isolated	Разделяет все сборки
+Tracks installed content and available updates	Отслеживает установленный контент и обновления
+Manages local Minecraft profiles, stable offline UUIDs, skin previews and quick account switching for each launch.	Управляет локальными профилями Minecraft, постоянными автономными UUID, просмотром скинов и быстрым переключением профилей.
+Profiles · UUIDs · skins	Профили · UUID · скины
+UI · launch settings	Интерфейс · настройки запуска
+Skins	Скины
+Account model	Модель аккаунта
+Launch identity	Игровой профиль
+Keeps identity stable between sessions	Сохраняет профиль между сеансами
+Provides the active launch account	Предоставляет активный игровой аккаунт
+Separates profile data from instance data	Отделяет данные профиля от данных сборки
+Makes the launch process inspectable with timestamps, severity colors, filters, search, copy, export and crash-focused errors.	Показывает процесс запуска со временем событий, цветными уровнями, фильтрами, поиском, копированием, экспортом и ошибками сбоев.
+Output · filters · export	Вывод · фильтры · экспорт
+QProcess · launcher signals	QProcess · сигналы лаунчера
+Log stream	Поток журнала
+Visible error	Видимая ошибка
+Shows stdout and stderr in context	Показывает stdout и stderr вместе с контекстом
+Keeps the exact failure reason visible	Сохраняет точную причину сбоя на виду
+Supports fast search and log sharing	Поддерживает быстрый поиск и отправку журнала
+Open the Console guide for the full diagnostic path	Откройте руководство по Консоли для полного плана диагностики
+Spectral support note	Обращение в поддержку Spectral
+Issue	Проблема
+Minecraft version	Версия Minecraft
+Java version	Версия Java
+Error or observation	Ошибка или наблюдение
+Copied. Review it before sharing.	Скопировано. Проверьте сообщение перед отправкой.
+Copy unavailable here. Select the preview text instead.	Копирование недоступно. Выделите текст предпросмотра.
+Your profile	Ваш профиль
+Shape the identity other players see.	Настройте профиль, который видят другие игроки.
+Roles & plans	Роли и планы
+Compare the collection and save a launch plan.	Сравните коллекцию и сохраните план к запуску.
+Admin center	Центр администрирования
+Review people, community ideas and activity.	Проверяйте пользователей, идеи сообщества и активность.
+Your profile has unsaved changes.	В профиле есть несохранённые изменения.
+Profile changes are saved when you press Save.	Изменения профиля сохраняются после нажатия «Сохранить».
+Community data is unavailable. Apply the community administration migration or retry the connection.	Данные сообщества недоступны. Примените обновление схемы сообщества или повторите подключение.
+Sign in to submit an idea.	Войдите, чтобы предложить идею.
+Automatic review is unavailable. Please try again later.	Автоматическая проверка недоступна. Попробуйте позже.
+Sign in to vote.	Войдите, чтобы голосовать.
+Reconnect to moderation.	Восстановите соединение с модерацией.
+The server rejected this review.	Сервер отклонил решение проверки.
+boosted signal	усиленный сигнал
+A clear starting point	Начальная точка
+Reviewed account changes will appear here with their reason.	Здесь появятся проверенные изменения аккаунтов с указанием причин.
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+Developer of Spectral	Разработчик Spectral
+Keeping the servers tidy	Поддерживаю порядок на серверах
+Forum moderator	Модератор форума
+Minecraft enthusiast	Увлекаюсь Minecraft
+Been here since day one	Здесь с первого дня
+Builder	Строитель
+Add 3D skin preview in launcher	Добавить просмотр скина в 3D в лаунчере
+It would be great to see a 3D skin preview in the Accounts tab, similar to NameMC. Would make it much easier to see how your skin looks before launching.	Было бы здорово видеть скин в 3D на вкладке «Аккаунты», как в NameMC. Так проще понять, как он выглядит до запуска игры.
+Dark/Light theme toggle	Переключатель тёмной и светлой темы
+Please add an option to switch between dark and light themes. Some players prefer a lighter interface when playing during the day.	Добавьте переключение тёмной и светлой темы. Днём некоторым игрокам удобнее светлый интерфейс.
+Wait for the current Minecraft profile change to finish.	Дождитесь завершения текущего изменения профиля Minecraft.
+Sign in again before changing Minecraft profiles.	Войдите ещё раз перед изменением профилей Minecraft.
+Reconnect to save Minecraft profiles online.	Восстановите соединение, чтобы сохранить профили Minecraft в сети.
+Invalid Minecraft profile data.	Неверные данные профиля Minecraft.
+The database did not confirm the Minecraft profile change.	База данных не подтвердила изменение профиля Minecraft.
+The selected Minecraft profile was not saved.	Выбранный профиль Minecraft не сохранился.
+The database did not confirm the final Minecraft profile list.	База данных не подтвердила итоговый список профилей Minecraft.
+The account changed while saving Minecraft profiles.	Аккаунт изменился во время сохранения профилей Minecraft.
+Storage is full. Free some space and try again.	Хранилище заполнено. Освободите место и попробуйте ещё раз.
+Minecraft profiles could not be saved online. Please try again.	Не удалось сохранить профили Minecraft в сети. Попробуйте ещё раз.
+The account profile is missing from Supabase. Apply the Auth profile migration.	Профиль аккаунта отсутствует в Supabase. Примените обновление схемы профилей Auth.
+Profiles, community ideas, themes and developer tools now live in one polished website experience.	Профили, идеи сообщества, темы и инструменты разработчиков теперь объединены на сайте.
+Refined typography, a richer Accounts layout and an experimental SpectrAI panel.	Улучшенные шрифты, обновлённая вкладка «Аккаунты» и экспериментальная панель SpectrAI.
+Faster launches, clearer diagnostics and more reliable setup for modded Minecraft instances.	Более быстрый запуск, понятная диагностика и надёжная настройка сборок Minecraft с модами.
+A consistent launcher interface with a redesigned console and complete RU / EN localization.	Единый интерфейс лаунчера с обновлённой Консолью и полным переводом RU / EN.
+The Qt 6 and C++17 foundation behind instances, Java management, versions, mods and diagnostics.	Основа Qt 6 и C++17 для сборок, Java, версий, модов и диагностики.
+Launcher improvements and release notes.	Улучшения лаунчера и заметки о выпусках.
+Typography & SpectrAI Assistant	Шрифты и помощник SpectrAI
+Refined typography, a richer Accounts layout and the first integrated SpectrAI assistant experience.	Улучшенные шрифты, обновлённая вкладка «Аккаунты» и первый встроенный помощник SpectrAI.
+Built-in SpectrAI assistant: a sliding chat panel that helps with mods, memory and launch errors	Встроенный помощник SpectrAI: выдвижная панель чата для вопросов о модах, памяти и ошибках запуска
+The essential Spectral identity	Базовый стиль Spectral
+2 launcher profiles	2 профиля лаунчера
+1 favorite profile	1 избранный профиль
+Nebula Drift animated header	Анимированный фон «Туманность»
+Soft Signal menu entrance	Плавное появление меню
+Permanent founder status	Постоянный статус основателя
+4 launcher profiles and 3 favorites	4 профиля лаунчера и 3 избранных
+Veteran Archive animated header	Анимированный фон «Архив ветерана»
+Aurora menu entrance effect	Появление меню «Сияние»
+Built for everyday players	Для повседневной игры
+8 launcher profiles and favorites	8 профилей лаунчера и избранных
+Golden nameplate and avatar frame	Золотая табличка имени и рамка аватара
+Solar Flux animated header	Анимированный фон «Солнечный поток»
+Solar profile identity effects	Солнечные эффекты профиля
+A rare community presence	Редкий статус в сообществе
+16 launcher profiles and favorites	16 профилей лаунчера и избранных
+Violet Crown animated header	Анимированный фон «Фиолетовая корона»
+Stardust profile-menu entrance	Появление меню «Звёздная пыль»
+Violet nameplate and avatar frame	Фиолетовая табличка имени и рамка аватара
+The complete Spectral experience	Все возможности Spectral
+Unlimited profiles and favorites	Неограниченные профили и избранные
+Prism Rift animated header	Анимированный фон «Призматический разлом»
+Prismatic nameplate and Rift entrance	Призматическая табличка имени и появление «Разлом»
+All premium profile appearances	Все премиальные стили профиля
+Community moderation access	Доступ к модерации сообщества
+Guardian Grid staff header	Служебный фон «Сетка хранителя»
+Moderation queue and safety tools	Очередь модерации и инструменты безопасности
+Verified staff identity effects	Подтверждённые эффекты служебного профиля
+Full community management	Полное управление сообществом
+Command Core animated header	Анимированный фон «Командное ядро»
+User and role management suite	Инструменты управления пользователями и ролями
+Live community analytics access	Доступ к аналитике сообщества
+Every animated header and entrance	Все анимированные фоны и появления
+Safe preview of every account role	Безопасный предпросмотр всех ролей аккаунта
+Release publishing and experiments	Публикация выпусков и эксперименты
+Developer-only Code Matrix identity	Стиль Code Matrix только для разработчиков
+Spectral development team	Команда разработчиков Spectral
+Your starting role: Player	Ваша начальная роль: Игрок
+The automatic Veteran reward closed on May 1, 2027.	Автоматическое назначение Veteran завершилось 1 мая 2027 года.
+Microsoft (legacy profile)	Microsoft (старый профиль)
+`);
+
+window.SpectralI18n.addCatalog(String.raw`
+Accept	Принять
+Public profile	Публичный профиль
+About this player	Об игроке
+Role access	Доступ роли
+slots	слоты
+Player overview	Обзор игрока
+Requests received	Полученные запросы
+Requests sent	Отправленные запросы
+Animated header	Анимированный фон
+Developer Role Lab	Лаборатория ролей разработчика
+Inspect every role without losing developer access.	Изучайте все роли, сохраняя доступ разработчика.
+The selected role changes badges, colors, limits and presentation for your account preview. Administration and developer permissions remain untouched.	Выбранная роль меняет значки, цвета, лимиты и оформление в предпросмотре аккаунта. Права администратора и разработчика сохраняются.
+Viewing now	Сейчас показано
+Reset to Developer	Вернуться к роли разработчика
+Sign-in name	Имя для входа
+Actual role	Настоящая роль
+Joined	Дата регистрации
+Password recovery	Восстановление пароля
+Account permissions	Права аккаунта
+SAVED ON THIS DEVICE	СОХРАНЕНО НА УСТРОЙСТВЕ
+$ indicative price · no active subscription	Ориентировочная цена в $ · подписка не активна
+Remove choice	Убрать выбор
+SPECTRAL / ROLE STUDIO	SPECTRAL / СТУДИЯ РОЛЕЙ
+Choose your	Выберите свой
+next form.	новый образ.
+Every role has its own look, room for more identities, and a different way to move through Spectral. Explore the collection before saving a plan.	У каждой роли свой стиль, лимит профилей и возможности в Spectral. Изучите коллекцию перед сохранением плана.
+Explore	Смотреть
+Compare	Сравнить
+Save for launch	Сохранить к запуску
+IDENTITY / EVOLVED	НОВЫЙ ОБРАЗ
+YOUR CURRENT ROLE	ВАША ТЕКУЩАЯ РОЛЬ
+YOUR ACCESS NOW	ВАШ ДОСТУП СЕЙЧАС
+LIVE ACCOUNT LIMITS	ТЕКУЩИЕ ЛИМИТЫ АККАУНТА
+THE COLLECTION / 01	КОЛЛЕКЦИЯ / 01
+Find your role	Найдите свою роль
+Distinct identities, clear limits, and pricing you can compare.	Разные стили, понятные лимиты и цены для сравнения.
+SAVE 20%	ЭКОНОМИЯ 20%
+THE DETAILS / 02	ПОДРОБНОСТИ / 02
+Compare every detail	Сравните всё
+See exactly what changes across capacity, appearance, and access.	Узнайте, что меняется в лимитах, оформлении и доступе.
+Saving a launch choice on this device does not charge you or activate a role. Staff access is assigned by the server.	Сохранение выбора на устройстве не списывает деньги и не активирует роль. Служебный доступ назначается сервером.
+YOUR SELECTION / 03	ВАШ ВЫБОР / 03
+Save this plan to revisit at launch.	Сохраните план и вернитесь к нему при запуске.
+Save plan	Сохранить план
+access	доступ
+DEVELOPER PREVIEW	ПРЕДПРОСМОТР РАЗРАБОТЧИКА
+appearance	оформление
+Only the visual preview changes. Your actual Developer permissions remain active.	Меняется только внешний вид. Ваши настоящие права разработчика сохраняются.
+Reset	Сбросить
+profiles	профили
+favorites	избранные
+INCLUDED WITH	ВКЛЮЧЕНО В
+SAVED FOR LAUNCH · THIS DEVICE	СОХРАНЕНО К ЗАПУСКУ · ЭТО УСТРОЙСТВО
+$ indicative price · no charge or role activation	Ориентировочная цена в $ · без оплаты и активации роли
+ADMIN WORKSPACE	ПАНЕЛЬ АДМИНИСТРАТОРА
+Keep access understandable.	Управляйте доступом понятно.
+Review people, changes, community posts and site health from one calm workspace.	Проверяйте пользователей, изменения, записи сообщества и состояние сайта в одной панели.
+Reviewed changes	Проверенные изменения
+Site overview	Обзор сайта
+COMMUNITY QUEUE	ОЧЕРЕДЬ СООБЩЕСТВА
+Review ideas with context.	Проверяйте идеи с учётом контекста.
+ACCOUNT HISTORY	ИСТОРИЯ АККАУНТА
+Every reviewed change has a reason.	У каждого проверенного изменения есть причина.
+SITE OVERVIEW	ОБЗОР САЙТА
+What is happening right now?	Что происходит сейчас?
+Refresh data	Обновить данные
+Inspect	Просмотреть
+Inspect access and activity without leaving the list.	Просматривайте доступ и активность, не покидая список.
+AVATAR AWAITING REVIEW	АВАТАР ОЖИДАЕТ ПРОВЕРКИ
+ACCOUNT DETAILS	ДАННЫЕ АККАУНТА
+Site time	Время на сайте
+Account id	ID аккаунта
+Previous	Назад
+Next	Вперёд
+selected	выбрано
+Restrict	Ограничить
+Why is this change needed?	Зачем нужно это изменение?
+Apply reviewed change	Применить проверенное изменение
+No reviewed changes yet	Проверенных изменений пока нет
+Accounts in directory	Аккаунтов в списке
+Total site time	Общее время на сайте
+Published ideas	Опубликованные идеи
+Awaiting review	Ожидают проверки
+COMMUNITY REVIEW	ПРОВЕРКА СООБЩЕСТВА
+idea	идея
+Reason for this decision	Причина решения
+Save review	Сохранить решение
+Administration needs a connection	Для администрирования нужно соединение
+Retry	Повторить
+Account details	Данные аккаунта
+Access level	Уровень доступа
+MC profiles	Профили Minecraft
+Registered	Зарегистрирован
+User ID	ID пользователя
+Copy ID	Скопировать ID
+Export user	Экспортировать пользователя
+Protected account	Защищённый аккаунт
+upvote	голос
+Role Distribution	Распределение ролей
+Account Types	Типы аккаунтов
+Top Time on Site	Больше всего времени на сайте
+Recent Signups	Недавние регистрации
+Developer Tools	Инструменты разработчика
+Export Database	Экспортировать базу данных
+Reload My Account	Обновить мой аккаунт
+Reset Local Data	Сбросить локальные данные
+Remote scope:	Область удалённого доступа:
+`);
+// Keep native selects as the form state, while presenting one consistent menu.
+window.SpectralControls = (() => {
+    const controls = new Map();
+    let openControl = null;
+    let menu = null;
+    let nextId = 0;
+    let scanQueued = false;
+    let tooltipTarget = null;
+    let tooltipTimer = 0;
+    const tooltip = document.createElement('div');
+    tooltip.className = 'site-tooltip';
+    tooltip.setAttribute('aria-hidden', 'true');
+
+    function migrateTitle(element) {
+        if (!element?.hasAttribute?.('title')) return;
+        const value = element.getAttribute('title')?.trim();
+        element.removeAttribute('title');
+        if (!value) return;
+        element.dataset.siteTip = value;
+        if (element.matches('button, a, [tabindex]') && !element.hasAttribute('aria-label')) {
+            element.setAttribute('aria-label', value);
+        }
+    }
+
+    function scanTitles(root = document) {
+        if (root.matches?.('[title]')) migrateTitle(root);
+        root.querySelectorAll?.('[title]').forEach(migrateTitle);
+    }
+
+    function hideTooltip() {
+        clearTimeout(tooltipTimer);
+        tooltipTarget = null;
+        tooltip.remove();
+    }
+
+    function showTooltip(target) {
+        if (!target?.isConnected || !target.dataset.siteTip) return;
+        tooltipTarget = target;
+        tooltip.textContent = target.dataset.siteTip;
+        document.body.appendChild(tooltip);
+        const anchor = target.getBoundingClientRect();
+        const bounds = tooltip.getBoundingClientRect();
+        const left = Math.min(Math.max(10, anchor.left + anchor.width / 2 - bounds.width / 2), innerWidth - bounds.width - 10);
+        const below = innerHeight - anchor.bottom > bounds.height + 12;
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${below ? anchor.bottom + 9 : Math.max(8, anchor.top - bounds.height - 9)}px`;
+    }
+
+    // Register before the translation observer so dynamic English titles are kept.
+    scanTitles();
+    new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+            if (mutation.type === 'attributes') migrateTitle(mutation.target);
+            else for (const node of mutation.addedNodes) if (node.nodeType === Node.ELEMENT_NODE) scanTitles(node);
+        }
+        if (tooltipTarget && !tooltipTarget.isConnected) hideTooltip();
+    }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['title'] });
+
+    document.addEventListener('pointerover', event => {
+        const target = event.target.closest?.('[data-site-tip]');
+        if (!target || target === tooltipTarget) return;
+        hideTooltip();
+        tooltipTimer = setTimeout(() => showTooltip(target), 400);
+    });
+    document.addEventListener('pointerout', event => {
+        const target = event.target.closest?.('[data-site-tip]');
+        if (target && !target.contains(event.relatedTarget)) hideTooltip();
+    });
+    document.addEventListener('focusin', event => {
+        const target = event.target.closest?.('[data-site-tip]');
+        if (target) { hideTooltip(); showTooltip(target); }
+    });
+    document.addEventListener('focusout', event => {
+        if (tooltipTarget === event.target) hideTooltip();
+    });
+    document.addEventListener('scroll', hideTooltip, true);
+    window.addEventListener('resize', hideTooltip);
+    document.addEventListener('spectral:languagechange', () => {
+        if (tooltipTarget) showTooltip(tooltipTarget);
+    });
+
+    function enhanceSearch(input) {
+        if (input.dataset.siteSearchReady) return;
+        const parent = input.parentElement;
+        if (!parent) return;
+        input.dataset.siteSearchReady = 'true';
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'site-search-clear';
+        clear.setAttribute('aria-label', 'Clear search');
+        clear.innerHTML = '<i class="fas fa-xmark" aria-hidden="true"></i>';
+        const syncClear = () => { clear.hidden = !input.value; };
+        const shortcut = parent.querySelector('kbd');
+        if (shortcut) shortcut.before(clear);
+        else input.after(clear);
+        input.addEventListener('input', syncClear);
+        input.form?.addEventListener('reset', () => setTimeout(syncClear, 0));
+        clear.addEventListener('click', event => {
+            event.preventDefault();
+            input.value = '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus();
+        });
+        syncClear();
+    }
+
+    function enhancePassword(input) {
+        if (input.dataset.sitePasswordReady) return;
+        const parent = input.parentElement;
+        if (!parent) return;
+        input.dataset.sitePasswordReady = 'true';
+        parent.classList.add('site-password-field');
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'site-password-toggle';
+        toggle.setAttribute('aria-label', 'Show password');
+        toggle.setAttribute('aria-pressed', 'false');
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-eye';
+        icon.setAttribute('aria-hidden', 'true');
+        toggle.appendChild(icon);
+        parent.appendChild(toggle);
+        toggle.addEventListener('click', event => {
+            event.preventDefault();
+            const revealed = input.type === 'password';
+            input.type = revealed ? 'text' : 'password';
+            toggle.setAttribute('aria-label', revealed ? 'Hide password' : 'Show password');
+            toggle.setAttribute('aria-pressed', String(revealed));
+            icon.className = revealed ? 'fas fa-eye-slash' : 'fas fa-eye';
+            input.focus();
+        });
+    }
+
+    function labelFor(select) {
+        const explicit = select.getAttribute('aria-label');
+        if (explicit) return explicit;
+        const label = select.labels?.[0];
+        const first = label?.firstChild?.textContent?.trim();
+        return first || select.id || 'Choose an option';
+    }
+
+    function sync(select) {
+        const control = controls.get(select);
+        if (!control || !select.isConnected) return;
+        const selected = select.selectedOptions[0];
+        const text = selected?.textContent.trim() || 'Choose an option';
+        if (control.text.textContent !== text) control.text.textContent = text;
+        // A disabled attribute mutation makes the select observer scan again.
+        // Writing the same value here can otherwise keep the main thread busy.
+        if (control.trigger.disabled !== select.disabled) control.trigger.disabled = select.disabled;
+        const label = `${labelFor(select)}: ${text}`;
+        if (control.trigger.getAttribute('aria-label') !== label) control.trigger.setAttribute('aria-label', label);
+        if (menu && openControl?.select === select) {
+            menu.querySelectorAll('[data-select-index]').forEach(option => {
+                option.setAttribute('aria-selected', String(Number(option.dataset.selectIndex) === select.selectedIndex));
+            });
+        }
+    }
+
+    function close(restoreFocus = false) {
+        if (!openControl) return;
+        const trigger = openControl.trigger;
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.removeAttribute('aria-controls');
+        openControl.wrapper.classList.remove('is-open');
+        menu?.remove();
+        menu = null;
+        openControl = null;
+        if (restoreFocus && trigger.isConnected) trigger.focus();
+    }
+
+    function placeMenu(control) {
+        if (!menu) return;
+        const rect = control.trigger.getBoundingClientRect();
+        const width = Math.min(Math.max(rect.width, 190), innerWidth - 24);
+        const left = Math.min(Math.max(12, rect.left), innerWidth - width - 12);
+        menu.style.width = `${width}px`;
+        menu.style.left = `${left}px`;
+        menu.style.maxHeight = `${Math.min(300, Math.max(140, innerHeight - 36))}px`;
+        const height = menu.getBoundingClientRect().height;
+        const below = innerHeight - rect.bottom;
+        const above = rect.top;
+        const openUp = below < height + 10 && above > below;
+        menu.style.top = `${openUp ? Math.max(12, rect.top - height - 8) : Math.min(innerHeight - height - 12, rect.bottom + 8)}px`;
+        menu.classList.toggle('opens-up', openUp);
+    }
+
+    function open(control, focusSelected = false) {
+        if (openControl === control) { close(); return; }
+        close();
+        sync(control.select);
+        if (control.select.disabled) return;
+        menu = document.createElement('div');
+        menu.id = control.menuId;
+        menu.className = 'site-select-menu';
+        menu.setAttribute('role', 'listbox');
+        menu.setAttribute('aria-label', labelFor(control.select));
+        [...control.select.options].forEach((nativeOption, index) => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'site-select-option';
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', String(index === control.select.selectedIndex));
+            option.dataset.selectIndex = String(index);
+            option.disabled = nativeOption.disabled;
+            option.textContent = nativeOption.textContent.trim();
+            option.addEventListener('click', () => {
+                if (nativeOption.disabled) return;
+                const changed = control.select.selectedIndex !== index;
+                control.select.selectedIndex = index;
+                close(true);
+                sync(control.select);
+                if (changed) {
+                    control.select.dispatchEvent(new Event('input', { bubbles: true }));
+                    control.select.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+            menu.appendChild(option);
+        });
+        document.body.appendChild(menu);
+        openControl = control;
+        control.trigger.setAttribute('aria-expanded', 'true');
+        control.trigger.setAttribute('aria-controls', control.menuId);
+        control.wrapper.classList.add('is-open');
+        placeMenu(control);
+        if (focusSelected) menu.querySelector('[aria-selected="true"]:not(:disabled)')?.focus();
+    }
+
+    function enhance(select) {
+        if (controls.has(select) || select.closest('.site-select')) return;
+        const wrapper = document.createElement('span');
+        wrapper.className = 'site-select';
+        if (select.closest('.news-item-row')) wrapper.classList.add('site-select--news-item');
+        if (select.closest('.admin-v2-user-action, .admin-user-row')) wrapper.classList.add('site-select--user-role');
+        if (select.closest('.admin-v2-bulk, .admin-bulk-bar')) wrapper.classList.add('site-select--bulk');
+        const trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.className = 'site-select-trigger';
+        trigger.setAttribute('aria-haspopup', 'listbox');
+        trigger.setAttribute('aria-expanded', 'false');
+        const menuId = `siteSelectMenu${++nextId}`;
+        const text = document.createElement('span');
+        text.className = 'site-select-value';
+        const arrow = document.createElement('i');
+        arrow.className = 'fas fa-chevron-down site-select-chevron';
+        arrow.setAttribute('aria-hidden', 'true');
+        trigger.append(text, arrow);
+        select.before(wrapper);
+        wrapper.append(select, trigger);
+        select.classList.add('site-select-native');
+        select.tabIndex = -1;
+        select.setAttribute('aria-hidden', 'true');
+        const control = { select, wrapper, trigger, text, menuId };
+        controls.set(select, control);
+        sync(select);
+        trigger.addEventListener('click', event => {
+            event.preventDefault();
+            open(control);
+        });
+        trigger.addEventListener('keydown', event => {
+            if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            open(control, true);
+            if (event.key === 'End') menu?.querySelector('.site-select-option:last-child:not(:disabled)')?.focus();
+            if (event.key === 'Home') menu?.querySelector('.site-select-option:first-child:not(:disabled)')?.focus();
+        });
+        [...select.labels].forEach(label => label.addEventListener('click', event => {
+            if (event.target.closest?.('.site-select-trigger')) return;
+            event.preventDefault();
+            open(control);
+        }));
+        select.addEventListener('change', () => sync(select));
+    }
+
+    function scan(root = document) {
+        if (root.matches?.('select')) enhance(root);
+        root.querySelectorAll?.('select:not(.site-select-native)').forEach(enhance);
+        if (root.matches?.('input[type="search"]')) enhanceSearch(root);
+        root.querySelectorAll?.('input[type="search"]:not([data-site-search-ready])').forEach(enhanceSearch);
+        if (root.matches?.('input[type="password"]')) enhancePassword(root);
+        root.querySelectorAll?.('input[type="password"]:not([data-site-password-ready])').forEach(enhancePassword);
+        for (const [select] of controls) {
+            if (select.isConnected) sync(select);
+            else controls.delete(select);
+        }
+    }
+
+    document.addEventListener('pointerdown', event => {
+        if (openControl && !openControl.wrapper.contains(event.target) && !menu?.contains(event.target)) close();
+    });
+    document.addEventListener('keydown', event => {
+        if (!openControl) return;
+        if (event.key === 'Escape') { event.preventDefault(); close(true); return; }
+        if (!menu?.contains(document.activeElement)) return;
+        const options = [...menu.querySelectorAll('.site-select-option:not(:disabled)')];
+        const index = options.indexOf(document.activeElement);
+        let next = index;
+        if (event.key === 'ArrowDown') next = (index + 1) % options.length;
+        else if (event.key === 'ArrowUp') next = (index - 1 + options.length) % options.length;
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = options.length - 1;
+        else if (event.key === 'Tab') { close(); return; }
+        else return;
+        event.preventDefault();
+        options[next]?.focus();
+    });
+    document.addEventListener('focusin', event => {
+        if (openControl && !openControl.wrapper.contains(event.target) && !menu?.contains(event.target)) close();
+    });
+    document.addEventListener('reset', () => setTimeout(() => scan(), 0));
+    window.addEventListener('resize', () => openControl && placeMenu(openControl));
+    document.addEventListener('scroll', event => {
+        if (openControl && event.target !== menu) close();
+    }, true);
+    document.addEventListener('spectral:languagechange', () => queueMicrotask(() => scan()));
+    document.addEventListener('DOMContentLoaded', () => {
+        scan();
+        new MutationObserver(mutations => {
+            if (scanQueued || !mutations.some(mutation =>
+                mutation.type === 'attributes' || [...mutation.addedNodes].some(node =>
+                    node.nodeType === Node.ELEMENT_NODE && (node.matches?.('select, option, input[type="search"], input[type="password"]') || node.querySelector?.('select, option, input[type="search"], input[type="password"]'))
+                )
+            )) return;
+            scanQueued = true;
+            queueMicrotask(() => { scanQueued = false; scan(); });
+        }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled', 'selected'] });
+    });
+
+    return { refresh: () => scan(), close };
+})();
 // Shared, DOM-free account rules. Cloud permissions must also be enforced by RLS/RPC.
 const AccountPolicy = Object.freeze({
     ranks: Object.freeze({USER:0,VETERAN:1,PRO:2,LEGEND:3,SPECTRAL:4,MODERATOR:10,ADMIN:20,DEV:30}),
@@ -310,7 +2480,7 @@ document.addEventListener('keydown', event => {
         }
         const dialog = topOpenDialog();
         if (!dialog) return;
-        const dismiss = dialog.querySelector('[aria-label^="Close" i], .confirm-cancel');
+        const dismiss = dialog.querySelector('.close-dashboard, .welcome-close, .close-add-account, .role-checkout-close, #closeHeaderStudioBtn, .confirm-cancel');
         if (dismiss) {
             event.preventDefault();
             dismiss.click();
@@ -1230,7 +3400,7 @@ function activateSupportFix(key){
     if(!key)return;
     const briefIssue=document.getElementById('supportBriefIssue');
     const issueForFix={crash:'Game crashes or freezes',loader:'Fabric or Forge fails',performance:'Low FPS or stutter',account:'Account or offline play'};
-    if(briefIssue && issueForFix[key]) { briefIssue.value=issueForFix[key]; updateSupportBrief(); }
+    if(briefIssue && issueForFix[key]) { briefIssue.value=issueForFix[key]; window.SpectralControls?.refresh(); updateSupportBrief(); }
     supportFixButtons.forEach(button=>{
         const active=button.dataset.supportFix===key;
         button.classList.toggle('active',active);
@@ -1302,18 +3472,26 @@ function filterSupportKnowledge(){
     const faqVisibleCount=document.getElementById('faqVisibleCount');
     const supportNoResults=document.getElementById('supportNoResults');
     const faqList=document.getElementById('faqList');
-    if(faqVisibleCount)faqVisibleCount.textContent=`${faqMatches} ${faqMatches===1?'guide':'guides'}`;
+    const isRussian=window.SpectralI18n?.getLanguage()==='ru';
+    const guideLabel=isRussian
+        ? `${faqMatches} ${faqMatches%10===1&&faqMatches%100!==11?'руководство':faqMatches%10>=2&&faqMatches%10<=4&&(faqMatches%100<12||faqMatches%100>14)?'руководства':'руководств'}`
+        : `${faqMatches} ${faqMatches===1?'guide':'guides'}`;
+    if(faqVisibleCount)faqVisibleCount.textContent=guideLabel;
     if(supportNoResults)supportNoResults.hidden=faqMatches>0;
     faqList?.classList.toggle('is-empty',faqMatches===0);
     document.querySelector('.support-diagnostic-workspace')?.classList.toggle('no-diagnostic-match',!visibleFix);
     if(visibleFix&&activeFix?.classList.contains('is-filtered-out'))activateSupportFix(visibleFix.dataset.supportFix);
     if(supportSearchStatus){
-        supportSearchStatus.textContent=query
-            ? `${faqMatches} ${faqMatches===1?'guide':'guides'} found${activeSupportTopic==='all'?'':` in ${activeSupportTopic}`}`
-            : `${faqMatches} ${faqMatches===1?'guide':'guides'}${activeSupportTopic==='all'?` and ${supportActionButtons.length+supportFixButtons.length} guided checks`:` in ${activeSupportTopic}`}`;
+        const topic=isRussian?({accounts:'аккаунты',launch:'запуск',mods:'моды',performance:'производительность'}[activeSupportTopic]||activeSupportTopic):activeSupportTopic;
+        supportSearchStatus.textContent=isRussian
+            ? `${guideLabel}${activeSupportTopic==='all'?(query?' найдено':` и ${supportActionButtons.length+supportFixButtons.length} пошаговых проверок`):` в разделе «${topic}»`}`
+            : query
+                ? `${guideLabel} found${activeSupportTopic==='all'?'':` in ${topic}`}`
+                : `${guideLabel}${activeSupportTopic==='all'?` and ${supportActionButtons.length+supportFixButtons.length} guided checks`:` in ${topic}`}`;
     }
 }
 supportSearchInput?.addEventListener('input',filterSupportKnowledge);
+document.addEventListener('spectral:languagechange',filterSupportKnowledge);
 supportTopicButtons.forEach(button=>button.addEventListener('click',()=>{
     activeSupportTopic=button.dataset.supportTopic;
     supportTopicButtons.forEach(item=>{
@@ -1359,12 +3537,13 @@ document.querySelectorAll('[data-support-guide]').forEach(button=>button.addEven
 const supportBriefForm=document.getElementById('supportBriefForm');
 function buildSupportBrief(){
     const value=id=>document.getElementById(id)?.value.trim()||'';
+    const label=text=>window.SpectralI18n?.getLanguage()==='ru'?window.SpectralI18n.translate(text):text;
     return [
-        'Spectral support note',
-        `Issue: ${value('supportBriefIssue')}`,
-        `Minecraft version: ${value('supportBriefVersion')||'Not provided'}`,
-        `Java version: ${value('supportBriefJava')||'Not provided'}`,
-        `Error or observation: ${value('supportBriefError')||'Not provided'}`
+        label('Spectral support note'),
+        `${label('Issue')}: ${label(value('supportBriefIssue'))}`,
+        `${label('Minecraft version')}: ${value('supportBriefVersion')||label('Not provided')}`,
+        `${label('Java version')}: ${value('supportBriefJava')||label('Not provided')}`,
+        `${label('Error or observation')}: ${value('supportBriefError')||label('Not provided')}`
     ].join('\n');
 }
 function updateSupportBrief(){
@@ -1376,6 +3555,7 @@ function updateSupportBrief(){
 supportBriefForm?.addEventListener('input',updateSupportBrief);
 supportBriefForm?.addEventListener('change',updateSupportBrief);
 supportBriefForm?.addEventListener('reset',()=>requestAnimationFrame(updateSupportBrief));
+document.addEventListener('spectral:languagechange',updateSupportBrief);
 document.getElementById('supportBriefCopy')?.addEventListener('click',async()=>{
     const status=document.getElementById('supportBriefStatus');
     try {
@@ -2485,13 +4665,6 @@ function updateAccountCockpitMetrics() {
     const profileCount=document.getElementById('cockpitProfileCount');if(profileCount)profileCount.textContent=String(count);
     const slotLabel=user?formatRoleLimit(limit):'—';
     const slotLimit=document.getElementById('cockpitSlotLimit');if(slotLimit)slotLimit.textContent=slotLabel;
-    const slotUsage=document.getElementById('cockpitSlotUsage');if(slotUsage)slotUsage.textContent=`${count} / ${slotLabel}`;
-    const meter=document.getElementById('cockpitSlotMeterBar');
-    if(meter){
-        const percent=!user?0:Number.isFinite(limit)&&limit>0?Math.min(100,(count/limit)*100):100;
-        meter.style.transform=`scaleX(${percent/100})`;
-        meter.parentElement?.classList.toggle('is-unlimited',Boolean(user)&&!Number.isFinite(limit));
-    }
 }
 function getFilteredMc() {
     let list = mcAccounts.slice();
@@ -3140,6 +5313,7 @@ if (loginForm) {
         clearAuthMsgs();
         const fail  = msg => authMsg('loginError', msg||'Invalid email/username or password');
 
+        if (!login || !pass) return fail('Enter your email or username and password.');
         if(submitBtn?.disabled)return;
         if(submitBtn)submitBtn.disabled=true;
         try {
@@ -3759,7 +5933,6 @@ if(logoutBtn)logoutBtn.addEventListener('click',signOutAccount);
 // ── Launcher info tab ─────────────────────────────────────────
 const goAccBtn=document.getElementById('goToAccountsBtn');
 if(goAccBtn){goAccBtn.addEventListener('click',()=>{closeDashboard();document.querySelector('[data-target="accounts"]').click();});}
-document.getElementById('accountsViewRolesBtn')?.addEventListener('click',openRoleStore);
 // Drafts are kept in memory, scoped to the signed-in account, until saved/discarded.
 const profileDrafts=new Map();
 const PROFILE_FIELDS=['displayName','status','bio','avatar'];
@@ -4021,6 +6194,7 @@ if(adminResetUserFilters)adminResetUserFilters.addEventListener('click',()=>{
     if(adminRoleFilter)adminRoleFilter.value='';
     if(adminStatusFilter)adminStatusFilter.value='';
     if(adminUserSort)adminUserSort.value='role';
+    window.SpectralControls?.refresh();
     adminPage=1;adminSelectedUserIds.clear();renderAdminUsers();
 });
 const adminForumSearch=document.getElementById('adminForumSearch');
@@ -4284,6 +6458,7 @@ function renderAdminUsers() {
             }
             reviewAdminAction('role',[target.id],roleSelect.value);
             roleSelect.value=target.role;
+            window.SpectralControls?.refresh();
         });
         const inspect=()=>{
             adminInspectedUserId=user.id;
@@ -4757,7 +6932,7 @@ async function adminV2ApplyIdentityChange(pending,reason,actor,target,review){
     if(action==='display_name'&&(!value.trim()||value.length>24||AccountPolicy.nameIssue(value)))throw new Error(AccountPolicy.nameIssue(value)||'Use a display name of 1–24 characters.');
     if(action==='avatar_approve'&&!target.pendingAvatar)throw new Error('The pending avatar is no longer available.');
     if(action==='avatar_reject'&&!target.pendingAvatar)throw new Error('The pending avatar is no longer available.');
-    if(input?.type==='password'){input.value='';review.querySelector('[data-admin-v2-confirm-value]').value='';}
+    if(action==='password'){input.value='';review.querySelector('[data-admin-v2-confirm-value]').value='';}
     if(validSupabaseConfig()){
         if(!authAvailable()||!cloudAuthUserId)throw new Error('Reconnect to administration.');
         if(action==='password'){
@@ -5151,14 +7326,15 @@ function formatNewsText(value) {
     return safe.replace(/\n/g, '<br>');
 }
 function releaseToMarkdown(item) {
-    const channel = item.channel ? ` · ${item.channel}` : '';
+    const localize=value=>window.SpectralI18n?.getLanguage()==='ru'?window.SpectralI18n.translate(value||''):value||'';
+    const channel = item.channel ? ` · ${localize(item.channel)}` : '';
     const version = item.version ? ` ${item.version}` : '';
-    const summary = item.summary ? `\n\n${item.summary}` : '';
+    const summary = item.summary ? `\n\n${localize(item.summary)}` : '';
     const lines = (item.items || []).map(change => {
         const meta = NEWS_TYPES[validNewsType(change.type)];
-        return `- **${meta.label}:** ${change.text}`;
+        return `- **${localize(meta.label)}:** ${localize(change.text)}`;
     }).join('\n');
-    return `## ${item.title}${version}\n\n_${item.date}${channel}_${summary}\n\n${lines}`.trim();
+    return `## ${localize(item.title)}${version}\n\n_${localize(item.date)}${channel}_${summary}\n\n${lines}`.trim();
 }
 function copyLocalText(text, successMessage) {
     const done=()=>showToast(successMessage || 'Copied to clipboard','copy');
@@ -5200,12 +7376,14 @@ function renderNewsTimeline() {
     const user=siteUsers.find(u=>u.id===currentUserId);
     const isDev=Boolean(user&&user.role==='DEV');
     const query=newsViewState.query.trim().toLowerCase();
-    const renderKey=JSON.stringify([newsItems,query,newsViewState.filter,isDev]);
+    const language=window.SpectralI18n?.getLanguage()||'en';
+    const renderKey=JSON.stringify([newsItems,query,newsViewState.filter,isDev,language]);
     if(renderKey===lastNewsTimelineKey)return;
     lastNewsTimelineKey=renderKey;
     let visible=newsItems.filter(item=>{
         const matchesType=newsViewState.filter==='all'||(item.items||[]).some(change=>validNewsType(change.type)===newsViewState.filter);
-        const haystack=[item.title,item.date,item.version,item.channel,item.summary,...(item.items||[]).map(change=>change.text)].join(' ').toLowerCase();
+        const fields=[item.title,item.date,item.version,item.channel,item.summary,...(item.items||[]).map(change=>change.text)];
+        const haystack=fields.flatMap(value=>[value,window.SpectralI18n?.translate(value||'')||'']).join(' ').toLowerCase();
         return matchesType&&(!query||haystack.includes(query));
     });
     const releaseCount=document.getElementById('updatesReleaseCount');if(releaseCount)releaseCount.textContent=String(newsItems.length);
@@ -5241,6 +7419,8 @@ function renderNewsTimeline() {
         timeline.appendChild(article);
     });
 }
+
+document.addEventListener('spectral:languagechange',()=>renderNewsTimeline());
 
 const updatesSearchInput=document.getElementById('updatesSearchInput');
 if(updatesSearchInput)updatesSearchInput.addEventListener('input',()=>{newsViewState.query=updatesSearchInput.value;renderNewsTimeline();});
@@ -5302,6 +7482,7 @@ function setNewsEditorData(item) {
     set('newsTitle',item.title);set('newsVersion',item.version);set('newsDate',item.date);set('newsChannel',item.channel||'stable');set('newsIcon',validNewsIcon(item.icon));set('newsSummary',item.summary);
     const current=document.getElementById('newsIsCurrent');if(current)current.checked=item.isCurrent!==false;
     const rows=document.getElementById('newsItemRows');if(rows){rows.innerHTML='';(item.items?.length?item.items:[{type:'add',text:''}]).forEach(change=>addNewsItemRow(change.type,change.text,false));}
+    window.SpectralControls?.refresh();
     updateNewsItemCount();updateLiveNewsPreview();
 }
 function readNewsDraft(){try{return JSON.parse(localStorage.getItem(NEWS_DRAFT_KEY)||'null');}catch{return null;}}

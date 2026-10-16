@@ -17,10 +17,10 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preload" href="assets/fonts/Onest-latin.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="style.min.css?v=59">
+    <link rel="stylesheet" href="style.min.css?v=66">
 </head>
 <body>
-    <script src="theme-init.js?v=1"></script>
+    <script src="theme-init.js?v=2"></script>
     <canvas id="particles-canvas" aria-hidden="true"></canvas>
     <div class="bg-gradient-overlay" aria-hidden="true"></div>
     <div class="vignette" aria-hidden="true"></div>
@@ -55,6 +55,24 @@
             <a href="#support" class="nav-btn" data-target="support"><i class="fas fa-life-ring" aria-hidden="true"></i> <span>Support</span></a>
         </div>
         <div class="nav-actions">
+            <div class="nav-language-control" id="siteLanguageControl">
+                <button type="button" class="nav-language-trigger" id="siteLanguageToggle" aria-label="Website language" aria-haspopup="true" aria-expanded="false" aria-controls="siteLanguageMenu">
+                    <i class="fas fa-globe" aria-hidden="true"></i>
+                    <span class="language-current" id="siteLanguageCurrent">EN</span>
+                    <i class="fas fa-chevron-down language-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="nav-language-menu" id="siteLanguageMenu" role="group" aria-label="Website language" hidden>
+                    <div class="nav-language-menu-title" aria-hidden="true">Language</div>
+                    <button type="button" class="nav-language-option" data-language="en" lang="en" aria-pressed="true" translate="no">
+                        <span class="language-option-code">EN</span><span class="language-option-name">English</span>
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="nav-language-option" data-language="ru" lang="ru" aria-pressed="false" translate="no">
+                        <span class="language-option-code">RU</span><span class="language-option-name">Русский</span>
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
             <button type="button" class="btn-account" id="openDashboardBtn" aria-label="Open account panel">
                 <div class="avatar-circle" id="navAvatarCircle"><i class="fas fa-user" aria-hidden="true"></i></div>
                 <span class="req-badge" id="reqBadge" style="display:none;">0</span>
@@ -255,11 +273,6 @@
                                 <p id="accountsEmptyText">No Minecraft profiles</p>
                                 <button type="button" id="accountsEmptyAddBtn"><i class="fas fa-plus" aria-hidden="true"></i> Add your first profile</button>
                             </div>
-                            <div class="cockpit-slot-meter">
-                                <div><span>Role capacity</span><b id="cockpitSlotUsage">0 / 0</b></div>
-                                <i><b id="cockpitSlotMeterBar"></b></i>
-                                <button type="button" id="accountsViewRolesBtn"><i class="fas fa-gem"></i> Explore role capacity</button>
-                            </div>
                         </aside>
 
                         <div class="cockpit-core" id="activeAccountBanner" role="region" aria-label="Selected game profile">
@@ -303,7 +316,7 @@
                             <div class="friends-header cockpit-rail-head">
                                 <div><small>Player network</small><h3 id="cockpitFriendsTitle">Friends <span class="friends-count" id="friendsCount">0</span></h3></div>
                             </div>
-                            <form class="friend-add-form" id="friendAddForm" autocomplete="off">
+                            <form class="friend-add-form" id="friendAddForm" autocomplete="off" novalidate>
                                 <div class="friend-add-input">
                                     <i class="fas fa-user-plus"></i>
                                     <input type="text" id="friendAddInput" placeholder="Find by username…" maxlength="30" aria-label="Friend username">
@@ -354,7 +367,7 @@
             <div class="updates-header animate-on-scroll">
                 <div class="updates-heading-copy">
                     <span class="updates-eyebrow"><i class="fas fa-satellite-dish"></i> Spectral timeline</span>
-                    <h2>Update <span class="text-gradient">History</span></h2>
+                    <h2><span class="i18n-en">Update <span class="text-gradient">History</span></span><span class="i18n-ru" lang="ru">История <span class="text-gradient">обновлений</span></span></h2>
                     <p>An editorial timeline of launcher and website features. Dates illustrate the product story; for official release dates and downloads, check <a href="https://github.com/KaiserrSL/spectral-downloads/releases" target="_blank" rel="noopener noreferrer">GitHub Releases</a>.</p>
                     <div class="updates-overview" aria-label="Update statistics">
                         <div><strong id="updatesReleaseCount">0</strong><span>Entries</span></div>
@@ -791,7 +804,7 @@
                 </button>
                 <p class="auth-provider-hint" id="authProviderHint">Used Google before? Sign in here, even if your profile has a username.</p>
                 <div class="auth-divider"><span>or</span></div>
-                <form id="loginForm">
+                <form id="loginForm" novalidate>
                     <div class="input-group-animated"><input type="text" id="loginInput" required placeholder=" " autocomplete="username" aria-describedby="loginError loginNote"><label for="loginInput">Email or username</label></div>
                     <div class="input-group-animated"><input type="password" id="passwordInput" required placeholder=" " maxlength="128" autocomplete="current-password" aria-describedby="loginError loginNote"><label for="passwordInput">Password</label></div>
                     <div class="auth-error" id="loginError" role="alert" style="display:none;"></div>
@@ -817,7 +830,7 @@
                     <span>Sign up with Google</span>
                 </button>
                 <div class="auth-divider"><span>or</span></div>
-                <form id="registerForm">
+                <form id="registerForm" novalidate>
                     <div class="input-group-animated"><input type="text" id="regUsername" required placeholder=" " minlength="3" maxlength="20" autocomplete="username" aria-describedby="registerError registerNote"><label for="regUsername">Username (3–20 chars)</label></div>
                     <div class="input-group-animated"><input type="email" id="regEmail" placeholder=" " autocomplete="email" aria-describedby="regEmailHint registerError registerNote"><label for="regEmail">Email saved only on this device</label></div>
                     <div id="regEmailHint" style="font-size:0.8rem;line-height:1.4;margin:-4px 2px 12px;opacity:0.72;"><i class="fas fa-circle-info" style="margin-right:6px;opacity:0.8;"></i><span id="regEmailHintText">Without configured cloud authentication, this creates a device-local demo account only.</span></div>
@@ -836,7 +849,7 @@
                 <div class="auth-icon-box" style="background:rgba(99,102,241,0.12);"><i class="fas fa-key" style="color:#818cf8;"></i></div>
                 <h2 style="text-align:center;margin-bottom:8px;">Set a new password</h2>
                 <p class="auth-sub">Enter a new password for your account</p>
-                <form id="recoveryForm">
+                <form id="recoveryForm" novalidate>
                     <div class="input-group-animated"><input type="password" id="recoveryPassword" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="recoveryError recoveryNote"><label for="recoveryPassword">New password</label></div>
                     <div class="input-group-animated"><input type="password" id="recoveryPasswordConfirm" required placeholder=" " minlength="10" maxlength="128" autocomplete="new-password" aria-describedby="recoveryError recoveryNote"><label for="recoveryPasswordConfirm">Confirm new password</label></div>
                     <div class="auth-error" id="recoveryError" role="alert" style="display:none;"></div>
@@ -926,7 +939,7 @@
                     <section class="account-editor" aria-labelledby="accountEditorTitle">
                         <header class="workspace-section-heading"><span><i class="fas fa-pen-nib" aria-hidden="true"></i></span><div><small>YOUR PUBLIC IDENTITY</small><h3 id="accountEditorTitle">Make yourself known</h3><p>Your display name, status and bio appear on your profile.</p></div></header>
                         <div class="account-live-preview" aria-label="Profile preview"><img id="accountPreviewAvatar" src="assets/avatar-placeholder.svg" alt="" width="56" height="56"><div><small>LIVE PREVIEW</small><strong id="accountPreviewName">Your name</strong><span id="accountPreviewStatus">Your status appears here</span></div><i class="fas fa-sparkles" aria-hidden="true"></i></div>
-                        <form id="profileEditForm" class="profile-settings">
+                        <form id="profileEditForm" class="profile-settings" novalidate>
                             <label class="account-field" for="profileDisplayName"><span><i class="fas fa-signature"></i> Display name <output id="profileDisplayNameCount">0 / 24</output></span><input type="text" id="profileDisplayName" maxlength="24" required autocomplete="nickname"></label>
                             <label class="account-field" for="profileStatus"><span><i class="fas fa-comment-dots"></i> Status <output id="profileStatusCount">0 / 100</output></span><input type="text" id="profileStatus" maxlength="100" placeholder="What are you working on?"></label>
                             <div class="account-status-presets" role="group" aria-label="Quick status ideas"><button type="button" data-account-status="Exploring new worlds">Exploring new worlds</button><button type="button" data-account-status="Building something new">Building something new</button><button type="button" data-account-status="Ready to play">Ready to play</button></div>
@@ -1155,7 +1168,7 @@
                 <span class="news-editor-icon"><i class="fas fa-pen-nib"></i></span>
                 <div><span id="newsEditorModeLabel">New release</span><h2 id="newsEditorTitle">Update editor</h2><p>Compose, preview and publish without leaving the page.</p></div>
             </div>
-            <form id="newsEditorFormV2" class="news-editor-layout">
+            <form id="newsEditorFormV2" class="news-editor-layout" novalidate>
                 <div class="news-editor-fields">
                     <div class="news-field-grid">
                         <label class="news-field news-field-title"><span>Release title</span><input type="text" id="newsTitle" required placeholder="Library &amp; Mod Manager refresh"></label>
@@ -1207,7 +1220,7 @@
             <button type="button" class="close-dashboard" id="closeForumPostBtn" aria-label="Close idea form">&times;</button>
             <h2 id="forumPostDialogTitle" style="display:flex;align-items:center;gap:10px;margin-bottom:6px;"><i class="fas fa-lightbulb" style="color:#f59e0b;font-size:1.4rem;"></i> Share Your Idea</h2>
             <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1.5rem;">Cloud ideas are checked automatically before publication. Unsafe text is rejected.</p>
-            <form id="forumPostForm">
+            <form id="forumPostForm" novalidate>
                 <div class="input-group-animated"><input type="text" id="forumPostTitle" required placeholder=" " maxlength="80" aria-describedby="forumPostError"><label for="forumPostTitle">Idea title (max 80 chars)</label></div>
                 <div class="forum-textarea-wrap">
                     <label class="forum-textarea-label" for="forumPostText">Description (max 500 chars)</label>
@@ -1221,6 +1234,6 @@
     </div>
 
     <button type="button" id="scrollToTop" class="scroll-to-top" aria-label="Scroll to top"><i class="fas fa-arrow-up"></i></button>
-    <script defer src="script.min.js?v=58"></script>
+    <script defer src="script.min.js?v=68"></script>
 </body>
 </html>
