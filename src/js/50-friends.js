@@ -35,10 +35,13 @@ function showFriendMsg(text, ok) {
 }
 
 async function findSiteUserByName(name) {
-    if (cloudReady() && currentUserId === cloudAuthUserId) {
-        const { data, error } = await cloud.rpc('find_site_user_by_username', { search_username:name });
+    if (validSupabaseConfig()) {
+        const uid=currentUserId, generation=authGeneration;
+        if(!cloudReady() || uid!==cloudAuthUserId)throw new Error('Reconnect to search for players.');
+        const { data, error } = await cloud.rpc('spectral_search_users', {p_query:name,p_exact:true});
         if (error) throw error;
-        const row = Array.isArray(data) ? data[0] : data;
+        if(!friendSessionMatches(uid,generation))throw new Error('The account changed during search.');
+        const row = Array.isArray(data) ? data[0] : null;
         const profile = row ? cloudProfileToUser(row) : null;
         if (profile) {
             const index = siteUsers.findIndex(user=>user.id===profile.id);
@@ -46,54 +49,66 @@ async function findSiteUserByName(name) {
         }
         return profile;
     }
-    return siteUsers.find(user =>
-        user.username.toLowerCase() === name.toLowerCase()
-        || (user.displayName || '').toLowerCase() === name.toLowerCase()) || null;
+    return siteUsers.find(user => user.username.toLowerCase()===name.toLowerCase()
+        || (user.displayName || '').toLowerCase()===name.toLowerCase()) || null;
 }
 async function sendFriendRequest(rawName) {
     if (!currentUserId) { openDashboard(); return; }
     const name = sanitizeField(rawName, 30);
     if (!name) { showFriendMsg('Enter a username to add.', false); return; }
-    let target=null;
-    try{target=await findSiteUserByName(name);}catch(error){handleCloudError('user lookup',error);showFriendMsg('Player search is temporarily unavailable.',false);return;}
-    if (!target)                     { showFriendMsg(`No user named "${name}" found.`, false); return; }
-    if (target.id === currentUserId) { showFriendMsg("You can't add yourself.", false); return; }
-    const existing = findFriendship(currentUserId, target.id);
-    if (existing) {
-        if (existing.status === 'accepted')             showFriendMsg(`You're already friends with ${target.displayName || target.username}.`, false);
-        else if (existing.requester === currentUserId)  showFriendMsg(`Request to ${target.displayName || target.username} is already pending.`, false);
-        else                                            showFriendMsg(`${target.displayName || target.username} already sent you a request — check below.`, false);
-        return;
-    }
-    friendships.push({ id:'fr_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-        requester: currentUserId, addressee: target.id, status:'pending', createdAt: new Date().toISOString() });
-    saveFriends(friendships);
-    showFriendMsg(`Friend request sent to ${target.displayName || target.username}.`, true);
-    const input = document.getElementById('friendAddInput'); if (input) input.value = '';
-    renderFriends();
-}
-function acceptFriendRequest(id) {
-    const f = friendships.find(x => x.id === id);
-    if (!f || f.addressee !== currentUserId) return;
-    f.status = 'accepted';
-    saveFriends(friendships);
-    renderFriends();
-    const u = siteUsers.find(x => x.id === f.requester);
-    showToast(`You are now friends with ${u ? (u.displayName||u.username) : 'this user'}`, 'user-check');
-}
-function declineFriendRequest(id) {
-    friendships = friendships.filter(f => f.id !== id);
-    saveFriends(friendships);
-    renderFriends();
-}
-function removeFriend(id) {
-    const f = friendships.find(x => x.id === id);
-    if (!f) return;
-    const other = siteUsers.find(u => u.id === friendOtherId(f, currentUserId));
-    showConfirm(`Remove ${other ? (other.displayName||other.username) : 'this friend'} from your friends?`, () => {
-        friendships = friendships.filter(x => x.id !== id);
-        saveFriends(friendships);
+    const uid=currentUserId, generation=authGeneration;
+    try {
+        const target=await findSiteUserByName(name);
+        if(currentUserId!==uid || authGeneration!==generation)return;
+        if(!target){showFriendMsg(`No user named "${name}" found.`,false);return;}
+        if(target.id===uid){showFriendMsg("You can't add yourself.",false);return;}
+        // Check the current server list, not a stale browser copy.
+        if(validSupabaseConfig() && !await refreshFriendships())throw new Error('Could not refresh friend requests. Please try again.');
+        if(currentUserId!==uid || authGeneration!==generation)return;
+        const existing=findFriendship(uid,target.id);
+        if(existing){
+            showFriendMsg(existing.status==='accepted' ? 'You are already friends with this player.'
+                : existing.requester===uid ? 'Your request is already pending.' : 'This player already sent you a request — check below.',false);
+            return;
+        }
+        await changeFriendship('insert',{id:'fr_'+crypto.randomUUID().replaceAll('-',''),requester:uid,
+            addressee:target.id,status:'pending',createdAt:new Date().toISOString()});
+        showFriendMsg(`Friend request sent to ${target.displayName || target.username}.`,true);
+        const input=document.getElementById('friendAddInput');if(input)input.value='';
         renderFriends();
+    } catch(error) {
+        handleCloudError('send friend request',error);
+        if(currentUserId!==uid || authGeneration!==generation)return;
+        showFriendMsg(error.code==='23505'?'A request with this player already exists.':error.message || 'Could not send the friend request.',false);
+        await refreshFriendships();
+    }
+}
+async function performFriendAction(action,id) {
+    const uid=currentUserId, generation=authGeneration;
+    const friendship=friendships.find(row=>row.id===id);
+    if(!friendship)return false;
+    try {
+        await changeFriendship(action,friendship);
+        renderFriends();
+        if(action==='accept')showToast('Friend request accepted.','user-check');
+        return true;
+    } catch(error) {
+        handleCloudError('friend action',error);
+        if(currentUserId===uid && authGeneration===generation)showFriendMsg(error.message || 'Could not save the friend action.',false);
+        return false;
+    } finally {
+        if(currentUserId===uid && authGeneration===generation)await refreshFriendships();
+    }
+}
+async function acceptFriendRequest(id) { return performFriendAction('accept',id); }
+async function declineFriendRequest(id) { return performFriendAction('delete',id); }
+function removeFriend(id) {
+    const f=friendships.find(row=>row.id===id);
+    if(!f)return;
+    const uid=currentUserId, generation=authGeneration;
+    const other=siteUsers.find(user=>user.id===friendOtherId(f,uid));
+    showConfirm(`Remove ${other ? (other.displayName||other.username) : 'this friend'} from your friends?`,()=>{
+        if(currentUserId===uid && authGeneration===generation)void performFriendAction('delete',id);
     });
 }
 
@@ -237,11 +252,11 @@ function renderFriends() {
         let html = '';
         if (incoming.length) {
             html += `<div class="friend-req-title"><i class="fas fa-inbox"></i> Requests received <span class="friends-count">${incoming.length}</span></div>`;
-            incoming.forEach(f => { const u = siteUsers.find(x => x.id === f.requester); if (u) html += friendCardHtml(u, 'incoming', f.id); });
+            incoming.forEach(f => { const u = siteUsers.find(x => x.id === f.requester) || {id:f.requester,username:'Player'}; html += friendCardHtml(u, 'incoming', f.id); });
         }
         if (outgoing.length) {
             html += `<div class="friend-req-title"><i class="fas fa-paper-plane"></i> Requests sent <span class="friends-count">${outgoing.length}</span></div>`;
-            outgoing.forEach(f => { const u = siteUsers.find(x => x.id === f.addressee); if (u) html += friendCardHtml(u, 'outgoing', f.id); });
+            outgoing.forEach(f => { const u = siteUsers.find(x => x.id === f.addressee) || {id:f.addressee,username:'Player'}; html += friendCardHtml(u, 'outgoing', f.id); });
         }
         reqWrap.innerHTML = html;
         reqWrap.style.display = html ? (reqWrap.closest('.cockpit-social-rail')?'flex':'grid') : 'none';
