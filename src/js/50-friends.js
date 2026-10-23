@@ -121,20 +121,23 @@ function friendCardHtml(user, kind, frId) {
                : (kind === 'friend' ? pres.text : '@' + esc(user.username));
     let actions = '';
     const safeFriendshipId = esc(safeIdentifier(frId));
+    const requestCard = kind !== 'friend';
+    const badge = roleBadgeHtml(user.role);
     if (kind === 'friend')        actions = `<button class="friend-btn remove" data-fr-remove="${safeFriendshipId}" type="button" title="Remove friend"><i class="fas fa-user-minus"></i></button>`;
     else if (kind === 'incoming') actions = `<button class="friend-btn accept" data-fr-accept="${safeFriendshipId}" type="button"><i class="fas fa-check"></i> Accept</button>
-                                             <button class="friend-btn decline" data-fr-decline="${safeFriendshipId}" type="button" title="Decline"><i class="fas fa-xmark"></i></button>`;
+                                             <button class="friend-btn decline" data-fr-decline="${safeFriendshipId}" type="button" title="Decline" aria-label="Decline"><i class="fas fa-xmark" aria-hidden="true"></i></button>`;
     else                          actions = `<span class="friend-pending"><i class="fas fa-clock"></i> Pending</span>
-                                             <button class="friend-btn decline" data-fr-decline="${safeFriendshipId}" type="button" title="Cancel request"><i class="fas fa-xmark"></i></button>`;
-    return `<div class="friend-card glass" data-fr-user="${esc(safeIdentifier(user.id))}" title="View profile">
+                                             <button class="friend-btn decline" data-fr-decline="${safeFriendshipId}" type="button" title="Cancel request" aria-label="Cancel request"><i class="fas fa-xmark" aria-hidden="true"></i><span>Cancel request</span></button>`;
+    return `<div class="friend-card glass friend-card--${kind}" data-fr-user="${esc(safeIdentifier(user.id))}" title="View profile">
         <div class="friend-av-wrap">
             <img class="friend-avatar" src="${esc(siteAvatarUrl(user))}" alt="${name}" width="100" height="100" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-avatar-fallback>
             <span class="friend-dot ${pres.cls}"></span>
         </div>
         <div class="friend-info">
-            <div class="friend-name">${name} ${roleBadgeHtml(user.role)}</div>
+            <div class="friend-name" title="${name}"><span class="friend-display-name">${name}</span> ${requestCard ? '' : badge}</div>
             <div class="friend-user">${sub}</div>
         </div>
+        ${requestCard && badge ? `<div class="friend-role">${badge}</div>` : ''}
         <div class="friend-actions">${actions}</div>
     </div>`;
 }

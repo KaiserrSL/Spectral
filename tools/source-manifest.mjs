@@ -71,6 +71,7 @@ export const sourceManifest = [
             'src/css/139-account-workspace-refresh.css',
             'src/css/140-account-brand-headers.css',
             'src/css/141-refined-profile-headers.css',
+            'src/css/142-friend-request-cards.css',
         ],
     },
     {
