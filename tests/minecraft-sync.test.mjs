@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('../src/js/30-user-model.js', import.meta.url), 'utf8');
 const start = source.indexOf('let mcSaveInProgress = false;');
-const end = source.indexOf('function cloudPushFriends', start);
+const end = source.indexOf('const FRIENDSHIP_COLUMNS', start);
 assert.ok(start >= 0 && end > start);
 
 function harness({failOperation = ''} = {}) {

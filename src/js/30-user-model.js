@@ -319,38 +319,76 @@ async function saveMinecraftProfiles(uid, accounts, activeId) {
         mcSaveInProgress = false;
     }
 }
-function cloudPushFriends(list) {
-    if (!cloudReady() || !Array.isArray(list) || currentUserId !== cloudAuthUserId) return;
-    const currentUserRows = list.filter(friendship =>
-        friendship.requester === cloudAuthUserId || friendship.addressee === cloudAuthUserId);
-    const rows = currentUserRows.map(friendship => ({
-        id: safeIdentifier(friendship.id),
-        requester_id: safeIdentifier(friendship.requester),
-        addressee_id: safeIdentifier(friendship.addressee),
-        status: friendship.status === 'accepted' ? 'accepted' : 'pending',
-        created_at: friendship.createdAt || new Date().toISOString()
-    })).filter(row => row.id && row.requester_id && row.addressee_id && row.requester_id !== row.addressee_id);
-    // The requester may create a pending request, while only the addressee may
-    // accept it. Keeping those writes separate mirrors the database RLS rules
-    // and prevents an upsert from accidentally taking the insert-policy path.
-    rows.forEach(row => {
-        let request = null;
-        if (row.requester_id === cloudAuthUserId && row.status === 'pending') {
-            request = cloud.from('friendships').upsert(row, { onConflict:'id' });
-        } else if (row.addressee_id === cloudAuthUserId && row.status === 'accepted') {
-            request = cloud.from('friendships').update({ status:'accepted' })
-                .eq('id', row.id).eq('addressee_id', cloudAuthUserId);
+const FRIENDSHIP_COLUMNS = 'id,requester_id,addressee_id,status,created_at';
+const FRIEND_PROFILE_COLUMNS = 'id,username,role,display_name,bio,avatar,registered_at,total_time_sec,visit_count,last_seen,status,mc_time_sec';
+let friendReadSerial = 0;
+let friendWriteInProgress = false;
+function friendSessionMatches(uid, generation) {
+    return currentUserId === uid && cloudAuthUserId === uid && authGeneration === generation;
+}
+function cloudFriendshipToLocal(row) {
+    return normalizeFriendship({id:row.id,requester:row.requester_id,addressee:row.addressee_id,
+        status:row.status,createdAt:row.created_at || ''});
+}
+async function refreshFriendships() {
+    if (!cloudReady() || !currentUserId || currentUserId !== cloudAuthUserId || friendWriteInProgress) return false;
+    const uid=currentUserId, generation=authGeneration, serial=++friendReadSerial;
+    try {
+        const {data,error}=await cloud.from('friendships').select(FRIENDSHIP_COLUMNS)
+            .or(`requester_id.eq.${uid},addressee_id.eq.${uid}`).limit(500);
+        if(error)throw error;
+        if(!friendSessionMatches(uid,generation) || serial!==friendReadSerial)return false;
+        const rows=(data || []).map(cloudFriendshipToLocal).filter(Boolean);
+        const ids=[...new Set(rows.map(row=>friendOtherId(row,uid)))];
+        const profiles=ids.length ? await cloud.from('site_users').select(FRIEND_PROFILE_COLUMNS).in('id',ids).limit(500) : {data:[]};
+        if(profiles.error)throw profiles.error;
+        if(!friendSessionMatches(uid,generation) || serial!==friendReadSerial)return false;
+        for(const row of profiles.data || []) {
+            const profile=cloudProfileToUser(row);
+            if(!profile)continue;
+            const index=siteUsers.findIndex(user=>user.id===profile.id);
+            if(index>=0)siteUsers[index]=profile;else siteUsers.push(profile);
         }
-        if (request) request
-            .then(({ error }) => { if (error) handleCloudError('friendship sync', error); })
-            .catch(error => handleCloudError('friendship sync', error));
-    });
-    const keepIds = rows.map(row => row.id);
-    let deletion = cloud.from('friendships').delete()
-        .or(`requester_id.eq.${cloudAuthUserId},addressee_id.eq.${cloudAuthUserId}`);
-    if (keepIds.length) deletion = deletion.not('id', 'in', `(${keepIds.join(',')})`);
-    deletion.then(({ error }) => { if (error) handleCloudError('friendship cleanup', error); })
-        .catch(error => handleCloudError('friendship cleanup', error));
+        friendships=rows;
+        saveFriends(friendships);
+        renderFriends();
+        return true;
+    } catch(error) {
+        handleCloudError('friendship refresh',error);
+        return false;
+    }
+}
+async function changeFriendship(action, friendship) {
+    const uid=currentUserId, generation=authGeneration;
+    if(!uid || !friendship || ![friendship.requester,friendship.addressee].includes(uid))throw new Error('Sign in again before changing friends.');
+    if(friendWriteInProgress)throw new Error('Wait for the current friend action to finish.');
+    if(action==='accept' && (friendship.addressee!==uid || friendship.status!=='pending'))throw new Error('Only the recipient can accept this request.');
+    if(action==='insert' && (friendship.requester!==uid || friendship.status!=='pending'))throw new Error('Invalid friend request.');
+    friendWriteInProgress=true;
+    ++friendReadSerial;
+    try {
+        let saved=friendship;
+        if(validSupabaseConfig()) {
+            if(!cloudReady() || uid!==cloudAuthUserId)throw new Error('Reconnect to save your friend action online.');
+            let query=cloud.from('friendships');
+            if(action==='insert')query=query.insert({id:friendship.id,requester_id:uid,addressee_id:friendship.addressee,status:'pending'});
+            else if(action==='accept')query=query.update({status:'accepted'}).eq('id',friendship.id).eq('addressee_id',uid).eq('status','pending');
+            else query=query.delete().eq('id',friendship.id).or(`requester_id.eq.${uid},addressee_id.eq.${uid}`);
+            const {data,error}=await query.select(FRIENDSHIP_COLUMNS);
+            if(error)throw error;
+            if(data?.length!==1 || data[0].id!==friendship.id)throw new Error('The database did not confirm the friend action. Refresh and try again.');
+            saved=cloudFriendshipToLocal(data[0]);
+            if(!saved || action==='accept' && saved.status!=='accepted')throw new Error('Invalid database confirmation.');
+            if(!friendSessionMatches(uid,generation))throw new Error('The account changed while saving.');
+        } else if(currentUserId!==uid || authGeneration!==generation)throw new Error('The account changed while saving.');
+        friendships=friendships.filter(row=>row.id!==friendship.id);
+        if(action!=='delete')friendships.push(action==='accept'?{...saved,status:'accepted'}:saved);
+        saveFriends(friendships);
+        return true;
+    } finally {
+        ++friendReadSerial;
+        friendWriteInProgress=false;
+    }
 }
 
 function cloudProfileToUser(row, authEmail = '') {
@@ -490,7 +528,7 @@ function saveForum(p)  { try{localStorage.setItem(K_FORUM,JSON.stringify(p));}ca
 function loadNews()    { const news=readJsonStorage(K_NEWS,null,Array.isArray);return news?news.map(normalizeNewsItem).filter(Boolean).slice(0,100):null; }
 function saveNews(n)   { try{localStorage.setItem(K_NEWS,JSON.stringify(n));}catch{} }
 function loadFriends() { const friends=readJsonStorage(K_FRIENDS,null,Array.isArray);return friends?friends.map(normalizeFriendship).filter(Boolean).slice(0,500):null; }
-function saveFriends(f){ try{localStorage.setItem(K_FRIENDS,JSON.stringify(f));}catch{} cloudPushFriends(f); }
+function saveFriends(f){ try{localStorage.setItem(K_FRIENDS,JSON.stringify(f));}catch{} }
 
 // ── UUID generator ────────────────────────────────────────────
 function offlineUuid(username) {

@@ -20,4 +20,16 @@ window.addEventListener('focus', refreshMinecraftProfilesIfDue);
 document.addEventListener('visibilitychange', refreshMinecraftProfilesIfDue);
 setInterval(refreshMinecraftProfilesIfDue, 15000);
 
+// Refresh incoming requests even when the recipient keeps the site open.
+let lastFriendRefresh = 0;
+async function refreshFriendshipsIfDue() {
+    if(document.hidden || Date.now()-lastFriendRefresh<5000)return;
+    lastFriendRefresh=Date.now();
+    await refreshFriendships();
+}
+window.addEventListener('focus',refreshFriendshipsIfDue);
+window.addEventListener('online',refreshFriendshipsIfDue);
+document.addEventListener('visibilitychange',refreshFriendshipsIfDue);
+setInterval(refreshFriendshipsIfDue,5000);
+
 }); // DOMContentLoaded
