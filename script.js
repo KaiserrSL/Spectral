@@ -3996,8 +3996,7 @@ function cloudPushUsers(users) {
     const row = {
         total_time_sec: Math.max(0, Math.round(Number(user.totalTimeSec) || 0)),
         visit_count: Math.max(0, Math.floor(Number(user.visitCount) || 0)),
-        last_seen: user.lastSeen || null,
-        mc_time_sec: Math.max(0, Math.round(Number(user.mcTimeSec) || 0))
+        last_seen: user.lastSeen || null
     };
     cloud.from('site_users').update(row).eq('id', cloudAuthUserId)
         .then(({ error }) => { if (error) handleCloudError('profile sync', error); })
@@ -4087,16 +4086,10 @@ async function saveMinecraftProfiles(uid, accounts, activeId) {
                 const {error}=await cloud.from('mc_accounts').delete().eq('user_id',uid).in('id',removed);
                 if (error) throw error;
             }
-            if (activeId !== activeMcId) {
-                const {error:clearError}=await cloud.from('mc_accounts').update({is_active:false})
-                    .eq('user_id',uid).eq('is_active',true);
-                if (clearError) throw clearError;
-                if (activeId) {
-                    const {data:selected,error:selectError}=await cloud.from('mc_accounts')
-                        .update({is_active:true}).eq('id',activeId).eq('user_id',uid).select('id');
-                    if (selectError) throw selectError;
-                    if (!selected?.some(row=>row.id===activeId)) throw new Error('The selected Minecraft profile was not saved.');
-                }
+            if (activeId && activeId !== activeMcId) {
+                const {data:selected,error:selectError}=await cloud.rpc('spectral_select_mc_account',{p_account_id:activeId});
+                if (selectError) throw selectError;
+                if (!selected?.some(row=>row.id===activeId)) throw new Error('The selected Minecraft profile was not saved.');
             }
             const {data:verified,error:verifyError}=await cloud.from('mc_accounts')
                 .select(MC_ACCOUNT_COLUMNS)
