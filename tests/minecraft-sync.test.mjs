@@ -12,7 +12,14 @@ function harness({failOperation = ''} = {}) {
     const records = new Map();
     const cache = [];
     const calls = [];
-    const cloud = {from(table) {
+    const cloud = {async rpc(name,{p_account_id:id}) {
+        assert.equal(name,'spectral_select_mc_account');
+        calls.push({operation:'select_account',payload:{id}});
+        if(failOperation==='select_account')return{data:null,error:new Error('database rejected selection')};
+        if(!records.has(id))return{data:null,error:new Error('profile unavailable')};
+        for(const [key,row] of records)records.set(key,{...row,is_active:key===id});
+        return{data:[{id}],error:null};
+    },from(table) {
         assert.equal(table, 'mc_accounts');
         const state = {operation:'select', payload:null, filters:[], selected:false, ids:null};
         const query = {
@@ -106,4 +113,13 @@ test('refresh loads launcher changes into the open site', async () => {
     assert.equal(await app.refresh(),true);
     assert.equal(app.cache.at(-2).accounts[0].username,'Steve');
     assert.equal(app.cache.at(-1).active,'la_launcher');
+});
+
+test('a failed atomic selection keeps the previous selection and browser cache',async()=>{
+    const app=harness({failOperation:'select_account'});
+    app.records.set('previous',{...profile,id:'previous',user_id:'owner',is_active:true});
+    await assert.rejects(app.save('owner',[profile],profile.id),/could not be saved online/);
+    assert.equal(app.records.get('previous').is_active,true);
+    assert.equal(app.cache.length,0);
+    assert.equal(app.calls.filter(call=>call.operation==='select_account').length,1);
 });
